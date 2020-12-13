@@ -29,7 +29,7 @@ jobs:
       run: sbt 'set test in assembly := {}' assembly
 
     - name: Build docker
-      run: docker build --tag verifier
+      run: docker build. --file Dockerfile --tag verifier
     - name: Run Test
       uses: addnab/docker-run-action@v1
       with:
