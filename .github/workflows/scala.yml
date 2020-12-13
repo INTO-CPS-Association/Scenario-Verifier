@@ -23,7 +23,11 @@ jobs:
       run:   sbt "test:testOnly ParserTests"
     - name: Build with SBT
       run: sbt 'set test in assembly := {}' assembly
-    - name: Build docer:
-    runs:
-      using: 'docker'
-      image: 'Dockerfile'
+    - name: Build docker
+    - name: Build service
+      uses: docker/build-push-action@v2
+      with:
+        load: true
+        tags: verifierImage
+        context: app
+        file: Dockerfile
