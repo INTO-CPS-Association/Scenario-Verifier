@@ -23,3 +23,7 @@ jobs:
       run:   sbt "test:testOnly ParserTests"
     - name: Build with SBT
       run: sbt 'set test in assembly := {}' assembly
+    - name: Build docer:
+    runs:
+      using: 'docker'
+      image: 'Dockerfile'
