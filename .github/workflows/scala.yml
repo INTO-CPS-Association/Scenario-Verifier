@@ -13,6 +13,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - uses: satackey/action-docker-layer-caching@v0.0.10
+      # Ignore the failure of a step and avoid terminating the job.
+      continue-on-error: true
     - name: Coursier cache
       uses: coursier/cache-action@v5
     - name: Set up JDK 1.11
@@ -24,6 +27,7 @@ jobs:
       run:   sbt "test:testOnly ParserTests"
     - name: Build with SBT
       run: sbt 'set test in assembly := {}' assembly
+
     - name: Build docker
       uses: docker/build-push-action@v2
       with:
