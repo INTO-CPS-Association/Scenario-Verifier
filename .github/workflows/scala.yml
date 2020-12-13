@@ -30,3 +30,8 @@ jobs:
         load: true
         tags: verifier
         file: Dockerfile
+    - name: Run Test
+      uses: addnab/docker-run-action@v1
+      with:
+        image: verifier:latest
+        run: echo "hello world"
