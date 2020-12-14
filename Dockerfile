@@ -58,8 +58,6 @@ RUN \
   ln -s /home/sbtuser/.sbt /root/.sbt
 
 ADD /uppaal-bin /usr/bin
-COPY run_tests.sh /usr/bin/run_tests.sh
-
 
 # Switch working directory back to root
 ## Users wanting to use this container as non-root should combine the two following arguments
@@ -69,7 +67,3 @@ WORKDIR /root
 
 # copy all the files to the container
 COPY . .
-RUN chmod +x /usr/bin/run_tests.sh
-
-
-CMD ["sh", "./usr/bin/run_tests.sh"]
