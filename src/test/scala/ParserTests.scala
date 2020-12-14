@@ -8,7 +8,7 @@ class ParserTests extends AnyFlatSpec with should.Matchers {
     val conf = getClass.getResourceAsStream("examples/simple_master.conf")
     val results = ScenarioLoader.load(conf)
     //Simple Test
-    assert(results.initialization.size == 10)
+    assert(results.initialization.size == 1)
     assert(results.cosimStep.size == 8)
     assert(results.scenario.connections.size == 3)
     assert(results.scenario.fmus.size == 2)
