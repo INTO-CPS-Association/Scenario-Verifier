@@ -18,20 +18,9 @@ jobs:
       continue-on-error: true
     - name: Coursier cache
       uses: coursier/cache-action@v5
-    - name: Set up JDK 1.11
-      uses: actions/setup-java@v1
-      with:
-        java-version: 11
-
-    - name: Run tests
-      run:   sbt "test:testOnly ParserTests"
-    - name: Build with SBT
-      run: sbt 'set test in assembly := {}' assembly
-
     - name: Build docker
       run: docker build. --file Dockerfile --tag verifier
     - name: Run Test
       uses: addnab/docker-run-action@v1
       with:
         image: verifier:latest
-        run: echo "hello world"
