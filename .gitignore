@@ -163,3 +163,5 @@ project/plugins/project/
 .idea/sbt.xml
 .idea/scala_compiler.xml
 .idea/vcs.xml
+
+release/
