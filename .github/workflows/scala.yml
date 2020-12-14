@@ -19,7 +19,7 @@ jobs:
     - name: Coursier cache
       uses: coursier/cache-action@v5
     - name: Build docker
-      run: docker build --tag verifier.
+      run: docker build --tag verifier .
     - name: Run Test
       uses: addnab/docker-run-action@v1
       with:
