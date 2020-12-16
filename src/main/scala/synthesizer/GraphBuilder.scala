@@ -46,13 +46,17 @@ class GraphBuilder(scenario: ScenarioModel) {
 
 /*
   private def createRestoreAndSaveNodes: Set[Edge[Node]]= {
-    val mayReject = scenario.fmus.filter(o => o._2.canRejectStep)
-    val reactiveInputsInStepLoop = mayReject.flatMap(fmu => fmu._2.inputs.filter(i => i._2.reactivity == reactive))
-    var initialSaveNodes: Set[SaveNode] = mayReject.map(f => SaveNode(f._1, f._2)).toSet
-    var initialRestoreNodes: Set[RestoreNode] = mayReject.map(f => RestoreNode(f._1, f._2)).toSet
+    val mayReject = scenario.fmus.filter(o => o._2.canRejectStep).toSet
+    val normalFMUs = scenario.fmus.filter(fmu => !mayReject.contains(fmu)).toSet
+    val reactiveInputs = scenario.fmus.map(fmu => (fmu._1, fmu._2.inputs.filter(i => i._2.reactivity == reactive).keys.toSet))
 
-  }
-*/
+val connectionsToReactiveInputs = scenario.connections.filter(con => reactiveInputs.con.trgPort ==)
+    reactiveInputs.foreach(i => {
+      if()
+    })
+
+  }*/
+
   private def saveEdges: Set[Edge[Node]]= {
     val saveToStep = SaveNodes.map(save =>  Edge[Node](save, stepNodes.find(_ == DoStepNode(save.name, save.fmu)).get))
     val saveToSet : Set[Edge[Node]]= SaveNodes.flatMap(save =>  SetNodes(save.name).map(i => Edge[Node](save, i)))

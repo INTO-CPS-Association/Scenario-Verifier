@@ -1,30 +1,28 @@
-import core.{ConnectionParserSingleton, PortRef, ScenarioLoader}
+import core.{ConnectionParserSingleton, MasterModel, PortRef, ScenarioLoader, ScenarioModel}
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import synthesizer.{DoStepNode, Edge, GetNode, GraphBuilder, Node, SetNode}
 
 class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
-
-  "GraphBuilder" should "should build an initial graph with connection and feedthrough edges" in {
-    val conf = getClass.getResourceAsStream("examples/simple_master.conf")
-    val scenario = ScenarioLoader.load(conf)
-
-    val graph = new GraphBuilder(scenario.scenario)
+  def testInitialGraph(masterModel: MasterModel): Unit ={
+    val scenario = masterModel.scenario
+    val graph = new GraphBuilder(scenario)
     val initialEdges = graph.initialEdges
 
     //There is an edge for all connections in the scenario
-    assert(scenario.scenario.connections.forall(c => initialEdges.contains(Edge[Node](GetNode(c.srcPort), SetNode(c.trgPort)))))
+    assert(scenario.connections.forall(c => initialEdges.contains(Edge[Node](GetNode(c.srcPort), SetNode(c.trgPort)))))
 
     //There is an edge for all initial feedthrough in the scenario
-    scenario.scenario.fmus.foreach(fmu => {
+    scenario.fmus.foreach(fmu => {
       fmu._2.outputs.foreach(o => {
         assert(o._2.dependenciesInit.forall(i => initialEdges.contains(Edge[Node](SetNode(PortRef(fmu._1, i)), GetNode(PortRef(fmu._1, o._1))))))
       })
     })
 
-    assert(initialEdges.size == 5)
+    //assert(initialEdges.size == 5)
+
     val nodes = (initialEdges.map(o => o.srcNode) ++ initialEdges.map(o => o.trgNode))
-    assert(nodes.size == 6)
+    assert(nodes.size == (masterModel.initialization.size - scenario.fmus.size * 2))
 
     //All nodes are either get or set
     assert(nodes.forall(n => n match {
@@ -33,6 +31,25 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
       case _ => false
     }))
   }
+
+  "GraphBuilder" should "should build an initial graph for Simple Master" in {
+    val conf = getClass.getResourceAsStream("examples/simple_master.conf")
+    val scenario = ScenarioLoader.load(conf)
+    testInitialGraph(scenario)
+  }
+
+  "GraphBuilder" should "should build an initial graph for Industrial case study" in{
+    val conf = getClass.getResourceAsStream("examples/industrial_casestudy.conf")
+    val scenario = ScenarioLoader.load(conf)
+    testInitialGraph(scenario)
+  }
+
+  "GraphBuilder" should "should build an initial graph for Two Algebraic Loops" in {
+    val conf = getClass.getResourceAsStream("examples/two_algebraic_loops.conf")
+    val scenario = ScenarioLoader.load(conf)
+    testInitialGraph(scenario)
+  }
+
 
   "GraphBuilder" should "should build a step graph with connections, feedthrough and doStep edges" in {
     val conf = getClass.getResourceAsStream("examples/simple_master.conf")
