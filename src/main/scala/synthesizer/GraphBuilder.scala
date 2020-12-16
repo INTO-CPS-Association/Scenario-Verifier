@@ -5,24 +5,27 @@ import core.{FmuModel, InputPortConfig, PortRef, ScenarioModel}
 
 sealed abstract class Node
 
-case class DoStepNode(name: String, fmu: FmuModel) extends Node
+case class DoStepNode(name: String) extends Node
 
 case class GetNode(port: PortRef) extends Node
 
 case class SetNode(port: PortRef) extends Node
 
-case class RestoreNode(name: String, fmu: FmuModel) extends Node
+case class RestoreNode(name: String) extends Node
 
-case class SaveNode(name: String, fmu: FmuModel) extends Node
+case class SaveNode(name: String) extends Node
 
 case class Edge[Node](srcNode: Node, trgNode: Node)
 
 class GraphBuilder(scenario: ScenarioModel) {
-  val stepNodes: Set[DoStepNode] = scenario.fmus.map(f => DoStepNode(f._1, f._2)).toSet
+  val stepNodes: Set[DoStepNode] = scenario.fmus.map(f => DoStepNode(f._1)).toSet
   val GetNodes: Map[String, Set[GetNode]] = scenario.fmus.map(f => (f._1, f._2.outputs.map(o => GetNode(PortRef(f._1, o._1))).toSet))
-  val SetNodes: Map[String, Set[SetNode]] = scenario.fmus.map(f => (f._1, f._2.inputs.map(i => SetNode(PortRef(f._1, i._1))).toSet))
-  val SaveNodes: Set[SaveNode] = scenario.fmus.filter(o => o._2.canRejectStep).map(f => SaveNode(f._1, f._2)).toSet
-  val RestoreNodes: Set[RestoreNode] = scenario.fmus.filter(o => o._2.canRejectStep).map(f => RestoreNode(f._1, f._2)).toSet
+
+  val SetNodesReactive: Map[String, Set[SetNode]] = scenario.fmus.map(f => (f._1, f._2.inputs.filter(i => i._2.reactivity == reactive).map(i => SetNode(PortRef(f._1, i._1))).toSet))
+  val SetNodesDelayed: Map[String, Set[SetNode]] = scenario.fmus.map(f => (f._1, f._2.inputs.filter(i => i._2.reactivity != reactive).map(i => SetNode(PortRef(f._1, i._1))).toSet))
+  val SetNodes = scenario.fmus.map(f => (f._1, f._2.inputs.map(i => SetNode(PortRef(f._1, i._1))).toSet))
+  val SaveNodes: Set[SaveNode] = scenario.fmus.filter(o => o._2.canRejectStep).map(f => SaveNode(f._1)).toSet
+  val RestoreNodes: Set[RestoreNode] = scenario.fmus.filter(o => o._2.canRejectStep).map(f => RestoreNode(f._1)).toSet
 
   private def feedthroughInit: Map[GetNode, Set[SetNode]] =
     scenario.fmus.flatMap(f => {
@@ -41,9 +44,9 @@ class GraphBuilder(scenario: ScenarioModel) {
   }
 
   private def doStepEdges: Set[Edge[Node]] = {
-    val stepToGet = stepNodes.flatMap(step => step.fmu.outputs.map(o => Edge[Node](step, GetNode(PortRef(step.name, o._1)))))
-    val reactiveToStep = stepNodes.flatMap(step => step.fmu.inputs.filter(i => i._2.reactivity == reactive).map(i => Edge[Node](SetNode(PortRef(step.name, i._1)), step)))
-    val stepToDelayed = stepNodes.flatMap(step => step.fmu.inputs.filter(i => i._2.reactivity == delayed).map(i => Edge[Node](step, SetNode(PortRef(step.name, i._1)))))
+    val stepToGet = stepNodes.flatMap(step => GetNodes(step.name).map(o => Edge[Node](step, o)))
+    val reactiveToStep = stepNodes.flatMap(step => SetNodesReactive(step.name).map(i => Edge[Node](i, step)))
+    val stepToDelayed = stepNodes.flatMap(step => SetNodesDelayed(step.name).map(i => Edge[Node](step, i)))
     stepToGet ++ reactiveToStep ++ stepToDelayed
   }
 
@@ -61,10 +64,10 @@ class GraphBuilder(scenario: ScenarioModel) {
     }*/
 
   private def saveEdges: Set[Edge[Node]] = {
-    val saveToStep = SaveNodes.map(save => Edge[Node](save, stepNodes.find(_ == DoStepNode(save.name, save.fmu)).get))
+    val saveToStep = SaveNodes.map(save => Edge[Node](save, stepNodes.find(_ == DoStepNode(save.name)).get))
     val saveToSet: Set[Edge[Node]] = SaveNodes.flatMap(save => SetNodes(save.name).map(i => Edge[Node](save, i)))
     val saveToGet: Set[Edge[Node]] = SaveNodes.flatMap(save => GetNodes(save.name).map(i => Edge[Node](save, i)))
-    val saveToRestore = SaveNodes.map(save => Edge[Node](save, RestoreNodes.find(_ == RestoreNode(save.name, save.fmu)).get))
+    val saveToRestore = SaveNodes.map(save => Edge[Node](save, RestoreNodes.find(_ == RestoreNode(save.name)).get))
     saveToGet ++ saveToSet ++ saveToStep ++ saveToRestore
   }
 

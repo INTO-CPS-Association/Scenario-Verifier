@@ -79,7 +79,7 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
     assert(stepEdges.size == 11)
 
     assert(nodes.count(i => i match {
-      case DoStepNode(_, _) => true
+      case DoStepNode(_) => true
       case _ => false
     }) == 2)
 
@@ -87,7 +87,7 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
     assert(nodes.forall(n => n match {
       case GetNode(_) => true
       case SetNode(_) => true
-      case DoStepNode(_,_) => true
+      case DoStepNode(_) => true
       case _ => false
     }))
   }
