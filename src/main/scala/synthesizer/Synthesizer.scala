@@ -59,12 +59,12 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
     //Remove Artifical edges between DoStep-edges
     val edgesInSCC = getEdgesInSCC(scc, true).filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode))
     val FMUs = scc.filter(IsStepNode).map { case DoStepNode(name) => name}.toSet
-    val edges = edgesInSCC ++ graphBuilder.saveRestoreEdges(FMUs)
+    val edges = edgesInSCC ++ graphBuilder.saveRestoreEdges(FMUs, scc)
 
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edges)
     //Cycles are not yet supported
     assert(!tarjanGraph.hasCycle)
-    val instructions = tarjanGraph.topologicalSCC.flatten.map(i => formatStepInstruction(i)).filter(IsLoopInstruction _).toList
+    val instructions = tarjanGraph.topologicalSCC.flatten.map(i => formatStepInstruction(i)).filter(IsLoopInstruction).toList
     val saves = FMUs.map(o => formatStepInstruction(SaveNode(o))).toList
     val restores = FMUs.map(o => formatStepInstruction(RestoreNode(o))).toList
     saves.:+(core.StepLoop(FMUs.toList, instructions, restores))
@@ -163,8 +163,8 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
       } else {
         checkSCC(scc.toList) match {
           case FeedthroughLoop(nodes) => throw new UnsupportedOperationException("Unsupported SCC in Graph")
-          case ReactiveLoop(nodes) => instructions ++= formatAlgebraicLoop(scc.toList)
-          case StepLoop(nodes) => instructions ++= formatStepLoop(scc.toList)
+          case ReactiveLoop(nodes) => instructions ++= formatAlgebraicLoop(nodes)
+          case StepLoop(nodes) => instructions ++= formatStepLoop(nodes)
           case _ => throw new UnsupportedOperationException("Unknown SCC in Graph")
         }
       }

@@ -12,14 +12,9 @@ import synthesizer._
 class SynthesizerPositiveTest extends AnyFlatSpec with should.Matchers {
 
   def writeToTempFile(content: String) = {
-    val file = new File("uppaal_.xml")
-    new PrintWriter(file) { write(content); close() }
-    file
-    /*
     val file = Files.createTempFile("uppaal_", ".xml").toFile
     new PrintWriter(file) { write(content); close() }
     file
-     */
   }
 
   def synthesizeAndVerify(resourcesFile: String, strategy: LoopStrategy = maximum) = {
@@ -36,6 +31,7 @@ class SynthesizerPositiveTest extends AnyFlatSpec with should.Matchers {
     VerifyTA.verify(f) should be (0)
     FileUtils.deleteQuietly(f)
   }
+
 
   "Synthesizer" should "create valid Master Algorithm for Algebraic Initialization" in{
     synthesizeAndVerify("examples/algebraic_loop_initialization.conf")
@@ -61,5 +57,13 @@ class SynthesizerPositiveTest extends AnyFlatSpec with should.Matchers {
 
   "Synthesizer" should "create valid Step Finding procedure for Step Loop" in {
     synthesizeAndVerify("examples/step_finding_loop_msd_1.conf", minimum)
+  }
+
+  "Synthesizer" should "create valid Step Finding And Algebraic procedure for Combined Step and GS Algebraic" in {
+    synthesizeAndVerify("examples/combined_step_algebraic.conf", minimum)
+  }
+
+  "Synthesizer" should "create valid Step Finding And Algebraic procedure for Combined Step and Jac Algebraic" in {
+    synthesizeAndVerify("examples/combined_step_algebraic.conf", maximum)
   }
 }
