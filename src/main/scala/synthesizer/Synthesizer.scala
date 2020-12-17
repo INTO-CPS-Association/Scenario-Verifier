@@ -3,7 +3,7 @@ package synthesizer
 import core._
 import synthesizer.LoopStrategy.{LoopStrategy, maximum}
 
-import scala.collection.convert.ImplicitConversions.`collection asJava`
+import scala.collection.immutable.HashSet
 import scala.collection.mutable
 
 object LoopStrategy extends Enumeration {
@@ -11,14 +11,26 @@ object LoopStrategy extends Enumeration {
   val minimum, maximum = Value
 }
 
+trait SCCType {
+  def nodes: List[Node]
+}
+
+case class ReactiveLoop(nodes: List[Node]) extends SCCType
+
+case class FeedthroughLoop(nodes: List[Node]) extends SCCType
+
+case class StepLoop(nodes: List[Node]) extends SCCType
+
 class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
   val graphBuilder: GraphBuilder = new GraphBuilder(scenarioModel)
-  var FMUsThatHaveStepped: mutable.HashSet[String] = new mutable.HashSet[String]()
+  val FMUsStepped: mutable.HashSet[String] = new mutable.HashSet[String]()
+  val FMUsSaved: mutable.HashSet[String] = new mutable.HashSet[String]()
+  val FMUsMayRejectStepped: mutable.HashSet[String] = new mutable.HashSet[String]()
 
-  def formatInitLoop(scc: mutable.Buffer[Node]): InitializationInstruction = {
-    val gets = graphBuilder.GetNodes.values.flatten.filter(o => scc.contains(o))
+  def formatInitLoop(scc: List[Node]): InitializationInstruction = {
+    val gets = graphBuilder.GetNodes.values.flatten.filter(o => scc.contains(o)).toList
 
-    var edgesInGraph = graphBuilder.initialEdges.filter(e => scc.contains(e.srcNode) && scc.contains(e.trgNode))
+    var edgesInGraph = getEdgesInSCC(scc, false)
     if (strategy == maximum)
     //Remove all connections between FMUs
       edgesInGraph = edgesInGraph.filterNot(e => gets.contains(e.trgNode))
@@ -32,35 +44,49 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
     AlgebraicLoopInit(gets.map(o => o.port).toList, tarjanGraph.topologicalSCC.flatten.map(formatInitialInstruction).toList)
   }
 
+  def IsStepNode(node: Node): Boolean = node match {
+    case DoStepNode(_) => true
+    case _ => false
+  }
 
-  def formatAlgebraicLoop(scc: mutable.Buffer[Node]): List[CosimStepInstruction] = {
+  def IsLoopInstruction(instruction:CosimStepInstruction):Boolean = instruction match {
+    case RestoreState(fmu) => false
+    case SaveState(fmu) => false
+    case _ => true
+  }
+
+  def formatStepLoop(scc: List[Node]): List[CosimStepInstruction] = {
+    //Remove Artifical edges between DoStep-edges
+    val edgesInSCC = getEdgesInSCC(scc, true).filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode))
+    val FMUs = scc.filter(IsStepNode).map { case DoStepNode(name) => name}.toSet
+    val edges = edgesInSCC ++ graphBuilder.saveRestoreEdges(FMUs)
+
+    val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edges)
+    //Cycles are not yet supported
+    assert(!tarjanGraph.hasCycle)
+    val instructions = tarjanGraph.topologicalSCC.flatten.map(i => formatStepInstruction(i)).filter(IsLoopInstruction _).toList
+    val saves = FMUs.map(o => formatStepInstruction(SaveNode(o))).toList
+    val restores = FMUs.map(o => formatStepInstruction(RestoreNode(o))).toList
+    saves.:+(core.StepLoop(FMUs.toList, instructions, restores))
+  }
+
+  def formatAlgebraicLoop(scc: List[Node]): List[CosimStepInstruction] = {
     val steps = graphBuilder.stepNodes.filter(o => scc.contains(o))
-    val gets = graphBuilder.GetNodes.values.flatten.filter(o => scc.contains(o))
-    val setsDelayed = graphBuilder.SetNodesDelayed.values.flatten.filter(o => scc.contains(o))
-    val setsReactive = graphBuilder.SetNodesReactive.values.flatten.filter(o => scc.contains(o))
+    val gets = graphBuilder.GetNodes.values.flatten.filter(o => scc.contains(o)).toList
+    val setsDelayed = graphBuilder.SetNodesDelayed.values.flatten.filter(o => scc.contains(o)).toList
+    val setsReactive = graphBuilder.SetNodesReactive.values.flatten.filter(o => scc.contains(o)).toList
 
-    var edgesInSCC = graphBuilder.stepEdges.filter(e => scc.contains(e.srcNode) && scc.contains(e.trgNode))
+    var edgesInSCC = getEdgesInSCC(scc, true)
     val FMUs = steps.map(o => o.name)
 
     val reactiveGets = gets.filter(o => (edgesInSCC.exists(edge => edge.srcNode == o && setsReactive.contains(edge.trgNode)))).toSet
 
     //Add restore and save nodes:
-    FMUs.foreach(fmu => {
-      edgesInSCC += (Edge[Node](SaveNode(fmu), RestoreNode(fmu)))
-      edgesInSCC += (Edge[Node](SaveNode(fmu), DoStepNode(fmu)))
-      //val setsFMU = setsDelayed.filter(o => o.port.fmu == fmu) ++ setsReactive.filter(o => o.port.fmu == fmu)
-      (setsDelayed ++ setsReactive).foreach(s => {
-        edgesInSCC += (Edge[Node](SaveNode(fmu), s))
-      })
-      reactiveGets.foreach(g => {
-        edgesInSCC += (Edge[Node](g, RestoreNode(fmu)))
-      })
-    })
+    ExpandReactiveSCC(FMUs,setsDelayed, setsReactive,reactiveGets.toList)
 
-    //Remove all connections between FMUs
     if (strategy == maximum)
     //Remove all connections between FMUs
-      edgesInSCC = edgesInSCC.filterNot(e => setsReactive.toList.contains(e.trgNode) && gets.contains(e.srcNode))
+      edgesInSCC = edgesInSCC.filterNot(e => setsReactive.contains(e.trgNode) && gets.contains(e.srcNode))
     else {
       //Remove all connections to a single FMU
       val reducedList = setsReactive.groupBy(o => o.port.fmu).head._2
@@ -69,14 +95,32 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
 
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edgesInSCC)
 
-    val instructions = tarjanGraph.topologicalSCC.flatten.map(formatStepInstruction(_, true)).filter(o => o match {
-      case RestoreState(fmu) => false
-      case SaveState(fmu) => false
-      case _ => true
-    }).toList
-    val saves = FMUs.map(o => formatStepInstruction(SaveNode(o), true)).toList
-    val restores = FMUs.map(o => formatStepInstruction(RestoreNode(o), true)).toList
+    val instructions = tarjanGraph.topologicalSCC.flatten.map(formatStepInstruction(_, true)).filter(IsLoopInstruction).toList
+    val saves = FMUs.map(o => formatStepInstruction(SaveNode(o))).toList
+    val restores = FMUs.map(o => formatStepInstruction(RestoreNode(o))).toList
     saves.:+(AlgebraicLoop(reactiveGets.map(_.port).toList, instructions, restores))
+  }
+
+  private def ExpandReactiveSCC(FMUs: scala.collection.Set[String], setsDelayed:List[SetNode], setsReactive:List[SetNode], reactiveGets:List[GetNode]):HashSet[Edge[Node]] = {
+    var edgesInSCC: HashSet[Edge[Node]] = HashSet.empty
+    FMUs.foreach(fmu => {
+      edgesInSCC += (Edge[Node](SaveNode(fmu), RestoreNode(fmu)))
+      edgesInSCC += (Edge[Node](SaveNode(fmu), DoStepNode(fmu)))
+      (setsDelayed ++ setsReactive).foreach(s => {
+        edgesInSCC += (Edge[Node](SaveNode(fmu), s))
+      })
+      reactiveGets.foreach(g => {
+        edgesInSCC += (Edge[Node](g, RestoreNode(fmu)))
+      })
+    })
+    edgesInSCC
+  }
+
+  private def getEdgesInSCC(scc: List[Node], isStep:Boolean) = {
+    if(isStep)
+      graphBuilder.stepEdges.filter(e => scc.contains(e.srcNode) && scc.contains(e.trgNode))
+    else
+      graphBuilder.initialEdges.filter(e => scc.contains(e.srcNode) && scc.contains(e.trgNode))
   }
 
   def synthesizeInitialization(): List[InitializationInstruction] = {
@@ -87,22 +131,42 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
       if (scc.size == 1) {
         formatInitialInstruction(scc.head)
       } else {
-        formatInitLoop(scc)
+        formatInitLoop(scc.toList)
       }
     }).toList
+  }
+
+
+  def isStepLoop(scc: List[Node]): Boolean = {
+    val edges = getEdgesInSCC(scc, true)
+    edges.count(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode)) > 0
+  }
+
+  def checkSCC(scc: List[Node]): SCCType = {
+    if (isStepLoop(scc)) {
+      StepLoop(scc)
+    } else if (scc.count(IsStepNode) > 0)
+      ReactiveLoop(scc)
+    else
+      FeedthroughLoop(scc)
   }
 
 
   def synthesizeStep(): List[CosimStepInstruction] = {
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](graphBuilder.stepEdges)
     val SCCs = tarjanGraph.topologicalSCC
-    var instructions : List[CosimStepInstruction] = List.empty[CosimStepInstruction]
+    var instructions: List[CosimStepInstruction] = List.empty[CosimStepInstruction]
     SCCs.foreach(scc => {
       if (scc.size == 1) {
         //Currently only trivial SCC are considered
         instructions = instructions.:+(formatStepInstruction(scc.head, false))
       } else {
-        instructions = instructions ++ formatAlgebraicLoop(scc)
+        checkSCC(scc.toList) match {
+          case FeedthroughLoop(nodes) => throw new UnsupportedOperationException("Unsupported SCC in Graph")
+          case ReactiveLoop(nodes) => instructions ++= formatAlgebraicLoop(scc.toList)
+          case StepLoop(nodes) => instructions ++= formatStepLoop(scc.toList)
+          case _ => throw new UnsupportedOperationException("Unknown SCC in Graph")
+        }
       }
     })
     instructions
@@ -116,16 +180,19 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
     }
   }
 
-  def formatStepInstruction(node: Node, isLoop: Boolean): CosimStepInstruction = {
+  def formatStepInstruction(node: Node, isReactiveLoop: Boolean = false): CosimStepInstruction = {
     node match {
       case DoStepNode(name) => {
-        FMUsThatHaveStepped.add(name)
+        FMUsStepped.add(name)
         Step(name, DefaultStepSize())
       }
-      case GetNode(port) => if (FMUsThatHaveStepped.contains(port.fmu) && isLoop) GetTentative(port) else Get(port)
-      case SetNode(port) => if (FMUsThatHaveStepped.contains(port.fmu) && isLoop) SetTentative(port) else core.Set(port)
+      case GetNode(port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) GetTentative(port) else Get(port)
+      case SetNode(port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) SetTentative(port) else core.Set(port)
       case RestoreNode(name) => RestoreState(name)
-      case SaveNode(name) => SaveState(name)
+      case SaveNode(name) => {
+        FMUsSaved.add(name)
+        SaveState(name)
+      }
     }
   }
 }

@@ -19,8 +19,6 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
       })
     })
 
-    //assert(initialEdges.size == 5)
-
     val nodes = (initialEdges.map(o => o.srcNode) ++ initialEdges.map(o => o.trgNode))
     assert(nodes.size == (masterModel.initialization.size - scenario.fmus.size * 2))
 

@@ -1214,7 +1214,7 @@
             <label kind="guard" x="416" y="-221">!loopConverged() &amp;&amp;
                 numbersOfTries &lt; maxTries
             </label>
-            <label kind="assignment" x="433" y="-161">activeFMU := 0,
+            <label kind="assignment" x="433" y="-161">selectNextStepRestoreAction(),
                 updateIsExtra()
             </label>
         </transition>

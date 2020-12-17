@@ -20,12 +20,10 @@ case class Edge[Node](srcNode: Node, trgNode: Node)
 class GraphBuilder(scenario: ScenarioModel) {
   val stepNodes: Set[DoStepNode] = scenario.fmus.map(f => DoStepNode(f._1)).toSet
   val GetNodes: Map[String, Set[GetNode]] = scenario.fmus.map(f => (f._1, f._2.outputs.map(o => GetNode(PortRef(f._1, o._1))).toSet))
-
   val SetNodesReactive: Map[String, Set[SetNode]] = scenario.fmus.map(f => (f._1, f._2.inputs.filter(i => i._2.reactivity == reactive).map(i => SetNode(PortRef(f._1, i._1))).toSet))
   val SetNodesDelayed: Map[String, Set[SetNode]] = scenario.fmus.map(f => (f._1, f._2.inputs.filter(i => i._2.reactivity != reactive).map(i => SetNode(PortRef(f._1, i._1))).toSet))
   val SetNodes = scenario.fmus.map(f => (f._1, f._2.inputs.map(i => SetNode(PortRef(f._1, i._1))).toSet))
-  val SaveNodes: Set[SaveNode] = scenario.fmus.filter(o => o._2.canRejectStep).map(f => SaveNode(f._1)).toSet
-  val RestoreNodes: Set[RestoreNode] = scenario.fmus.filter(o => o._2.canRejectStep).map(f => RestoreNode(f._1)).toSet
+
 
   private def feedthroughInit: Map[GetNode, Set[SetNode]] =
     scenario.fmus.flatMap(f => {
@@ -50,31 +48,42 @@ class GraphBuilder(scenario: ScenarioModel) {
     stepToGet ++ reactiveToStep ++ stepToDelayed
   }
 
-  /*
-    private def createRestoreAndSaveNodes: Set[Edge[Node]]= {
-      val mayReject = scenario.fmus.filter(o => o._2.canRejectStep).toSet
-      val normalFMUs = scenario.fmus.filter(fmu => !mayReject.contains(fmu)).toSet
-      val reactiveInputs = scenario.fmus.map(fmu => (fmu._1, fmu._2.inputs.filter(i => i._2.reactivity == reactive).keys.toSet))
 
-  val connectionsToReactiveInputs = scenario.connections.filter(con => reactiveInputs.con.trgPort ==)
-      reactiveInputs.foreach(i => {
-        if()
-      })
+  private def StepFindingEdges: Set[Edge[Node]] = {
+    var mayReject = scenario.fmus.filter(o => o._2.canRejectStep).keys.toSet
+    var normalFMUs = scenario.fmus.filter(fmu => !mayReject.contains(fmu._1)).keys.toSet
+    val reactiveInputs = scenario.fmus.map(fmu => (fmu._1, fmu._2.inputs.filter(i => i._2.reactivity == reactive).keys.toSet))
+    val reactiveConnections = scenario.connections.filter(c => reactiveInputs(c.trgPort.fmu).contains(c.trgPort.port))
+    var conv = false
+    while (!conv) {
+      //FMUs connected to an FMU that may reject a step
+      var FMUsThatShouldBeAdded = reactiveConnections.filter(o => mayReject.contains(o.trgPort.fmu) && normalFMUs.contains(o.srcPort.fmu)).map(o => o.srcPort.fmu)
+      //These should be added to the set tha that May reject
+      mayReject ++= FMUsThatShouldBeAdded
+      normalFMUs --= FMUsThatShouldBeAdded
 
-    }*/
+      conv = FMUsThatShouldBeAdded.isEmpty
+    }
+    //FMUs connected reactively that both may reject a step should be connected
+    val artificalEdges = reactiveConnections.filter(o => mayReject.contains(o.trgPort.fmu) && mayReject.contains(o.srcPort.fmu)).map(o => Edge[Node](DoStepNode(o.trgPort.fmu), DoStepNode(o.srcPort.fmu))).toSet
+    artificalEdges
+  }
 
-  private def saveEdges: Set[Edge[Node]] = {
+  def saveRestoreEdges(mayReject:Set[String]): Set[Edge[Node]] = {
+    val SaveNodes: Set[SaveNode] = mayReject.map(SaveNode)
+    val RestoreNodes: Set[RestoreNode] = mayReject.map(RestoreNode)
     val saveToStep = SaveNodes.map(save => Edge[Node](save, stepNodes.find(_ == DoStepNode(save.name)).get))
     val saveToSet: Set[Edge[Node]] = SaveNodes.flatMap(save => SetNodes(save.name).map(i => Edge[Node](save, i)))
     val saveToGet: Set[Edge[Node]] = SaveNodes.flatMap(save => GetNodes(save.name).map(i => Edge[Node](save, i)))
     val saveToRestore = SaveNodes.map(save => Edge[Node](save, RestoreNodes.find(_ == RestoreNode(save.name)).get))
-    saveToGet ++ saveToSet ++ saveToStep ++ saveToRestore
+    val stepToRestore = RestoreNodes.map(restore => Edge[Node](stepNodes.find(_ == DoStepNode(restore.name)).get, restore))
+    saveToGet ++ saveToSet ++ saveToStep ++ saveToRestore ++ stepToRestore
   }
 
   lazy val initialEdges: Set[Edge[Node]] = connectionEdges ++ feedthroughInit.flatMap(f => f._2.map(i => Edge[Node](i, f._1))).toSet
 
   lazy val stepEdges: Set[Edge[Node]] = {
-    connectionEdges ++ feedthrough.flatMap(f => f._2.map(i => Edge[Node](i, f._1))).toSet ++ doStepEdges ++ saveEdges
+    connectionEdges ++ feedthrough.flatMap(f => f._2.map(i => Edge[Node](i, f._1))).toSet ++ doStepEdges ++ StepFindingEdges
   }
 
 }
