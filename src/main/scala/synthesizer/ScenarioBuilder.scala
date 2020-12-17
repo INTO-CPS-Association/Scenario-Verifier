@@ -12,12 +12,12 @@ object ScenarioBuilder {
 
   def isReactive(): Reactivity = if (Random.nextBoolean()) delayed else reactive
 
-  def createFeedthrough(inputNames: List[String]): List[String] = {
-    val dependencies = Random.between(0, inputNames.size)
+  def createFeedthrough(inputNames: List[String], supportFeedthrough:Boolean): List[String] = {
+    val dependencies = if (supportFeedthrough) Random.between(0, inputNames.size) else 0
     inputNames.take(dependencies)
   }
 
-  def generateScenario(nFMU: Int, nConnection: Int): ScenarioModel = {
+  def generateScenario(nFMU: Int, nConnection: Int, supportFeedthrough: Boolean): ScenarioModel = {
     assert(nFMU > 0)
     assert(nFMU <= nConnection, "Scenario should have minimum the same number og edges as FMU")
 
@@ -30,7 +30,7 @@ object ScenarioBuilder {
       val inputs = inputPortsPerFMU(i).map(n => (n.port, InputPortModel(isReactive()))).toMap
       assert(inputs.nonEmpty)
       val inputNames = inputs.keys.toList
-      val outputs = outputPortsPerFMU(i).map(n => (n.port, OutputPortModel(createFeedthrough(inputNames), createFeedthrough(inputNames)))).toMap
+      val outputs = outputPortsPerFMU(i).map(n => (n.port, OutputPortModel(createFeedthrough(inputNames, supportFeedthrough), createFeedthrough(inputNames, supportFeedthrough)))).toMap
       assert(outputs.nonEmpty)
 
       val canReject = Random.nextBoolean()

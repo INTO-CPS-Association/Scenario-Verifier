@@ -13,18 +13,13 @@ import scala.collection.immutable.HashSet
 
 class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
   def writeToTempFile(content: String) = {
-    val file = new File("uppaal_.xml")
-    new PrintWriter(file) { write(content); close() }
-    file
-    /*
     val file = Files.createTempFile("uppaal_", ".xml").toFile
     new PrintWriter(file) { write(content); close() }
     file
-     */
   }
 
-  def generateSynthesisAndVerify(scenarioName: String, nFMU: Int, nConnection: Int, strategy: LoopStrategy = maximum) = {
-    val scenario = ScenarioBuilder.generateScenario(nFMU, nConnection)
+  def generateSynthesisAndVerify(scenarioName: String, nFMU: Int, nConnection: Int, feedthrough: Boolean = true, strategy: LoopStrategy = maximum) = {
+    val scenario = ScenarioBuilder.generateScenario(nFMU, nConnection, feedthrough)
     val synthesizer = new Synthesizer(scenario, strategy)
     val step = synthesizer.synthesizeStep()
     val init =  ScenarioLoader.generateEnterInitInstructions(scenario) ++ synthesizer.synthesizeInitialization() ++ ScenarioLoader.generateExitInitInstructions(scenario)
@@ -50,8 +45,8 @@ class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
     generateSynthesisAndVerify("Test Big Example", 10, 20)
   }
 
-  ignore should "create valid Big example" in{
-    generateSynthesisAndVerify("Test Big Example", 50, 100)
+  "ScenarioBuilderTest" should "create valid Big example with no Feedthrough" in{
+    generateSynthesisAndVerify("Test Big Example", 50, 100, false)
   }
 
   "ScenarioBuilderTest" should "create valid Connection example" in{
