@@ -9,8 +9,7 @@ import org.scalatest.matchers._
 import synthesizer.LoopStrategy.{LoopStrategy, maximum, minimum}
 import synthesizer._
 
-class SynthesizerPositiveTest extends AnyFlatSpec with should.Matchers {
-
+class SynthesizerTest extends AnyFlatSpec with should.Matchers {
   def writeToTempFile(content: String) = {
     val file = Files.createTempFile("uppaal_", ".xml").toFile
     new PrintWriter(file) { write(content); close() }

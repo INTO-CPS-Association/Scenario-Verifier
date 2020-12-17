@@ -4,7 +4,9 @@ import org.scalatest.matchers._
 import synthesizer.{DoStepNode, Edge, GetNode, GraphBuilder, Node, SetNode}
 
 class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
-  def testInitialGraph(masterModel: MasterModel): Unit ={
+  def testInitialGraph(file: String): Unit ={
+    val conf = getClass.getResourceAsStream(file)
+    val masterModel = ScenarioLoader.load(conf)
     val scenario = masterModel.scenario
     val graph = new GraphBuilder(scenario)
     val initialEdges = graph.initialEdges
@@ -31,21 +33,15 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
   }
 
   "GraphBuilder" should "should build an initial graph for Simple Master" in {
-    val conf = getClass.getResourceAsStream("examples/simple_master.conf")
-    val scenario = ScenarioLoader.load(conf)
-    testInitialGraph(scenario)
+    testInitialGraph("examples/simple_master.conf")
   }
 
   "GraphBuilder" should "should build an initial graph for Industrial case study" in{
-    val conf = getClass.getResourceAsStream("examples/industrial_casestudy.conf")
-    val scenario = ScenarioLoader.load(conf)
-    testInitialGraph(scenario)
+    testInitialGraph("examples/industrial_casestudy.conf")
   }
 
   "GraphBuilder" should "should build an initial graph for Two Algebraic Loops" in {
-    val conf = getClass.getResourceAsStream("examples/two_algebraic_loops.conf")
-    val scenario = ScenarioLoader.load(conf)
-    testInitialGraph(scenario)
+    testInitialGraph("examples/two_algebraic_loops.conf")
   }
 
 
