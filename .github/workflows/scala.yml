@@ -19,4 +19,4 @@ jobs:
       uses: addnab/docker-run-action@v1
       with:
         image: simonthrane/uppaal_image:latest
-        run: sbt clean test
+        run: -v "/home/runner/work/<repo>/<repo>":"/root" sbt clean test
