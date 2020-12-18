@@ -15,8 +15,5 @@ jobs:
     - uses: actions/checkout@v2
     - name: Pull image
       run: docker pull simonthrane/uppaal_image:latest
-    - name: Run Test
-      uses: addnab/docker-run-action@v1
-      with:
-        image: simonthrane/uppaal_image:latest
-        run: 'cd /github/workspace && sbt clean test' 
+    - name: Build and Test
+      run:  docker run --rm -v $(pwd):/root uppaal_image /bin/bash -c 'cd /root && sbt clean test' 
