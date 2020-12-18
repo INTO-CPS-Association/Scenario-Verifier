@@ -13,12 +13,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Build docker
-      run: docker build --tag verifier .
     - name: Pull image
       run: docker pull simonthrane/uppaal_image:latest
     - name: Run Test
       uses: addnab/docker-run-action@v1
       with:
-        image: uppaal_image:latest
+        image: simonthrane/uppaal_image:latest
         run: sbt clean test
