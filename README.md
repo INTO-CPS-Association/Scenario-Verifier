@@ -45,3 +45,17 @@ java -D"log4j.configurationFile=.\log4j2.xml" -jar .\scenario_verifier-assembly-
 ```
 
 We have an example of `log4j2.xml` in the source.
+
+## Todo
+
+@SimplisticCode will implement the following:
+
+- [ ] Optimization of Algorithms
+    - [ ] Parallelization
+    - [ ] Fewest Possible Actions in a Step
+    - [ ] Saving of Scenario in Conf file (From Code create scenarios to Conf)
+- [ ] Optimize Docker Build Setup
+- [ ] Write Documentation about the Synthesizer
+- [ ] Write Documentation about the Generator
+- [ ] Extend the Uppaal-model so it can verify Hierarchical Co-simulation scenarios
+- [ ] Extend the verifier with the ability to have multiple configurations of the same scenario
