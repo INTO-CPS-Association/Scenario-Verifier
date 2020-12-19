@@ -6,6 +6,7 @@ import scala.collection.immutable.HashMap
 import scala.collection.{immutable, mutable}
 
 class TarjanGraph[A](src: Iterable[Edge[A]]) {
+
   lazy val tarjan: mutable.Buffer[mutable.Buffer[A]] = {
     var s = mutable.Buffer.empty[A] //Stack to keep track of nodes reachable from current node
     val index = mutable.Map.empty[A, Int] //index of each node
@@ -60,8 +61,12 @@ class TarjanGraph[A](src: Iterable[Edge[A]]) {
     tarjan.map(_.toList).reverse.toList
   }
 
-  lazy val connectedComponents: Map[Int, List[A]] = { // Mark all the vertices as not visited
-    //val visited = Map.empty[Int, List[A]]
+  lazy val topologicalconnectedSCC: Set[List[List[A]]] = {
+      connectedComponents.zipWithIndex.map(c => topologicalSCC.filter(o => c._1.contains(o.head)))
+  }
+
+
+  lazy val connectedComponents: Set[List[A]] = {
     val visited = mutable.Set.empty[A]
     val connectedComponents = mutable.Map.empty[Int, List[A]]
     val undirectedEdges = src.map(o => Edge(o.trgNode, o.srcNode)) ++ src
@@ -78,13 +83,13 @@ class TarjanGraph[A](src: Iterable[Edge[A]]) {
       inConnection
     }
 
-    var i : Int = 0
+    var i: Int = 0
     src.foreach(v =>
       if (!visited.contains(v.srcNode)) {
         connectedComponents.addOne(i, DFSUtil(v.srcNode, i))
         i += 1
-    })
+      })
 
-    connectedComponents.toMap
+    connectedComponents.values.toSet
   }
 }
