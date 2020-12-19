@@ -65,7 +65,6 @@ class TarjanGraph[A](src: Iterable[Edge[A]]) {
       connectedComponents.zipWithIndex.map(c => topologicalSCC.filter(o => c._1.contains(o.head)))
   }
 
-
   lazy val connectedComponents: Set[List[A]] = {
     val visited = mutable.Set.empty[A]
     val connectedComponents = mutable.Map.empty[Int, List[A]]

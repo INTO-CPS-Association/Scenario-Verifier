@@ -73,9 +73,7 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
   }
 
   private def createSaves(FMUs: Predef.Set[String]) = {
-    val saved = FMUs.diff(FMUsSaved)
-    FMUsSaved ++= saved
-    saved.map(o => formatStepInstruction(SaveNode(o))).toList
+    FMUs.diff(FMUsSaved).map(o => formatStepInstruction(SaveNode(o))).toList
   }
 
   def formatAlgebraicLoop(scc: List[Node]): List[CosimStepInstruction] = {
@@ -141,7 +139,7 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
       } else {
         formatInitLoop(scc.toList)
       }
-    }).toList
+    })
   }
 
 
@@ -201,6 +199,12 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
         SaveState(name)
       }
     }
+  }
+
+  def ComplexityOfScenario(): Double = {
+    val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](graphBuilder.stepEdges)
+    val SCCs = tarjanGraph.topologicalSCC
+    SCCs.map(o => if(o.size == 1) 1 else Math.pow(o.size, 2)).sum
   }
 }
 
