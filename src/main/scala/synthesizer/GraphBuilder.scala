@@ -57,28 +57,15 @@ class GraphBuilder(scenario: ScenarioModel) {
     var conv = false
     while (!conv) {
       //FMUs connected to an FMU that may reject a step
-      var FMUsThatShouldBeAdded = reactiveConnections.filter(o => mayReject.contains(o.trgPort.fmu) && normalFMUs.contains(o.srcPort.fmu)).map(o => o.srcPort.fmu)
+      var fmusToAdd = reactiveConnections.filter(o => mayReject.contains(o.trgPort.fmu) && normalFMUs.contains(o.srcPort.fmu)).map(o => o.srcPort.fmu)
       //These should be added to the set tha that May reject
-      mayReject ++= FMUsThatShouldBeAdded
-      normalFMUs --= FMUsThatShouldBeAdded
-
-      conv = FMUsThatShouldBeAdded.isEmpty
+      mayReject ++= fmusToAdd
+      normalFMUs --= fmusToAdd
+      conv = fmusToAdd.isEmpty
     }
     //FMUs connected reactively that both may reject a step should be connected
-    val artificalEdges = reactiveConnections.filter(o => mayReject.contains(o.trgPort.fmu) && mayReject.contains(o.srcPort.fmu))
+    reactiveConnections.filter(o => mayReject.contains(o.trgPort.fmu) && mayReject.contains(o.srcPort.fmu))
                           .map(o => Edge[Node](DoStepNode(o.trgPort.fmu), DoStepNode(o.srcPort.fmu))).toSet
-    artificalEdges
-  }
-
-  def saveRestoreEdges(mayReject:Set[String], scc: List[Node]): Set[Edge[Node]] = {
-    val SaveNodes: Set[SaveNode] = mayReject.map(SaveNode)
-    val RestoreNodes: Set[RestoreNode] = mayReject.map(RestoreNode)
-    val saveToStep = SaveNodes.map(save => Edge[Node](save, stepNodes.find(_ == DoStepNode(save.name)).get))
-    val saveToSet: Set[Edge[Node]] = SaveNodes.flatMap(save => SetNodes(save.name).filter(o => scc.contains(o)).map(i => Edge[Node](save, i)))
-    val saveToGet: Set[Edge[Node]] = SaveNodes.flatMap(save => GetNodes(save.name).filter(o => scc.contains(o)).map(i => Edge[Node](save, i)))
-    val saveToRestore = SaveNodes.map(save => Edge[Node](save, RestoreNodes.find(_ == RestoreNode(save.name)).get))
-    val stepToRestore = RestoreNodes.map(restore => Edge[Node](stepNodes.find(_ == DoStepNode(restore.name)).get, restore))
-    saveToGet ++ saveToSet ++ saveToStep ++ saveToRestore ++ stepToRestore
   }
 
   lazy val initialEdges: Set[Edge[Node]] = connectionEdges ++ feedthroughInit.flatMap(f => f._2.map(i => Edge[Node](i, f._1))).toSet
