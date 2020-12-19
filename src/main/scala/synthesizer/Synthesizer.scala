@@ -3,6 +3,7 @@ package synthesizer
 import core._
 import synthesizer.LoopStrategy.{LoopStrategy, maximum}
 
+import scala.annotation.tailrec
 import scala.collection.immutable.HashSet
 import scala.collection.mutable
 
@@ -20,6 +21,8 @@ case class ReactiveLoop(nodes: List[Node]) extends SCCType
 case class FeedthroughLoop(nodes: List[Node]) extends SCCType
 
 case class StepLoop(nodes: List[Node]) extends SCCType
+case class SimpleAction(nodes: List[Node]) extends SCCType
+
 
 class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
   val graphBuilder: GraphBuilder = new GraphBuilder(scenarioModel)
@@ -61,8 +64,16 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
 
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edges)
     //Cycles are not yet supported
-    assert(!tarjanGraph.hasCycle)
-    val instructions = tarjanGraph.topologicalSCC.flatten.map(i => formatStepInstruction(i)).toList
+    var instructions = List[CosimStepInstruction]()
+    //assert(!tarjanGraph.hasCycle)
+
+    if (tarjanGraph.hasCycle) {
+      tarjanGraph.topologicalSCC.foreach(o =>
+        if (o.size == 1)
+          instructions = instructions.:+(formatStepInstruction(scc.head))
+        else
+          instructions ++= formatAlgebraicLoop(o))
+    } else instructions = tarjanGraph.topologicalSCC.flatten.map(i => formatStepInstruction(i))
     val saves = createSaves(FMUs)
     val restores = createRestores(FMUs)
     saves.:+(core.StepLoop(FMUs.toList, instructions, restores))
@@ -137,11 +148,10 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
       if (scc.size == 1) {
         formatInitialInstruction(scc.head)
       } else {
-        formatInitLoop(scc.toList)
+        formatInitLoop(scc)
       }
     })
   }
-
 
   def isStepLoop(scc: List[Node]): Boolean = {
     val edges = getEdgesInSCC(scc, true)
@@ -149,7 +159,9 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
   }
 
   def checkSCC(scc: List[Node]): SCCType = {
-    if (isStepLoop(scc)) {
+    if(scc.size == 1)
+      SimpleAction(scc)
+    else if (isStepLoop(scc)) {
       StepLoop(scc)
     } else if (scc.count(IsStepNode) > 0)
       ReactiveLoop(scc)
@@ -157,25 +169,24 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
       FeedthroughLoop(scc)
   }
 
+  @tailrec
+  final def handLoops(SCCs: List[List[Node]], instructions: List[CosimStepInstruction]): List[CosimStepInstruction] = {
+    SCCs match {
+      case ::(scc, next) => checkSCC(scc) match {
+        case FeedthroughLoop(nodes) => throw new UnsupportedOperationException("Unsupported SCC in Graph")
+        case ReactiveLoop(nodes) => handLoops(next, instructions ++ formatAlgebraicLoop(nodes))
+        case StepLoop(nodes) =>  handLoops(next, instructions ++ formatStepLoop(nodes))
+        case SimpleAction(node) => handLoops(next, instructions.:+(formatStepInstruction(node.head, false) ))
+        case _ => throw new UnsupportedOperationException("Unknown SCC in Graph")
+      }
+      case Nil => instructions
+    }
+  }
 
   def synthesizeStep(): List[CosimStepInstruction] = {
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](graphBuilder.stepEdges)
     val SCCs = tarjanGraph.topologicalSCC
-    var instructions: List[CosimStepInstruction] = List.empty[CosimStepInstruction]
-    SCCs.foreach(scc => {
-      if (scc.size == 1) {
-        //Currently only trivial SCC are considered
-        instructions = instructions.:+(formatStepInstruction(scc.head, false))
-      } else {
-        checkSCC(scc.toList) match {
-          case FeedthroughLoop(nodes) => throw new UnsupportedOperationException("Unsupported SCC in Graph")
-          case ReactiveLoop(nodes) => instructions ++= formatAlgebraicLoop(nodes)
-          case StepLoop(nodes) => instructions ++= formatStepLoop(nodes)
-          case _ => throw new UnsupportedOperationException("Unknown SCC in Graph")
-        }
-      }
-    })
-    instructions
+    handLoops(SCCs, List[CosimStepInstruction]())
   }
 
   def formatInitialInstruction(node: Node): InitializationInstruction = {
@@ -204,7 +215,8 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
   def ComplexityOfScenario(): Double = {
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](graphBuilder.stepEdges)
     val SCCs = tarjanGraph.topologicalSCC
-    SCCs.map(o => if(o.size == 1) 1 else Math.pow(o.size, 2)).sum
+    SCCs.map(o => if (o.size == 1) 1 else Math.pow(o.size, 2)).sum
   }
 }
+
 
