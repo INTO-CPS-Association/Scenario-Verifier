@@ -21,10 +21,11 @@ case class ReactiveLoop(nodes: List[Node]) extends SCCType
 case class FeedthroughLoop(nodes: List[Node]) extends SCCType
 
 case class StepLoop(nodes: List[Node]) extends SCCType
+
 case class SimpleAction(nodes: List[Node]) extends SCCType
 
 
-class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
+class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy, optimized: Boolean = false) {
   val graphBuilder: GraphBuilder = new GraphBuilder(scenarioModel)
   val FMUsStepped: mutable.HashSet[String] = new mutable.HashSet[String]()
   val FMUsSaved: mutable.HashSet[String] = new mutable.HashSet[String]()
@@ -43,7 +44,7 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
     }
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edgesInGraph)
 
-    AlgebraicLoopInit(gets.map(o => o.port).toList, tarjanGraph.topologicalSCC.flatten.map(formatInitialInstruction).toList)
+    AlgebraicLoopInit(gets.map(o => o.port), tarjanGraph.topologicalSCC.flatten.flatMap(formatInitialInstruction))
   }
 
   def IsStepNode(node: Node): Boolean = node match {
@@ -70,21 +71,13 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
     if (tarjanGraph.hasCycle) {
       tarjanGraph.topologicalSCC.foreach(o =>
         if (o.size == 1)
-          instructions = instructions.:+(formatStepInstruction(scc.head))
+          instructions ++= formatStepInstruction(scc.head)
         else
           instructions ++= formatAlgebraicLoop(o))
-    } else instructions = tarjanGraph.topologicalSCC.flatten.map(i => formatStepInstruction(i))
+    } else instructions = tarjanGraph.topologicalSCC.flatten.flatMap(i => formatStepInstruction(i))
     val saves = createSaves(FMUs)
     val restores = createRestores(FMUs)
     saves.:+(core.StepLoop(FMUs.toList, instructions, restores))
-  }
-
-  private def createRestores(FMUs: Predef.Set[String]) = {
-    FMUs.map(o => formatStepInstruction(RestoreNode(o))).toList
-  }
-
-  private def createSaves(FMUs: Predef.Set[String]) = {
-    FMUs.diff(FMUsSaved).map(o => formatStepInstruction(SaveNode(o))).toList
   }
 
   def formatAlgebraicLoop(scc: List[Node]): List[CosimStepInstruction] = {
@@ -112,7 +105,7 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
 
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edgesInSCC)
 
-    val instructions = tarjanGraph.topologicalSCC.flatten.map(formatStepInstruction(_, true)).filter(IsLoopInstruction).toList
+    val instructions = tarjanGraph.topologicalSCC.flatten.flatMap(formatStepInstruction(_, true)).filter(IsLoopInstruction).toList
     val saves = createSaves(FMUs)
     val restores = createRestores(FMUs)
     saves.:+(AlgebraicLoop(reactiveGets.map(_.port).toList, instructions, restores))
@@ -144,11 +137,11 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](graphBuilder.initialEdges)
     val SCCs = tarjanGraph.topologicalSCC
 
-    SCCs.map(scc => {
+    SCCs.flatMap(scc => {
       if (scc.size == 1) {
         formatInitialInstruction(scc.head)
       } else {
-        formatInitLoop(scc)
+        List(formatInitLoop(scc))
       }
     })
   }
@@ -159,7 +152,7 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
   }
 
   def checkSCC(scc: List[Node]): SCCType = {
-    if(scc.size == 1)
+    if (scc.size == 1)
       SimpleAction(scc)
     else if (isStepLoop(scc)) {
       StepLoop(scc)
@@ -175,8 +168,8 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
       case ::(scc, next) => checkSCC(scc) match {
         case FeedthroughLoop(nodes) => throw new UnsupportedOperationException("Unsupported SCC in Graph")
         case ReactiveLoop(nodes) => handLoops(next, instructions ++ formatAlgebraicLoop(nodes))
-        case StepLoop(nodes) =>  handLoops(next, instructions ++ formatStepLoop(nodes))
-        case SimpleAction(node) => handLoops(next, instructions.:+(formatStepInstruction(node.head, false) ))
+        case StepLoop(nodes) => handLoops(next, instructions ++ formatStepLoop(nodes))
+        case SimpleAction(node) => handLoops(next, instructions ++ (formatStepInstruction(node.head, false)))
         case _ => throw new UnsupportedOperationException("Unknown SCC in Graph")
       }
       case Nil => instructions
@@ -189,26 +182,28 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
     handLoops(SCCs, List[CosimStepInstruction]())
   }
 
-  def formatInitialInstruction(node: Node): InitializationInstruction = {
+  def formatInitialInstruction(node: Node): List[InitializationInstruction] = {
     node match {
-      case GetNode(port) => InitGet(port)
-      case SetNode(port) => InitSet(port)
+      case GetNode(port) => List(InitGet(port))
+      case SetNode(port) => List(InitSet(port))
+      case GetOptimizedNode(ports) => ports.flatMap(o => formatInitialInstruction(GetNode(o))).toList
+      case SetOptimizedNode(ports) => ports.flatMap(o => formatInitialInstruction(SetNode(o))).toList
       case _ => throw new UnsupportedOperationException()
     }
   }
 
-  def formatStepInstruction(node: Node, isReactiveLoop: Boolean = false): CosimStepInstruction = {
+  def formatStepInstruction(node: Node, isReactiveLoop: Boolean = false): List[CosimStepInstruction] = {
     node match {
       case DoStepNode(name) => {
         FMUsStepped.add(name)
-        Step(name, DefaultStepSize())
+        List(Step(name, DefaultStepSize()))
       }
-      case GetNode(port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) GetTentative(port) else Get(port)
-      case SetNode(port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) SetTentative(port) else core.Set(port)
-      case RestoreNode(name) => RestoreState(name)
-      case SaveNode(name) => {
-        SaveState(name)
-      }
+      case GetNode(port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) List(GetTentative(port)) else List(Get(port))
+      case SetNode(port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) List(SetTentative(port)) else List(core.Set(port))
+      case GetOptimizedNode(ports) => ports.flatMap(o => formatStepInstruction(GetNode(o), isReactiveLoop)).toList
+      case SetOptimizedNode(ports) => ports.flatMap(o => formatStepInstruction(SetNode(o), isReactiveLoop)).toList
+      case RestoreNode(name) => List(RestoreState(name))
+      case SaveNode(name) => List(SaveState(name))
     }
   }
 
@@ -216,6 +211,14 @@ class Synthesizer(scenarioModel: ScenarioModel, strategy: LoopStrategy) {
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](graphBuilder.stepEdges)
     val SCCs = tarjanGraph.topologicalSCC
     SCCs.map(o => if (o.size == 1) 1 else Math.pow(o.size, 2)).sum
+  }
+
+  private def createRestores(FMUs: Predef.Set[String]) = {
+    FMUs.flatMap(o => formatStepInstruction(RestoreNode(o))).toList
+  }
+
+  private def createSaves(FMUs: Predef.Set[String]) = {
+    FMUs.diff(FMUsSaved).flatMap(o => formatStepInstruction(SaveNode(o))).toList
   }
 }
 
