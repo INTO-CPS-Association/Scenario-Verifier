@@ -20,7 +20,7 @@ class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
 
   def generateSynthesisAndVerify(scenarioName: String, nFMU: Int, nConnection: Int, feedthrough: Boolean = true, strategy: LoopStrategy = maximum) = {
     val scenario = ScenarioBuilder.generateScenario(nFMU, nConnection, feedthrough)
-    val synthesizer = new Synthesizer(scenario, strategy)
+    val synthesizer = new SynthesizerSimple(scenario, strategy)
     val step = synthesizer.synthesizeStep()
     val init =  ScenarioLoader.generateEnterInitInstructions(scenario) ++ synthesizer.synthesizeInitialization() ++ ScenarioLoader.generateExitInitInstructions(scenario)
     val model = MasterModel(scenarioName, scenario,
@@ -35,7 +35,6 @@ class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
     VerifyTA.verify(f) should be (0)
     FileUtils.deleteQuietly(f)
   }
-
 
   "ScenarioBuilderTest" should "create valid Simple example" in{
     generateSynthesisAndVerify("Test Simple Example", 2, 2)

@@ -9,8 +9,8 @@ object GraphVisualizer {
   def getName(node: Node): String = node match {
     case DoStepNode(name) => f"DoStep_${name}"
     case GetNode(port) =>f"Get_${port.fmu}_${port.port}"
-    case SetOptimizedNode(ports) =>f"Set_${ports.head.fmu}_[${ports.mkString(",")}]}"
-    case GetOptimizedNode(ports) =>f"Get_${ports.head.fmu}_[${ports.mkString(",")}]}"
+    case SetOptimizedNode(ports) => if(ports.nonEmpty) f"Set_${ports.head.fmu}_[${ports.map(_.port).mkString(", ")}]}"else ""
+    case GetOptimizedNode(ports) => if(ports.nonEmpty)  f"Get_${ports.head.fmu}_[${ports.map(_.port).mkString(", ")}]}"else ""
     case SetNode(port) =>f"Set_${port.fmu}_${port.port}"
     case RestoreNode(name) => f"Restore_${name}"
     case SaveNode(name) => f"Save_${name}"
