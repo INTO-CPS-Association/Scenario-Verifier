@@ -27,10 +27,10 @@ class GraphBuilder(scenario: ScenarioModel) {
   val SetNodesReactive: Map[String, Set[SetNode]] = scenario.fmus.map(f => (f._1, f._2.inputs.filter(i => i._2.reactivity == reactive).map(i => SetNode(PortRef(f._1, i._1))).toSet))
   val SetNodesDelayed: Map[String, Set[SetNode]] = scenario.fmus.map(f => (f._1, f._2.inputs.filter(i => i._2.reactivity != reactive).map(i => SetNode(PortRef(f._1, i._1))).toSet))
   val SetNodes = scenario.fmus.map(f => (f._1, f._2.inputs.map(i => SetNode(PortRef(f._1, i._1))).toSet))
-  val SetOptimizedNodesReactive: Map[String, SetOptimizedNode] = SetNodesReactive.map(node => (node._1, SetOptimizedNode(node._2.map(_.port))))
-  val SetOptimizedNodesDelayed: Map[String, SetOptimizedNode] = SetNodesDelayed.map(node => (node._1, SetOptimizedNode(node._2.map(_.port))))
+  val SetOptimizedNodesReactive: Map[String, SetOptimizedNode] = SetNodesReactive.map(node => (node._1, SetOptimizedNode(node._2.map(_.port)))).filter(i => i._2.ports.nonEmpty)
+  val SetOptimizedNodesDelayed: Map[String, SetOptimizedNode] = SetNodesDelayed.map(node => (node._1, SetOptimizedNode(node._2.map(_.port)))).filter(i => i._2.ports.nonEmpty)
   val GetOptimizedNodes: Map[String, GetOptimizedNode] = GetNodes.map(node => (node._1, GetOptimizedNode(node._2.map(_.port))))
-  val SetOptimizedNodes: Map[String, SetOptimizedNode] = scenario.fmus.map(f => (f._1, SetOptimizedNode(f._2.inputs.map(i => (PortRef(f._1, i._1))).toSet)))
+  val SetOptimizedNodes: Map[String, SetOptimizedNode] = scenario.fmus.map(f => (f._1, SetOptimizedNode(f._2.inputs.map(i => (PortRef(f._1, i._1))).toSet))).filter(i => i._2.ports.nonEmpty)
 
   private def feedthroughInit: Set[Edge[Node]] =
     scenario.fmus.flatMap(f => {
@@ -92,8 +92,8 @@ class GraphBuilder(scenario: ScenarioModel) {
 
   private def doStepEdgesOptimized: Set[Edge[Node]] = {
     val stepToGet = stepNodes.map(step => Edge[Node](step, GetOptimizedNodes(step.name)))
-    val reactiveToStep = stepNodes.map(step => Edge[Node](SetOptimizedNodesReactive(step.name), step))
-    val stepToDelayed = stepNodes.map(step => Edge[Node](step,SetOptimizedNodesDelayed(step.name)))
+    val reactiveToStep = SetOptimizedNodesReactive.map(i => Edge[Node](i._2, DoStepNode(i._1)))
+    val stepToDelayed = SetOptimizedNodesDelayed.map(i => Edge[Node](DoStepNode(i._1), i._2))
     stepToGet ++ reactiveToStep ++ stepToDelayed
   }
 

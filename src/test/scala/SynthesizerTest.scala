@@ -60,6 +60,7 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
 
   "Synthesizer" should "create valid Master Algorithm for Industrial case study" in{
     synthesizeAndVerify("examples/industrial_casestudy.conf")
+    synthesizeOptAndVerify("examples/industrial_casestudy.conf")
   }
 
   "Synthesizer" should "create valid Step procedure for Two Algebraic Loops" in {
