@@ -19,7 +19,7 @@ class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
     testGraph("examples/simple_master.conf", "simple_master_graph")
   }
 
-  "GraphVisualizer" should "should build graphs for Industrial case study" in{
+  "GraphVisualizer" should "should build graphs for Industrial case" in{
     testGraph("examples/industrial_casestudy.conf", "industrial_casestudy_graph")
   }
 
@@ -29,5 +29,9 @@ class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
 
   "GraphVisualizer" should "should build graphs for Algebraic Loop Step" in{
     testGraph("examples/algebraic_loop_msd_gs.conf", "algebraic_loop_step_graph")
+  }
+
+  "GraphVisualizer" should "should build graphs for Step Finding Loop" in{
+    testGraph("examples/step_finding_loop_msd_1.conf", "step_finding_loop")
   }
 }
