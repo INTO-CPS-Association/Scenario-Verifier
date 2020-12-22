@@ -51,15 +51,14 @@ class TarjanGraph[A](src: Iterable[Edge[A]]) {
   // A cycle exist if there is a SCC with at least two components
   lazy val hasCycle: Boolean = tarjan.exists(_.size >= 2)
   lazy val tarjanCycle: Iterable[Seq[A]] = tarjan.filter(_.size >= 2).distinct.map(_.toSeq).toSeq
-  lazy val topologicalSortedEdges: Seq[Edge[A]] =
-    if (hasCycle) Seq[Edge[A]]()
-    else {
-      tarjan.flatten.reverse.flatMap(x => src.filter(o => o.srcNode == x).toList).toSeq
-    }
 
   lazy val topologicalSCC: List[List[A]] = {
     tarjan.map(_.toList).reverse.toList
   }
+
+  lazy val topologicalEdges: Set[Edge[A]] =
+    (0 until (topologicalSCC.size - 1)).flatMap(i =>
+      src.filter(e => topologicalSCC(i).contains(e.srcNode) && topologicalSCC(i + 1).contains(e.trgNode))).toSet
 
   lazy val topologicalconnectedSCC: Set[List[List[A]]] = {
       connectedComponents.zipWithIndex.map(c => topologicalSCC.filter(o => c._1.contains(o.head)))

@@ -13,6 +13,7 @@ class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
     GraphVisualizer.plotGraph(name+ "_step", graph.stepEdges)
     GraphVisualizer.plotGraph(name + "_initial_opt", graph.initialEdgesOptimized)
     GraphVisualizer.plotGraph(name+ "_step_optimized", graph.stepEdgesOptimized)
+    //GraphVisualizer.plotReducedGraph(name+ "_reduced_step", graph.stepEdgesOptimized)
   }
 
   "GraphVisualizer" should "should build graphs for Simple Master" in {

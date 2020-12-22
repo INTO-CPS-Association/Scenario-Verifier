@@ -39,7 +39,6 @@ class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = fals
         o._2.dependenciesInit.map(i => (SetNodes(f._1).find(_ == SetNode(PortRef(f._1, i))).get)).toSet))
     }).flatMap(f => f._2.map(i => Edge[Node](i, f._1))).toSet
 
-  //Reactive Feed thourgh
   private def feedthrough: Set[Edge[Node]] =
     scenario.fmus.flatMap(f => {
       f._2.outputs.map(o => (GetNodes(f._1).find(_ == GetNode(PortRef(f._1, o._1))).get,
