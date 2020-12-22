@@ -7,11 +7,35 @@ object ScenarioConfGenerator extends Logging {
   def generate(model: MasterModel, name: String): String = {
     val scenario = model.scenario
     val builder = new StringBuilder(generateScenario(scenario, name))
-    builder.append("initialization = []\n")
-    builder.append("cosim-step = []\n")
+    builder.append(s"initialization = [${generateInit(model.initialization)}]\n")
+    builder.append(s"cosim-step = [${generateStep(model.cosimStep)}]\n")
     builder.toString()
   }
 
+  def generateInit(inits: List[InitializationInstruction]): String = {
+    inits.map {
+      case InitSet(port) => s"{set: ${generatePort(port)}}\n"
+      case InitGet(port) => s"{get: ${generatePort(port)}}\n"
+      case EnterInitMode(_) => ""
+      case ExitInitMode(_) => ""
+      case AlgebraicLoopInit(ports, iterate) => s"{loop: { \n until-converged: ${ports.map(generatePort).mkString("[", ",", "]\n")} iterate: [${generateInit(iterate)}]} \n }\n"
+    }.mkString("\n")
+  }
+
+  def generateStep(steps: List[CosimStepInstruction]): String = {
+    steps.map {
+      case Set(port) => s"{set: ${generatePort(port)}}\n"
+      case Get(port) => s"{get: ${generatePort(port)}}\n"
+      case GetTentative(port) => s"{get-tentative: ${generatePort(port)}}\n"
+      case SetTentative(port) => s"{set-tentative: ${generatePort(port)}}\n"
+      case Step(fmu, by) => s"{step: ${fmu} }\n"
+      case SaveState(fmu) => s"{save-state: ${fmu}}\n"
+      case RestoreState(fmu) => s"{restore-state: ${fmu}}\n"
+      case AlgebraicLoop(untilConverged, iterate, ifRetryNeeded) => s"{loop: { \n until-converged: ${untilConverged.map(generatePort).mkString("[", ",", "]")} \n iterate: [${generateStep(iterate)}] \n if-retry-needed: [${generateStep(ifRetryNeeded)}]} \n }\n"
+      case StepLoop(untilStepAccept, iterate, ifRetryNeeded) => s"{loop: { \n until-step-accept: ${untilStepAccept.mkString("[", ",", "]")} \n iterate: [${generateStep(iterate)}] \n if-retry-needed: [${generateStep(ifRetryNeeded)}]} \n }\n"
+      case NoOP => ""
+    }.mkString("\n")
+  }
 
   def generatePort(port: PortRef): String = port.fmu + "." + port.port
 
@@ -19,10 +43,10 @@ object ScenarioConfGenerator extends Logging {
     connections.map(o => f"${generatePort(o.srcPort)} -> ${generatePort(o.trgPort)}").mkString("connections = [\n", "\n", "]\n")
   }
 
-  def generateFMUs(fmus: Map[String, FmuModel]):String = {
+  def generateFMUs(fmus: Map[String, FmuModel]): String = {
     fmus.map(o => {
       val inputs = o._2.inputs.map(i => f"${i._1} = {reactivity=${i._2.reactivity.toString}}").mkString("inputs = {\n", "\n", "},\n")
-      val outputs = o._2.outputs.map(e => f"${e._1} = {${e._2.dependenciesInit.mkString("dependencies-init=[",",", "]")}, ${e._2.dependencies.mkString("dependencies=[",",", "]")}}").mkString("outputs = {\n", "\n", "}\n")
+      val outputs = o._2.outputs.map(e => f"${e._1} = {${e._2.dependenciesInit.mkString("dependencies-init=[", ",", "]")}, ${e._2.dependencies.mkString("dependencies=[", ",", "]")}}").mkString("outputs = {\n", "\n", "}\n")
       f"${o._1} = { \n ${inputs} ${outputs} }"
     }).mkString("fmus = {\n", "\n", "}\n")
   }
@@ -34,9 +58,6 @@ object ScenarioConfGenerator extends Logging {
     builder.addAll(generateFMUs(scenario.fmus))
     builder.addAll(generateConnections(scenario.connections))
     builder.addAll("}\n")
-
-    val c = builder.toString()
-    logger.info(c)
-    c
+    builder.toString()
   }
 }

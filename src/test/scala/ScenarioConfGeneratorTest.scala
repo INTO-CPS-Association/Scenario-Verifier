@@ -1,16 +1,12 @@
-import java.io.{ByteArrayInputStream, File, PrintWriter}
+import java.io.ByteArrayInputStream
 
-import cli.VerifyTA
-import core.{ConnectionModel, FmuModel, MasterModel, ModelEncoding, ScenarioGenerator, ScenarioLoader}
-import org.apache.commons.io.FileUtils
+import core.{ConnectionModel, FmuModel, ScenarioLoader}
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import synthesizer.ConfParser.ScenarioConfGenerator
-import synthesizer.LoopStrategy.{LoopStrategy, maximum, minimum}
-import synthesizer._
 
 class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
-  def GenerateConf(resourcesFile: String) = {
+  private def confGenerationTest(resourcesFile: String) = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val scenario = ScenarioLoader.load(conf)
     val generateScenario = ScenarioConfGenerator.generate(scenario, scenario.name)
@@ -19,6 +15,9 @@ class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
     assert(compareConnections(scenario.scenario.connections, scenarioFromGeneratedSource.scenario.connections))
     //All FMUs are equivalent
     assert(compareFMUs(scenario.scenario.fmus, scenarioFromGeneratedSource.scenario.fmus))
+
+    assert(scenario.initialization == scenarioFromGeneratedSource.initialization)
+    assert(scenario.cosimStep == scenarioFromGeneratedSource.cosimStep)
   }
 
   private def compareConnections(c1: List[ConnectionModel], c2: List[ConnectionModel]): Boolean = {
@@ -30,20 +29,17 @@ class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
   }
 
   "ScenarioConfGenerator" should "create valid Master Algorithm for Simple Master" in {
-    GenerateConf("examples/simple_master.conf")
+    confGenerationTest("examples/simple_master.conf")
   }
 
   "ScenarioConfGenerator" should "create valid Master Algorithm for Algebraic Initialization" in{
-    GenerateConf("examples/algebraic_loop_initialization.conf")
+    confGenerationTest("examples/algebraic_loop_initialization.conf")
   }
   "ScenarioConfGenerator" should "create valid Master Algorithm for Industrial case study" in{
-    GenerateConf("examples/industrial_casestudy.conf")
+    confGenerationTest("examples/industrial_casestudy.conf")
   }
 
   "ScenarioConfGenerator" should "create valid Step procedure for Two Algebraic Loops" in {
-    GenerateConf("examples/two_algebraic_loops.conf")
+    confGenerationTest("examples/two_algebraic_loops.conf")
   }
-
-
-
 }
