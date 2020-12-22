@@ -33,7 +33,7 @@ object GraphVisualizer {
       val t = nodes.find(n => n.name().toString == getName(o.trgNode, SCCs)).get
       g.add(s.addLink(t))
     })
-    Graphviz.fromGraph(g).height(500).render(Format.PNG).toFile(new File(String.format("example/%s.png", name)))
+    Graphviz.fromGraph(g).render(Format.SVG).toFile(new File(String.format("example/%s.svg", name)))
   }
 
   private def getSCCs(edges: Set[Edge[Node]]): List[List[Node]] = {
