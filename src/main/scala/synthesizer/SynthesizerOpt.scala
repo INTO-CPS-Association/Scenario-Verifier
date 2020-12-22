@@ -7,8 +7,8 @@ import scala.collection.immutable.HashSet
 import scala.collection.mutable
 
 
-class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy, optimized: Boolean = false) extends SynthesizerBase {
-  val graphBuilder: GraphBuilder = new GraphBuilder(scenarioModel)
+class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) extends SynthesizerBase {
+  val graphBuilder: GraphBuilder = new GraphBuilder(scenarioModel, true)
   val FMUsStepped: mutable.HashSet[String] = new mutable.HashSet[String]()
   val FMUsSaved: mutable.HashSet[String] = new mutable.HashSet[String]()
   val FMUsMayRejectStepped: mutable.HashSet[String] = new mutable.HashSet[String]()

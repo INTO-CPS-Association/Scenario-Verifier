@@ -8,7 +8,7 @@ class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
     val conf = getClass.getResourceAsStream(file)
     val masterModel = ScenarioLoader.load(conf)
     val scenario = masterModel.scenario
-    val graph = new GraphBuilder(scenario)
+    val graph = new GraphBuilder(scenario, true)
     GraphVisualizer.plotGraph(name + "_initial", graph.initialEdges)
     GraphVisualizer.plotGraph(name+ "_step", graph.stepEdges)
     GraphVisualizer.plotGraph(name + "_initial_opt", graph.initialEdgesOptimized)

@@ -1,17 +1,20 @@
 package synthesizer
 
 import java.io.File
+
 import guru.nidi.graphviz.attribute.Color
 import guru.nidi.graphviz.engine.{Format, Graphviz}
 import guru.nidi.graphviz.model.Factory.{mutGraph, mutNode}
 
+import scala.annotation.tailrec
+
 object GraphVisualizer {
   def getName(node: Node): String = node match {
     case DoStepNode(name) => f"DoStep_${name}"
-    case GetNode(port) =>f"Get_${port.fmu}_${port.port}"
+    case GetNode(port) => f"Get_${port.fmu}_${port.port}"
     case SetOptimizedNode(ports) => f"Set_${ports.head.fmu}_[${ports.map(_.port).mkString(", ")}]}"
     case GetOptimizedNode(ports) => f"Get_${ports.head.fmu}_[${ports.map(_.port).mkString(", ")}]}"
-    case SetNode(port) =>f"Set_${port.fmu}_${port.port}"
+    case SetNode(port) => f"Set_${port.fmu}_${port.port}"
     case RestoreNode(name) => f"Restore_${name}"
     case SaveNode(name) => f"Save_${name}"
   }

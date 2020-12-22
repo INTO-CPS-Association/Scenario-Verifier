@@ -1,6 +1,6 @@
 package synthesizer
 
-import core.Reactivity.{delayed, reactive}
+import core.Reactivity.{delayed, noPort, reactive}
 import core.{FmuModel, InputPortConfig, PortRef, ScenarioModel}
 
 sealed abstract class Node
@@ -20,8 +20,9 @@ case class RestoreNode(name: String) extends Node
 case class SaveNode(name: String) extends Node
 
 case class Edge[Node](srcNode: Node, trgNode: Node)
+case class EdgeCost(val srcNode: Node, val trgNode: Node, cost: Int)
 
-class GraphBuilder(scenario: ScenarioModel) {
+class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = false) {
   val stepNodes: Set[DoStepNode] = scenario.fmus.map(f => DoStepNode(f._1)).toSet
   val GetNodes: Map[String, Set[GetNode]] = scenario.fmus.map(f => (f._1, f._2.outputs.map(o => GetNode(PortRef(f._1, o._1))).toSet))
   val SetNodesReactive: Map[String, Set[SetNode]] = scenario.fmus.map(f => (f._1, f._2.inputs.filter(i => i._2.reactivity == reactive).map(i => SetNode(PortRef(f._1, i._1))).toSet))
@@ -38,6 +39,7 @@ class GraphBuilder(scenario: ScenarioModel) {
         o._2.dependenciesInit.map(i => (SetNodes(f._1).find(_ == SetNode(PortRef(f._1, i))).get)).toSet))
     }).flatMap(f => f._2.map(i => Edge[Node](i, f._1))).toSet
 
+  //Reactive Feed thourgh
   private def feedthrough: Set[Edge[Node]] =
     scenario.fmus.flatMap(f => {
       f._2.outputs.map(o => (GetNodes(f._1).find(_ == GetNode(PortRef(f._1, o._1))).get,
@@ -46,8 +48,8 @@ class GraphBuilder(scenario: ScenarioModel) {
 
   private def feedthroughOptimizedInit: List[Edge[Node]] =
     scenario.fmus.flatMap(f =>
-    f._2.outputs.filter(o => o._2.dependenciesInit.nonEmpty).map(_ =>
-      Edge[Node](SetOptimizedNodes(f._1), GetOptimizedNodes(f._1)))).toList
+      f._2.outputs.filter(o => o._2.dependenciesInit.nonEmpty).map(_ =>
+        Edge[Node](SetOptimizedNodes(f._1), GetOptimizedNodes(f._1)))).toList
 
   private def feedthroughOptimized: List[Edge[Node]] = {
     var feedthroughConnections = List[Edge[Node]]()
@@ -62,6 +64,7 @@ class GraphBuilder(scenario: ScenarioModel) {
   lazy val connectionEdges: Set[Edge[Node]] = {
     scenario.connections.map(c => Edge[Node](GetNodes.values.flatten.find(_ == GetNode(c.srcPort)).get, SetNodes.values.flatten.find(_ == SetNode(c.trgPort)).get)).toSet
   }
+
 
   private def doStepEdges: Set[Edge[Node]] = {
     val stepToGet = stepNodes.flatMap(step => GetNodes(step.name).map(o => Edge[Node](step, o)))
@@ -107,7 +110,7 @@ class GraphBuilder(scenario: ScenarioModel) {
 
   lazy val connectionEdgesOptimized: Set[Edge[Node]] = {
     scenario.connections.map(c => Edge[Node](GetOptimizedNodes(c.srcPort.fmu),
-      if(isReactive(c.trgPort)) SetOptimizedNodesReactive(c.trgPort.fmu)
+      if (isReactive(c.trgPort)) SetOptimizedNodesReactive(c.trgPort.fmu)
       else SetOptimizedNodesDelayed(c.trgPort.fmu))).toSet
   }
 
@@ -117,8 +120,11 @@ class GraphBuilder(scenario: ScenarioModel) {
 
   lazy val initialEdgesOptimized: Set[Edge[Node]] = connectionEdgesOptimizedInit ++ feedthroughOptimizedInit
 
-  lazy val stepEdgesOptimized: Set[Edge[Node]] = {
+  private def toEdgeCost(node: Edge[Node]): EdgeCost = EdgeCost(node.srcNode, node.trgNode, 1)
+
+  private def toEdge(node: EdgeCost): Edge[Node] = Edge(node.srcNode, node.trgNode)
+
+  lazy val stepEdgesOptimized: Set[Edge[Node]] =
     connectionEdgesOptimized ++ feedthroughOptimized ++ doStepEdgesOptimized ++ StepFindingEdges
-  }
 
 }
