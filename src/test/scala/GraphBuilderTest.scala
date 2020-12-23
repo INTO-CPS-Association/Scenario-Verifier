@@ -52,25 +52,7 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
     val graph = new GraphBuilder(scenario.scenario)
     val stepEdges = graph.stepEdges
 
-    //There is an edge for all connections in the scenario
-    assert(scenario.scenario.connections.forall(c => stepEdges.contains(Edge[Node](GetNode(c.srcPort), SetNode(c.trgPort)))))
-
-    //There is an edge for all initial feedthrough in the scenario
-    scenario.scenario.fmus.foreach(fmu => {
-      fmu._2.outputs.foreach(o => {
-        assert(o._2.dependencies.forall(i => stepEdges.contains(Edge[Node](SetNode(PortRef(fmu._1, i)), GetNode(PortRef(fmu._1, o._1))))))
-      })
-    })
-
-    //There is an edge from all doStep to Get in the scenario
-    scenario.scenario.fmus.foreach(fmu => {
-      fmu._2.outputs.foreach(o => {
-        assert(o._2.dependencies.forall(i => stepEdges.contains(Edge[Node](SetNode(PortRef(fmu._1, i)), GetNode(PortRef(fmu._1, o._1))))))
-      })
-    })
-
     val nodes = stepEdges.map(o => o.srcNode) ++ stepEdges.map(o => o.trgNode)
-    assert(stepEdges.size == 11)
 
     assert(nodes.count(i => i match {
       case DoStepNode(_) => true

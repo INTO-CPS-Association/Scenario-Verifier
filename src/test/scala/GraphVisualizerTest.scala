@@ -1,7 +1,7 @@
 import core.{ConnectionParserSingleton, MasterModel, PortRef, ScenarioLoader, ScenarioModel}
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import synthesizer.{DoStepNode, Edge, GetNode, GraphBuilder, GraphVisualizer, Node, SetNode}
+import synthesizer.{DoStepNode, Edge, GetNode, GraphBuilder, GraphVisualizer, Node, SetNode, TarjanGraph}
 
 class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
   def testGraph(file: String, name: String): Unit = {
@@ -9,11 +9,14 @@ class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
     val masterModel = ScenarioLoader.load(conf)
     val scenario = masterModel.scenario
     val graph = new GraphBuilder(scenario, true)
-    GraphVisualizer.plotGraph(name + "_initial", graph.initialEdges)
-    GraphVisualizer.plotGraph(name+ "_step", graph.stepEdges)
-    GraphVisualizer.plotGraph(name + "_initial_opt", graph.initialEdgesOptimized)
-    GraphVisualizer.plotGraph(name+ "_step_optimized", graph.stepEdgesOptimized)
-    //GraphVisualizer.plotReducedGraph(name+ "_reduced_step", graph.stepEdgesOptimized)
+    val tarjanInit = new TarjanGraph[Node](graph.initialEdges)
+    val tarjanStep = new TarjanGraph[Node](graph.stepEdges)
+    val tarjanInitOpt = new TarjanGraph[Node](graph.initialEdgesOptimized)
+    val tarjanStepOpt = new TarjanGraph[Node](graph.stepEdgesOptimized)
+    GraphVisualizer.plotGraph(name + "_initial", graph.initialEdges, tarjanInit.topologicalSCC)
+    GraphVisualizer.plotGraph(name+ "_step", graph.stepEdges, tarjanStep.topologicalSCC)
+    GraphVisualizer.plotGraph(name + "_initial_opt", graph.initialEdgesOptimized, tarjanInitOpt.topologicalSCC)
+    GraphVisualizer.plotGraph(name+ "_step_optimized", graph.stepEdgesOptimized, tarjanStepOpt.topologicalSCC)
   }
 
   "GraphVisualizer" should "should build graphs for Simple Master" in {
@@ -34,5 +37,9 @@ class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
 
   "GraphVisualizer" should "should build graphs for Step Finding Loop" in{
     testGraph("examples/step_finding_loop_msd_1.conf", "step_finding_loop")
+  }
+
+  "GraphVisualizer" should "should build graphs for Two Algebraic Loops" in{
+    testGraph("examples/two_algebraic_loops.conf", "two_algebraic_loop")
   }
 }

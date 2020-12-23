@@ -29,7 +29,6 @@ class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
       cosimStep = step,
       terminate = ScenarioLoader.generateTerminateInstructions(scenario).toList)
     val encoding = new ModelEncoding(model)
-    GraphVisualizer.plotGraph(scenarioName, synthesizer.StepEdges)
     val result = ScenarioGenerator.generate(encoding)
     val f = writeToTempFile(result)
     assert(VerifyTA.checkEnvironment())

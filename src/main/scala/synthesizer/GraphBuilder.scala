@@ -2,6 +2,9 @@ package synthesizer
 
 import core.Reactivity.{delayed, noPort, reactive}
 import core.{FmuModel, InputPortConfig, PortRef, ScenarioModel}
+import org.apache.logging.log4j.scala.Logging
+
+import scala.collection.immutable.Queue
 
 sealed abstract class Node
 
@@ -20,9 +23,10 @@ case class RestoreNode(name: String) extends Node
 case class SaveNode(name: String) extends Node
 
 case class Edge[Node](srcNode: Node, trgNode: Node)
+
 case class EdgeCost(val srcNode: Node, val trgNode: Node, cost: Int)
 
-class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = false) {
+class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = false) extends Logging {
   val stepNodes: Set[DoStepNode] = scenario.fmus.map(f => DoStepNode(f._1)).toSet
   val GetNodes: Map[String, Set[GetNode]] = scenario.fmus.map(f => (f._1, f._2.outputs.map(o => GetNode(PortRef(f._1, o._1))).toSet))
   val SetNodesReactive: Map[String, Set[SetNode]] = scenario.fmus.map(f => (f._1, f._2.inputs.filter(i => i._2.reactivity == reactive).map(i => SetNode(PortRef(f._1, i._1))).toSet))
@@ -32,6 +36,7 @@ class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = fals
   val SetOptimizedNodesDelayed: Map[String, SetOptimizedNode] = SetNodesDelayed.map(node => (node._1, SetOptimizedNode(node._2.map(_.port)))).filter(i => i._2.ports.nonEmpty)
   val GetOptimizedNodes: Map[String, GetOptimizedNode] = GetNodes.map(node => (node._1, GetOptimizedNode(node._2.map(_.port))))
   val SetOptimizedNodes: Map[String, SetOptimizedNode] = scenario.fmus.map(f => (f._1, SetOptimizedNode(f._2.inputs.map(i => (PortRef(f._1, i._1))).toSet))).filter(i => i._2.ports.nonEmpty)
+
 
   private def feedthroughInit: Set[Edge[Node]] =
     scenario.fmus.flatMap(f => {
@@ -113,17 +118,17 @@ class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = fals
       else SetOptimizedNodesDelayed(c.trgPort.fmu))).toSet
   }
 
-  lazy val initialEdges: Set[Edge[Node]] = connectionEdges ++ feedthroughInit.toSet
+  lazy val initialEdges: Set[Edge[Node]] = removeEdges(connectionEdges ++ feedthroughInit)
 
-  lazy val stepEdges: Set[Edge[Node]] = connectionEdges ++ feedthrough ++ doStepEdges ++ StepFindingEdges
+  lazy val stepEdges: Set[Edge[Node]] =
+    removeEdges(connectionEdges ++ feedthrough ++ doStepEdges ++ StepFindingEdges)
 
-  lazy val initialEdgesOptimized: Set[Edge[Node]] = connectionEdgesOptimizedInit ++ feedthroughOptimizedInit
+  lazy val initialEdgesOptimized: Set[Edge[Node]] = removeEdges(connectionEdgesOptimizedInit ++ feedthroughOptimizedInit)
 
-  private def toEdgeCost(node: Edge[Node]): EdgeCost = EdgeCost(node.srcNode, node.trgNode, 1)
+  lazy val stepEdgesOptimized: Set[Edge[Node]] = removeEdges(connectionEdgesOptimized ++ feedthroughOptimized ++ doStepEdgesOptimized ++ StepFindingEdges)
 
-  private def toEdge(node: EdgeCost): Edge[Node] = Edge(node.srcNode, node.trgNode)
-
-  lazy val stepEdgesOptimized: Set[Edge[Node]] =
-    connectionEdgesOptimized ++ feedthroughOptimized ++ doStepEdgesOptimized ++ StepFindingEdges
-
+  private def removeEdges(edges: Set[Edge[Node]]) :Set[Edge[Node]] = {
+    val tarjanGraph = new TarjanGraph[Node](edges)
+    GraphUtil.removeTransitiveEdges(edges, tarjanGraph.tarjanCycle.toSet)
+  }
 }

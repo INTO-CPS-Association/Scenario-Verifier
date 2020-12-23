@@ -5,8 +5,7 @@ import scala.annotation.tailrec
 import scala.collection.immutable.HashMap
 import scala.collection.{immutable, mutable}
 
-class TarjanGraph[A](src: Iterable[Edge[A]]) {
-
+class TarjanGraph[A](edges: Iterable[Edge[A]]) {
   lazy val tarjan: mutable.Buffer[mutable.Buffer[A]] = {
     var s = mutable.Buffer.empty[A] //Stack to keep track of nodes reachable from current node
     val index = mutable.Map.empty[A, Int] //index of each node
@@ -20,7 +19,7 @@ class TarjanGraph[A](src: Iterable[Edge[A]]) {
       //Add to stack
       s += v
 
-      src.filter(_.srcNode == v).map(_.trgNode).foreach(w => {
+      edges.filter(_.srcNode == v).map(_.trgNode).foreach(w => {
         if (!index.contains(w)) {
           //Perform DFS from node W, if node w is not explored yet
           visit(w)
@@ -44,13 +43,13 @@ class TarjanGraph[A](src: Iterable[Edge[A]]) {
     }
 
     //Perform a DFS from  all no nodes that hasn't been explored
-    src.foreach(v => if (!index.contains(v.srcNode)) visit(v.srcNode))
+    edges.foreach(v => if (!index.contains(v.srcNode)) visit(v.srcNode))
     ret
   }
 
   // A cycle exist if there is a SCC with at least two components
   lazy val hasCycle: Boolean = tarjan.exists(_.size >= 2)
-  lazy val tarjanCycle: Iterable[Seq[A]] = tarjan.filter(_.size >= 2).distinct.map(_.toSeq).toSeq
+  lazy val tarjanCycle: Seq[A] = tarjan.filter(_.size >= 2).distinct.flatten.toSeq
 
   lazy val topologicalSCC: List[List[A]] = {
     tarjan.map(_.toList).reverse.toList
@@ -58,7 +57,7 @@ class TarjanGraph[A](src: Iterable[Edge[A]]) {
 
   lazy val topologicalEdges: Set[Edge[A]] =
     (0 until (topologicalSCC.size - 1)).flatMap(i =>
-      src.filter(e => topologicalSCC(i).contains(e.srcNode) && topologicalSCC(i + 1).contains(e.trgNode))).toSet
+      edges.filter(e => topologicalSCC(i).contains(e.srcNode) && topologicalSCC(i + 1).contains(e.trgNode))).toSet
 
   lazy val topologicalconnectedSCC: Set[List[List[A]]] = {
       connectedComponents.zipWithIndex.map(c => topologicalSCC.filter(o => c._1.contains(o.head)))
@@ -67,7 +66,7 @@ class TarjanGraph[A](src: Iterable[Edge[A]]) {
   lazy val connectedComponents: Set[List[A]] = {
     val visited = mutable.Set.empty[A]
     val connectedComponents = mutable.Map.empty[Int, List[A]]
-    val undirectedEdges = src.map(o => Edge(o.trgNode, o.srcNode)) ++ src
+    val undirectedEdges = edges.map(o => Edge(o.trgNode, o.srcNode)) ++ edges
 
     def DFSUtil(v: A, i: Int): List[A] = {
       //Add to stack
@@ -82,7 +81,7 @@ class TarjanGraph[A](src: Iterable[Edge[A]]) {
     }
 
     var i: Int = 0
-    src.foreach(v =>
+    edges.foreach(v =>
       if (!visited.contains(v.srcNode)) {
         connectedComponents.addOne(i, DFSUtil(v.srcNode, i))
         i += 1
