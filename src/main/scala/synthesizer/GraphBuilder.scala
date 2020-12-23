@@ -1,10 +1,10 @@
 package synthesizer
 
 import core.Reactivity.{delayed, noPort, reactive}
-import core.{FmuModel, InputPortConfig, PortRef, ScenarioModel}
+import core.{ConnectionModel, FmuModel, InputPortConfig, PortRef, ScenarioModel}
 import org.apache.logging.log4j.scala.Logging
 
-import scala.collection.immutable.Queue
+import scala.collection.immutable.{AbstractSet, HashSet, Queue, SortedSet}
 
 sealed abstract class Node
 
@@ -31,12 +31,26 @@ class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = fals
   val GetNodes: Map[String, Set[GetNode]] = scenario.fmus.map(f => (f._1, f._2.outputs.map(o => GetNode(PortRef(f._1, o._1))).toSet))
   val SetNodesReactive: Map[String, Set[SetNode]] = scenario.fmus.map(f => (f._1, f._2.inputs.filter(i => i._2.reactivity == reactive).map(i => SetNode(PortRef(f._1, i._1))).toSet))
   val SetNodesDelayed: Map[String, Set[SetNode]] = scenario.fmus.map(f => (f._1, f._2.inputs.filter(i => i._2.reactivity != reactive).map(i => SetNode(PortRef(f._1, i._1))).toSet))
-  val SetNodes = scenario.fmus.map(f => (f._1, f._2.inputs.map(i => SetNode(PortRef(f._1, i._1))).toSet))
+  val SetNodes: Map[String, Set[SetNode]] = scenario.fmus.map(f => (f._1, f._2.inputs.map(i => SetNode(PortRef(f._1, i._1))).toSet))
   val SetOptimizedNodesReactive: Map[String, SetOptimizedNode] = SetNodesReactive.map(node => (node._1, SetOptimizedNode(node._2.map(_.port)))).filter(i => i._2.ports.nonEmpty)
   val SetOptimizedNodesDelayed: Map[String, SetOptimizedNode] = SetNodesDelayed.map(node => (node._1, SetOptimizedNode(node._2.map(_.port)))).filter(i => i._2.ports.nonEmpty)
   val GetOptimizedNodes: Map[String, GetOptimizedNode] = GetNodes.map(node => (node._1, GetOptimizedNode(node._2.map(_.port))))
   val SetOptimizedNodes: Map[String, SetOptimizedNode] = scenario.fmus.map(f => (f._1, SetOptimizedNode(f._2.inputs.map(i => (PortRef(f._1, i._1))).toSet))).filter(i => i._2.ports.nonEmpty)
 
+  val reactiveConnections: Seq[ConnectionModel] = scenario.connections.filter(c => isReactive(c.trgPort))
+
+  lazy val RejectFMUs: Set[String] = mayReject(HashSet.empty[String], HashSet.empty[String], scenario.fmus.filter(o => o._2.canRejectStep).keys.to(HashSet))
+
+  @scala.annotation.tailrec
+  final def mayReject(rejects: HashSet[String], normal: HashSet[String], toAdd: HashSet[String]): HashSet[String] = {
+    toAdd.isEmpty match {
+      case true => rejects
+      case false => {
+        val FMUsToAdd = reactiveConnections.filter(o => rejects.contains(o.trgPort.fmu) && normal.contains(o.srcPort.fmu)).map(o => o.srcPort.fmu).to(HashSet)
+        mayReject(rejects ++ toAdd, normal -- toAdd, FMUsToAdd)
+      }
+    }
+  }
 
   private def feedthroughInit: Set[Edge[Node]] =
     scenario.fmus.flatMap(f => {
@@ -78,24 +92,25 @@ class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = fals
   }
 
   private def StepFindingEdges: Set[Edge[Node]] = {
-    var mayReject = scenario.fmus.filter(o => o._2.canRejectStep).keys.toSet
-    var normalFMUs = scenario.fmus.filter(fmu => !mayReject.contains(fmu._1)).keys.toSet
-    val reactiveInputs = scenario.fmus.map(fmu => (fmu._1, fmu._2.inputs.filter(i => i._2.reactivity == reactive).keys.toSet))
-    val reactiveConnections = scenario.connections.filter(c => reactiveInputs(c.trgPort.fmu).contains(c.trgPort.port))
-    var conv = false
-    while (!conv) {
-      //FMUs connected to an FMU that may reject a step
-      var fmusToAdd = reactiveConnections.filter(o => mayReject.contains(o.trgPort.fmu) && normalFMUs.contains(o.srcPort.fmu)).map(o => o.srcPort.fmu)
-      //These should be added to the set tha that May reject
-      mayReject ++= fmusToAdd
-      normalFMUs --= fmusToAdd
-      conv = fmusToAdd.isEmpty
-    }
     //FMUs connected reactively that both may reject a step should be connected
-    reactiveConnections.filter(o => mayReject.contains(o.trgPort.fmu) && mayReject.contains(o.srcPort.fmu))
+    reactiveConnections.filter(o => RejectFMUs.contains(o.trgPort.fmu) && RejectFMUs.contains(o.srcPort.fmu))
       .map(o => Edge[Node](DoStepNode(o.trgPort.fmu), DoStepNode(o.srcPort.fmu))).toSet
   }
 
+
+  def reactiveOutAndDelayedIn(fmu: String): Boolean = {
+    val reactiveConnectionsFromFMU = reactiveConnections.filter(i => i.srcPort.fmu == fmu).map(_.trgPort.fmu).toSet
+    val delayedConnectionsToFMU = scenario.connections.filter(i => !isReactive(i.trgPort) && i.trgPort.fmu == fmu).map(_.srcPort.fmu).toSet
+    reactiveConnectionsFromFMU.intersect(delayedConnectionsToFMU).isEmpty
+  }
+
+  def inputFromStepRejectFMU(fmu: String): Boolean = {
+    if(RejectFMUs.contains(fmu)) {
+      val delayedConnectionsToFMU = scenario.connections.filterNot(reactiveConnections.contains).filter(_.trgPort.fmu == fmu).map(_.srcPort.fmu).toSet
+      return delayedConnectionsToFMU.intersect(RejectFMUs).isEmpty
+    }
+    true
+  }
 
   private def doStepEdgesOptimized: Set[Edge[Node]] = {
     val stepToGet = stepNodes.map(step => Edge[Node](step, GetOptimizedNodes(step.name)))
@@ -112,8 +127,18 @@ class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = fals
     scenario.connections.map(c => Edge[Node](GetOptimizedNodes(c.srcPort.fmu), SetOptimizedNodes(c.trgPort.fmu))).toSet
   }
 
+  def ifNoReactiveConnectionFrom(srcFMU: String, trgFMU: String): Boolean = {
+    !scenario.connections.exists(i => isReactive(i.trgPort) && i.trgPort.fmu == trgFMU && i.srcPort.fmu == srcFMU)
+  }
+
+  def ifReactiveNoDelayedConnection(connection: ConnectionModel): Boolean = {
+    if (isReactive(connection.trgPort)) true
+    else if (ifNoReactiveConnectionFrom(connection.srcPort.fmu, connection.trgPort.fmu)) true
+    else false
+  }
+
   lazy val connectionEdgesOptimized: Set[Edge[Node]] = {
-    scenario.connections.map(c => Edge[Node](GetOptimizedNodes(c.srcPort.fmu),
+    scenario.connections.filter(ifReactiveNoDelayedConnection).map(c => Edge[Node](GetOptimizedNodes(c.srcPort.fmu),
       if (isReactive(c.trgPort)) SetOptimizedNodesReactive(c.trgPort.fmu)
       else SetOptimizedNodesDelayed(c.trgPort.fmu))).toSet
   }
@@ -127,7 +152,7 @@ class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = fals
 
   lazy val stepEdgesOptimized: Set[Edge[Node]] = removeEdges(connectionEdgesOptimized ++ feedthroughOptimized ++ doStepEdgesOptimized ++ StepFindingEdges)
 
-  private def removeEdges(edges: Set[Edge[Node]]) :Set[Edge[Node]] = {
+  private def removeEdges(edges: Set[Edge[Node]]): Set[Edge[Node]] = {
     val tarjanGraph = new TarjanGraph[Node](edges)
     GraphUtil.removeTransitiveEdges(edges, tarjanGraph.tarjanCycle.toSet)
   }

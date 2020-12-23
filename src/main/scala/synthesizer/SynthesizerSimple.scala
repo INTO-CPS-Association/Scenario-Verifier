@@ -34,7 +34,6 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, strategy: LoopStrategy) ex
   def formatAlgebraicLoop(scc: List[Node]): List[CosimStepInstruction] = {
     val steps = graphBuilder.stepNodes.filter(o => scc.contains(o))
     val gets = graphBuilder.GetNodes.values.flatten.filter(o => scc.contains(o)).toList
-    val setsDelayed = graphBuilder.SetNodesDelayed.values.flatten.filter(o => scc.contains(o)).toList
     val setsReactive = graphBuilder.SetNodesReactive.values.flatten.filter(o => scc.contains(o)).toList
 
     var edgesInSCC = getEdgesInSCC(StepEdges, scc)
@@ -42,15 +41,12 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, strategy: LoopStrategy) ex
 
     val reactiveGets = gets.filter(o => (edgesInSCC.exists(edge => edge.srcNode == o && setsReactive.contains(edge.trgNode)))).toSet
 
-    //Add restore and save nodes:
-    ExpandReactiveSCC(FMUs, setsDelayed, setsReactive, reactiveGets.toList)
-
     if (strategy == maximum)
     //Remove all connections between FMUs
       edgesInSCC = edgesInSCC.filterNot(e => setsReactive.contains(e.trgNode) && gets.contains(e.srcNode))
     else {
       //Remove all connections to a single FMU
-      val reducedList = setsReactive.groupBy(o => o.port.fmu).head._2
+      val reducedList = setsReactive.groupBy(o => o.port.fmu).toList.minBy(i => i._2.size)._2
       edgesInSCC = edgesInSCC.filterNot(e => reducedList.contains(e.trgNode) && gets.contains(e.srcNode))
     }
 
@@ -60,21 +56,6 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, strategy: LoopStrategy) ex
     val saves = createSaves(FMUs)
     val restores = createRestores(FMUs)
     saves.:+(AlgebraicLoop(reactiveGets.map(_.port).toList, instructions, restores))
-  }
-
-  private def ExpandReactiveSCC(FMUs: scala.collection.Set[String], setsDelayed: List[SetNode], setsReactive: List[SetNode], reactiveGets: List[GetNode]): HashSet[Edge[Node]] = {
-    var edgesInSCC: HashSet[Edge[Node]] = HashSet.empty
-    FMUs.foreach(fmu => {
-      edgesInSCC += (Edge[Node](SaveNode(fmu), RestoreNode(fmu)))
-      edgesInSCC += (Edge[Node](SaveNode(fmu), DoStepNode(fmu)))
-      (setsDelayed ++ setsReactive).foreach(s => {
-        edgesInSCC += (Edge[Node](SaveNode(fmu), s))
-      })
-      reactiveGets.foreach(g => {
-        edgesInSCC += (Edge[Node](g, RestoreNode(fmu)))
-      })
-    })
-    edgesInSCC
   }
 }
 

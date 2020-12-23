@@ -40,7 +40,7 @@ class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) exten
     val reactiveGets = gets.filter(o => (edgesInSCC.exists(edge => edge.srcNode == o && setsReactive.contains(edge.trgNode)))).toSet
 
     //Add restore and save nodes:
-    ExpandReactiveSCC(FMUs, setsDelayed, setsReactive, reactiveGets.toList)
+    //ExpandReactiveSCC(FMUs, setsDelayed, setsReactive, reactiveGets.toList)
 
     if (strategy == maximum)
     //Remove all connections between FMUs
@@ -51,6 +51,7 @@ class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) exten
     }
 
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edgesInSCC)
+    assert(!tarjanGraph.hasCycle)
 
     val instructions = tarjanGraph.topologicalSCC.flatten.flatMap(formatStepInstruction(_, true)).filter(IsLoopInstruction).toList
     val saves = createSaves(FMUs)
