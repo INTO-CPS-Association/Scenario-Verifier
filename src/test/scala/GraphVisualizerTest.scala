@@ -1,8 +1,10 @@
-import core.{ConnectionParserSingleton, MasterModel, PortRef, ScenarioLoader, ScenarioModel}
+import core.ScenarioLoader
+import org.scalatest.Ignore
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import synthesizer.{DoStepNode, Edge, GetNode, GraphBuilder, GraphVisualizer, Node, SetNode, TarjanGraph}
+import synthesizer.{GraphBuilder, GraphVisualizer, Node, TarjanGraph}
 
+@Ignore
 class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
   def testGraph(file: String, name: String): Unit = {
     val conf = getClass.getResourceAsStream(file)

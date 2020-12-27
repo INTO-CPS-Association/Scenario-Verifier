@@ -22,13 +22,19 @@ object ScenarioConfGenerator extends Logging {
     }.mkString("\n")
   }
 
+  def formatStepSize(by: StepSize): String = by match {
+    case DefaultStepSize() => ""
+    case RelativeStepSize(fmu) => f", by-same-as: $fmu"
+    case AbsoluteStepSize(h) => f", by: $h"
+  }
+
   def generateStep(steps: List[CosimStepInstruction]): String = {
     steps.map {
       case Set(port) => s"{set: ${generatePort(port)}}\n"
       case Get(port) => s"{get: ${generatePort(port)}}\n"
       case GetTentative(port) => s"{get-tentative: ${generatePort(port)}}\n"
       case SetTentative(port) => s"{set-tentative: ${generatePort(port)}}\n"
-      case Step(fmu, by) => s"{step: ${fmu} }\n"
+      case Step(fmu, by) => s"{step: ${fmu} ${formatStepSize(by)}}\n"
       case SaveState(fmu) => s"{save-state: ${fmu}}\n"
       case RestoreState(fmu) => s"{restore-state: ${fmu}}\n"
       case AlgebraicLoop(untilConverged, iterate, ifRetryNeeded) => s"{loop: { \n until-converged: ${untilConverged.map(generatePort).mkString("[", ",", "]")} \n iterate: [${generateStep(iterate)}] \n if-retry-needed: [${generateStep(ifRetryNeeded)}]} \n }\n"
