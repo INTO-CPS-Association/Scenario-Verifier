@@ -27,7 +27,7 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
     FileUtils.deleteQuietly(f)
   }
 
-  "ScenarioGenerator" should "work for simple_master" in {
+  "ScenarioGenerator" should "work for simple_master.conf" in {
     generateAndVerify("examples/simple_master.conf")
   }
 
