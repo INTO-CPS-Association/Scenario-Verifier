@@ -152,7 +152,6 @@ class ModelEncoding(model: MasterModel) {
     }).mkString(",")
   }
 
-
   def nConvergencePortsPerAlgebraicLoopInInit: String = {
     (0 until nAlgebraicLoopsInInit).map(idx => {
       loopOpsEncodingInit.getOrElse(idx, AlgebraicLoopInit(Nil, Nil)).untilConverged.size

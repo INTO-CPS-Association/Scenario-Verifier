@@ -1,11 +1,13 @@
-import java.io.PrintWriter
+import java.io.{InputStreamReader, PrintWriter}
 import java.nio.file.Files
-
 import cli.VerifyTA
-import core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
+import com.typesafe.config.ConfigFactory
+import core.{MasterConfig, ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
+import pureconfig.ConfigSource
+import pureconfig.generic.auto._
 
 class PositiveTests extends AnyFlatSpec with should.Matchers {
 
@@ -63,5 +65,9 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
 
   it should "work for algebraic_loop_initialization.conf" in {
     generateAndVerify("examples/algebraic_loop_initialization.conf")
+  }
+
+  it should "work for loop_within_loop_forgot_one_connection.conf" in {
+    generateAndVerify("examples/loop_within_loop.conf")
   }
 }

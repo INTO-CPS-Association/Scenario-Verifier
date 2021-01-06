@@ -6,6 +6,7 @@ object ModelQuery {
     instructions.flatMap(f => {
       f match {
         case AlgebraicLoop(uC, iterate, ifRetryNeeded) => List(f) ++ getAllInstructions(iterate) ++ getAllInstructions(ifRetryNeeded)
+        case StepLoop(_, iterate, ifRetryNeeded) => List(f) ++ getAllInstructions(iterate) ++ getAllInstructions(ifRetryNeeded)
         case _ => List(f)
       }
     })

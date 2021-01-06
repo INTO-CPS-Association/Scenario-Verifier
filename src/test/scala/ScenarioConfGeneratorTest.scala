@@ -15,7 +15,6 @@ class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
     assert(compareConnections(scenario.scenario.connections, scenarioFromGeneratedSource.scenario.connections))
     //All FMUs are equivalent
     assert(compareFMUs(scenario.scenario.fmus, scenarioFromGeneratedSource.scenario.fmus))
-
     assert(scenario.initialization == scenarioFromGeneratedSource.initialization)
     assert(scenario.cosimStep == scenarioFromGeneratedSource.cosimStep)
   }

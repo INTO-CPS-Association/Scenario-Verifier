@@ -322,7 +322,7 @@
         Operation operationsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep][maxNAlgebraicLoopOperationsInStep] = {@m.operationsPerAlgebraicLoopInStep };
         Operation operationsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit][maxNAlgebraicLoopOperationsInInit] = {@m.operationsPerAlgebraicLoopInInit };
 
-        //The converge ports is too mark which variables that needs too be checked in the convergence loop
+        //The converge ports is to mark which variables that needs to be checked in the convergence loop
         //The convention is now to specify the FMU first and the port to denote the variables that should be checked
         FmuOutputPort convergencePortsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep][maxNConvergeOperationsForAlgebraicLoopsInStep] = {@m.convergencePortsPerAlgebraicLoopInStep };
         FmuOutputPort convergencePortsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit][maxNConvergeOperationsForAlgebraicLoopsInInit] = {@m.convergencePortsPerAlgebraicLoopInInit };

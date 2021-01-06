@@ -48,4 +48,8 @@ class NegativeTests extends AnyFlatSpec with should.Matchers {
   "ScenarioGenerator" should  "catch problem for algebraic_loop_msd_no_looproutine" in {
     generateAndVerifyFail("common_mistakes/algebraic_loop_msd_no_looproutine.conf")
   }
+
+  "ScenarioGenerator" should  "catch problem for loop_within_loop_forgot_one_connection.conf" in {
+    generateAndVerifyFail("common_mistakes/loop_within_loop_forgot_one_connection.conf")
+  }
 }

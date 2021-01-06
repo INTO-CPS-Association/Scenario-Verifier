@@ -2,11 +2,13 @@ package core
 
 import java.io.{File, InputStream, InputStreamReader}
 import java.nio.file.{Files, Paths}
-
 import com.typesafe.config.ConfigFactory
 import org.apache.logging.log4j.scala.Logging
 import pureconfig.ConfigReader.Result
 import pureconfig.ConfigSource
+import pretty_print.PPrint
+import pureconfig.error.{ConfigReaderFailure, ConfigReaderFailures, ConvertFailure, UnknownKey}
+import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
 
 import scala.collection.immutable
@@ -30,6 +32,16 @@ object ScenarioLoader extends Logging {
     try {
       // read from stream
       val conf = ConfigFactory.parseReader(reader)
+
+      // This forces pure config to not tolerate unknown keys in the config file.
+      // It gives errors when typos happen.
+      // From https://pureconfig.github.io/docs/overriding-behavior-for-case-classes.html
+      implicit val hintNestedStepStatement = ProductHint[NestedStepStatement](allowUnknownKeys = false)
+      implicit val hintRootStepStatement = ProductHint[RootStepStatement](allowUnknownKeys = false)
+      implicit val hintNestedInitStatement = ProductHint[NestedInitStatement](allowUnknownKeys = false)
+      implicit val hintRootInitStatement = ProductHint[RootInitStatement](allowUnknownKeys = false)
+      implicit val hintMasterConfig = ProductHint[MasterConfig](allowUnknownKeys = false)
+
       val parsingResults = ConfigSource.fromConfig(conf).load[MasterConfig]
       val masterConfig = extractMasterConfig(parsingResults)
       parse(masterConfig)
@@ -38,15 +50,30 @@ object ScenarioLoader extends Logging {
     }
   }
 
+  def prettyPrintError(e: ConfigReaderFailure): Unit = {
+    e match {
+      case ConvertFailure(UnknownKey(key), _, path) => {
+        logger.error(f"Unknown key '${key}' in element ${path}.")
+      }
+      case other => {
+        logger.error(other.description)
+      }
+    }
+
+  }
+
   def extractMasterConfig(parsingResults: Result[MasterConfig]): MasterConfig = {
     parsingResults match {
       case Left(errors) => {
-        logger.error("Errors during parsing: ")
-        logger.error(errors)
+        logger.error("Errors during parsing.")
+        for (e <- errors.toList) {
+          prettyPrintError(e)
+        }
         throw new IllegalArgumentException(errors.toString())
       }
       case Right(master) => {
         logger.info(f"Successfully parsed master configuration.")
+        PPrint.pprint(master, l=logger)
         master
       }
     }
@@ -125,13 +152,13 @@ object ScenarioLoader extends Logging {
   }
 
   def parse(instruction: StepStatement, scenarioModel: ScenarioModel): CosimStepInstruction = {
-
     // Check uniqueness of instruction
     instruction match {
-      case NestedStepStatement(get, set, step, saveState, restoreState, getTentative, setTentative, by, bySameAs) => {
-        val nOps = List(get, set, step, saveState, restoreState, getTentative, setTentative).count(b => !b.isBlank)
+      case NestedStepStatement(get, set, step, saveState, restoreState, loop, getTentative, setTentative, by, bySameAs) => {
+        val baseOps = List(get, set, step, saveState, restoreState, getTentative, setTentative).count(b => !b.isBlank)
+        val nOps = baseOps + (if (loop == NoLoop) 0 else 1)
         assert(nOps == 1,
-          s"Cosim step instruction $instruction must be one of get, set, step, save-state, restore-state, or get-tentative.")
+          s"Cosim step instruction $instruction must be one of get, set, step, save-state, restore-state, loop, or get-tentative.")
       }
       case RootStepStatement(get, set, step, saveState, restoreState, loop, by, bySameAs) => {
         val baseOps = List(get, set, step, saveState, restoreState).count(b => !b.isBlank)
@@ -176,8 +203,7 @@ object ScenarioLoader extends Logging {
     } else {
       // Check subclasses
       instruction match {
-        case NestedStepStatement(_, _, _, _, _, getTentative, setTentative, by, bySameAs) => {
-
+        case NestedStepStatement(_, _, _, _, _, loop, getTentative, setTentative, by, bySameAs) => {
           if (!getTentative.isBlank) {
             val pRef = parsePortRef(getTentative, s"instruction $instruction", scenarioModel.fmus)
             assert(scenarioModel.fmus(pRef.fmu).outputs.contains(pRef.port), s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
@@ -186,10 +212,11 @@ object ScenarioLoader extends Logging {
             val pRef = parsePortRef(setTentative, s"instruction $instruction", scenarioModel.fmus)
             assert(scenarioModel.fmus(pRef.fmu).inputs.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
             SetTentative(pRef)
+          } else if (loop != NoLoop) {
+            parse(loop, scenarioModel)
           } else {
-            throw new RuntimeException("Invariant violated while parsing instruction $instruction")
+            throw new RuntimeException(f"Invariant violated while parsing instruction $instruction")
           }
-
         }
         case RootStepStatement(_, _, _, _, _, loop, by, bySameAs) => {
           assert(loop != NoLoop, s"Invariant violated while parsing instruction $instruction")
