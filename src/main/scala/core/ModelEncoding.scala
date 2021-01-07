@@ -22,6 +22,8 @@ class ModelEncoding(model: MasterModel) {
 
   def nExternal: Int = model.scenario.connections.length
 
+  def fmuModels : Map[String, FmuModel] = model.scenario.fmus
+
   def stepVariables: String = (0 until nFMUs).map(_ => "H_max").mkString(",")
 
   val fmuEncoding: Map[String, Int] = model.scenario.fmus.keys.zipWithIndex.toMap
@@ -38,6 +40,7 @@ class ModelEncoding(model: MasterModel) {
   val fmuInputEncoding: Map[String, Map[String, Int]] = fmuNames.map(fName => (fName, model.scenario.fmus(fName).inputs.keys.zipWithIndex.toMap)).toMap
   val fmuInputEncodingInverse: Map[String, Map[Int, String]] = fmuInputEncoding.map(f => (f._1, f._2.map(_.swap)))
   val fmuOutputEncoding: Map[String, Map[String, Int]] = fmuNames.map(fName => (fName, model.scenario.fmus(fName).outputs.keys.zipWithIndex.toMap)).toMap
+  val fmuOutputEncodingInverse: Map[String, Map[Int, String]] = fmuOutputEncoding.map(f => (f._1, f._2.map(_.swap)))
 
   def fmuInNames(f: String) = model.scenario.fmus(f).inputs.keys
 
