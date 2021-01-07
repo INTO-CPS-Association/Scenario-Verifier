@@ -11,8 +11,6 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
     val encoding = new ModelEncoding(ScenarioLoader.load(conf))
 
     val lines = scala.io.Source.fromResource("trace/trace.log").getLines
-      .filterNot(i => i.matches("\\([^()]*\\)"))
-        .filterNot(i => i.matches(".*\\s\\{(.*?)\\}"))
     TraceAnalyzer.AnalyseScenario("simple_master", lines, encoding)
   }
 
@@ -21,8 +19,6 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
     val encoding = new ModelEncoding(ScenarioLoader.load(conf))
 
     val lines = scala.io.Source.fromResource("trace/trace_long.log").getLines
-      .filterNot(i => i.matches("\\([^()]*\\)"))
-      .filterNot(i => i.matches(".*\\s\\{(.*?)\\}"))
     TraceAnalyzer.AnalyseScenario("industrial", lines, encoding)
   }
 
