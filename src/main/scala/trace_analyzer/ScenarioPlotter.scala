@@ -2,7 +2,7 @@ package trace_analyzer
 
 import java.io.File
 
-import core.ModelEncoding
+import core.{FmuModel, InputPortModel, ModelEncoding, OutputPortModel}
 import core.Reactivity.reactive
 import guru.nidi.graphviz.attribute.{Color, Label, Shape, Style}
 import guru.nidi.graphviz.engine.{Format, Graphviz}
@@ -11,49 +11,39 @@ import guru.nidi.graphviz.model.MutableGraph
 
 
 object ScenarioPlotter {
+
+  def feedthroughConnections(outputPortModel: OutputPortModel, state: ModelState): List[String] =
+    if (state.isInitState) outputPortModel.dependenciesInit else outputPortModel.dependenciesInit
+
+
   def createGraphOfState(state: ModelState, modelEncoding: ModelEncoding, name: String): MutableGraph = {
     val g = mutGraph(name).setDirected(true)
-    modelEncoding.fmuModels.foreach(i => {
-      val cluster = graph.named(i._1).cluster().graphAttr().`with`(Style.FILLED, Color.LIGHTGREY,
-        Label.lines(i._1.toUpperCase(),
-          if (state.isInitState) "" else f"Timestamp: ${state.getTimeStamp(i._1)}",
-          if (state.isInitState) "" else f"IsSaved: ${state.isSaved(i._1)}"
+    modelEncoding.fmuModels.foreach(fmu => {
+      val cluster = graph.named(fmu._1).cluster().graphAttr().`with`(Style.FILLED, Color.LIGHTGREY,
+        Label.lines(fmu._1.toUpperCase(),
+          if (state.isInitState) "" else f"Timestamp: ${state.getTimeStamp(fmu._1)}",
+          if (state.isInitState) "" else f"IsSaved: ${state.isSaved(fmu._1)}"
         )).toMutable
-      i._2.inputs.foreach(input => {
-        if (state.isInitState && state.isDefinedInitInputState(i._1, input._1) || state.isSimulation && state.isDefinedInputState(i._1, input._1))
-          cluster.add(mutNode(i._1 + "." + input._1)
-            .add(Color.BLACK, Shape.BOX, Label.lines(i._1 + "." + input._1, state.portTime(i._1, input._1, true), if(input._2.reactivity == reactive) "R" else "D")))
-        else
-          cluster.add(mutNode(i._1 + "." + input._1)
-            .add(Color.WHITE, Shape.BOX, Label.lines(i._1 + "." + input._1, state.portTime(i._1, input._1, true), if(input._2.reactivity == reactive) "R" else "D")))
-      })
-      i._2.outputs.foreach(v => {
-        if (state.isDefinedOutputState(i._1, v._1))
-          cluster.add(mutNode(i._1 + "." + v._1)
-            .add(Color.BLACK, Shape.BOX, Label.lines(i._1 + "." + v._1, state.portTime(i._1, v._1, false))))
-        else
-          cluster.add(mutNode(i._1 + "." + v._1)
-            .add(Color.WHITE, Shape.BOX, Label.lines(i._1 + "." + v._1, state.portTime(i._1, v._1, false))))
+      fmu._2.inputs.foreach(input =>
+        cluster.add(mutNode(fmu._1 + "." + input._1)
+          .add(if (isDefined(state, fmu, input)) Color.BLACK else Color.WHITE, Shape.BOX, Label.lines(fmu._1 + "." + input._1, state.portTime(fmu._1, input._1, true), if (input._2.reactivity == reactive) "R" else "D")))
+      )
+      fmu._2.outputs.foreach(output => {
+        cluster.add(mutNode(fmu._1 + "." + output._1)
+          .add(if (state.isDefinedOutputState(fmu._1, output._1)) Color.BLACK else Color.WHITE, Shape.BOX, Label.lines(fmu._1 + "." + output._1, state.portTime(fmu._1, output._1, false))))
 
-        if (state.isInitState) {
-          v._2.dependenciesInit.foreach(input => {
-            cluster.add(mutNode(i._1 + "." + input).addLink(mutNode(i._1 + "." + v._1)))
-          })
-        } else {
-          v._2.dependencies.foreach(input => {
-            cluster.add(mutNode(i._1 + "." + input).addLink(mutNode(i._1 + "." + v._1)))
-          })
-        }
-        cluster.addTo(g)
+        feedthroughConnections(output._2, state).foreach(input => {
+          cluster.add(mutNode(fmu._1 + "." + input).addLink(mutNode(fmu._1 + "." + output._1)))
+        })
       })
-      val connectionsFromFMU = modelEncoding.connections.filter(_.srcPort.fmu == i._1)
-      connectionsFromFMU.foreach(v => {
-        g.add(
-          mutNode(v.srcPort.fmu + "." + v.srcPort.port)
-            .addLink(mutNode(v.trgPort.fmu + "." + v.trgPort.port)))
-      })
+      cluster.addTo(g)
+
+      val connectionsFromFMU = modelEncoding.connections.filter(_.srcPort.fmu == fmu._1)
+      connectionsFromFMU.foreach(connection => 
+        g.add(mutNode(connection.srcPort.fmu + "." + connection.srcPort.port)
+            .addLink(mutNode(connection.trgPort.fmu + "." + connection.trgPort.port)))
+      )
     })
-
 
     g.add(mutNode(state.action.action())
       .add(Shape.DIAMOND, Label.lines(
@@ -61,6 +51,10 @@ object ScenarioPlotter {
         f"Action: ${state.action.action()}",
         if (state.isInitState) "" else s"Timestamp: ${state.timeStamp}"
       )))
+  }
+
+  private def isDefined(state: ModelState, i: (String, FmuModel), input: (String, InputPortModel)) = {
+    state.isInitState && state.isDefinedInitInputState(i._1, input._1) || state.isSimulation && state.isDefinedInputState(i._1, input._1)
   }
 
   def plot(uppaalTrace: UppaalTrace): Unit = {
