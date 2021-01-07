@@ -24,6 +24,10 @@
         //Active loop - if it is different form -1, we are in the middle of solving an algebraic loop
         int loopActive := -1;
 
+        //Used in Trace Visualization
+        int isInit := 0;
+        int isSimulation := 0;
+
         //In case of a scenario with algebraic loops and step rejection,
         // we need to be able to turn off the precondition checks
         bool shouldChecksBeDisabled(){
@@ -177,7 +181,7 @@
         int [-1, H_max] stepsize = 0;
         int [-1, nFMU] relative_step_size = 0;
 
-        int end = END_TIME;
+        const int end = END_TIME;
         int time = START_TIME;
 
         //Counters to track the current state of the co-simulation
@@ -261,12 +265,12 @@
         variable connectionVariable[nFMU][MaxNOutputs][2] = { @m.connectionVariable };
 
         //Connections - do not longer contain the type of the input - but it is still a 1:1 mapping
-        ExternalConnection external[nExternal] = { @m.external };
+        const ExternalConnection external[nExternal] = { @m.external };
 
-        InternalConnection feedthroughInStep[nInternal] = { @m.feedthroughInStep };
+        const InternalConnection feedthroughInStep[nInternal] = { @m.feedthroughInStep };
 
         //The initial internal connection could be different from the connection in the simulation and should be represented differently
-        InternalConnection feedthroughInInit[nInternalInit] = { @m.feedthroughInInit };
+        const InternalConnection feedthroughInInit[nInternalInit] = { @m.feedthroughInInit };
 
         //The array show if an FMU can reject a step or not - if the FMU can reject a step the value is 1 on the index defined by the fmus
         const bool mayRejectStep[nFMU] = { @m.mayRejectStep };
@@ -277,7 +281,6 @@
         const int nStepOperations := @m.nStepOperations;
         const int nTerminationOperations := @m.nTerminationOperations;
 
-        //TODO: This
         // Numbers for algebraic loop operations in init
         const int maxNAlgebraicLoopOperationsInInit := @m.maxNAlgebraicLoopOperationsInInit;
         const int maxNConvergeOperationsForAlgebraicLoopsInInit := @m.maxNConvergeOperationsForAlgebraicLoopsInInit;
@@ -302,11 +305,11 @@
         const int[0,maxNRetryOperationsForAlgebraicLoopsInStep] nRetryOperationsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep] = {@m.nRetryOperationsPerAlgebraicLoopInStep};
 
         //These operations define what should be performed in the simulation - it is assumed that the operation first loads the fmus
-        Operation instantiationOperations[nInstantiationOperations] = { @m.instantiationOperations };
+        const Operation instantiationOperations[nInstantiationOperations] = { @m.instantiationOperations };
 
-        Operation initializationOperations[nInitializationOperations] = { @m.initializationOperations };
+        const Operation initializationOperations[nInitializationOperations] = { @m.initializationOperations };
 
-        Operation stepOperations[nStepOperations] = { @m.stepOperations };
+        const Operation stepOperations[nStepOperations] = { @m.stepOperations };
 
         //These are the operations to be performed in order to find the correct step
         //In these operation there is a difference on the third parameter to doStep:
@@ -314,22 +317,22 @@
         // A stepSize (0:(nFMU-1)) means that the should look at that index in stepVariables use that as the step
         //This is being done inside - findStepAction
 
-        Operation findStepIteration[nFindStepOperations] = { @m.findStepLoopOperations };
-        Operation StepFix[nRestore] = { @m.findStepLoopRestoreOperations };
+        const Operation findStepIteration[nFindStepOperations] = { @m.findStepLoopOperations };
+        const Operation StepFix[nRestore] = { @m.findStepLoopRestoreOperations };
 
         //Possible multiple loops
         //Loop operations are to solve algebraic loops in the co-simulation scenario
-        Operation operationsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep][maxNAlgebraicLoopOperationsInStep] = {@m.operationsPerAlgebraicLoopInStep };
-        Operation operationsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit][maxNAlgebraicLoopOperationsInInit] = {@m.operationsPerAlgebraicLoopInInit };
+        const Operation operationsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep][maxNAlgebraicLoopOperationsInStep] = {@m.operationsPerAlgebraicLoopInStep };
+        const Operation operationsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit][maxNAlgebraicLoopOperationsInInit] = {@m.operationsPerAlgebraicLoopInInit };
 
         //The converge ports is to mark which variables that needs to be checked in the convergence loop
         //The convention is now to specify the FMU first and the port to denote the variables that should be checked
-        FmuOutputPort convergencePortsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep][maxNConvergeOperationsForAlgebraicLoopsInStep] = {@m.convergencePortsPerAlgebraicLoopInStep };
-        FmuOutputPort convergencePortsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit][maxNConvergeOperationsForAlgebraicLoopsInInit] = {@m.convergencePortsPerAlgebraicLoopInInit };
+        const FmuOutputPort convergencePortsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep][maxNConvergeOperationsForAlgebraicLoopsInStep] = {@m.convergencePortsPerAlgebraicLoopInStep };
+        const FmuOutputPort convergencePortsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit][maxNConvergeOperationsForAlgebraicLoopsInInit] = {@m.convergencePortsPerAlgebraicLoopInInit };
 
-        Operation retryOperationsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep][maxNRetryOperationsForAlgebraicLoopsInStep] = {@m.retryOperationsPerAlgebraicLoopInStep };
+        const Operation retryOperationsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep][maxNRetryOperationsForAlgebraicLoopsInStep] = {@m.retryOperationsPerAlgebraicLoopInStep };
 
-        Operation terminationOperations[nTerminationOperations] = { @m.terminationOperations };
+        const Operation terminationOperations[nTerminationOperations] = { @m.terminationOperations };
 
     </declaration>
     <template>
@@ -487,6 +490,7 @@
             <target ref="id8"/>
             <label kind="guard" x="859" y="-136">init_pc == nInitializationOperations</label>
             <label kind="synchronisation" x="859" y="-119">actionPerformed?</label>
+            <label kind="assignment" x="858" y="-85">isInit = 0</label>
         </transition>
         <transition>
             <source ref="id9"/>
@@ -510,7 +514,7 @@
         <transition>
             <source ref="id20"/>
             <target ref="id19"/>
-            <label kind="assignment" x="357" y="-102">selectNextInitAction()</label>
+            <label kind="assignment" x="357" y="-102">selectNextInitAction(), isInit = 1</label>
         </transition>
         <transition>
             <source ref="id22"/>
@@ -564,7 +568,7 @@
         <transition>
             <source ref="id13"/>
             <target ref="id18"/>
-            <label kind="assignment" x="1428" y="-144">selectNextCosimStepAction()</label>
+            <label kind="assignment" x="1428" y="-144">selectNextCosimStepAction(), isSimulation = 1</label>
             <nail x="1521" y="-102"/>
         </transition>
         <transition>
@@ -620,7 +624,7 @@
             <label kind="guard" x="1436" y="102">cosimstep_pc == nStepOperations + 1
                 &amp;&amp; time &gt;= end
             </label>
-            <label kind="assignment" x="1436" y="161">findFMUTerminateAction()</label>
+            <label kind="assignment" x="1436" y="161">findFMUTerminateAction(), isSimulation = 0</label>
             <nail x="1683" y="272"/>
         </transition>
         <transition>
@@ -649,7 +653,7 @@
     </template>
     <template>
         <name>LoopSolverInit</name>
-        <parameter>int maxIteration</parameter>
+        <parameter>const int maxIteration</parameter>
         <declaration>
             int convergence_pc := 0;
 
@@ -816,7 +820,7 @@
     </template>
     <template>
         <name>LoopSolver</name>
-        <parameter>int maxIteration</parameter>
+        <parameter>const int maxIteration</parameter>
         <declaration>
             int convergence_pc := 0;
             int restore_pc := 0;
@@ -1042,7 +1046,7 @@
     </template>
     <template>
         <name>StepFinder</name>
-        <parameter>int maxTries</parameter>
+        <parameter>const int maxTries</parameter>
         <declaration>
             int step_pc := 0;
             int restore_pc := 0;
@@ -1231,7 +1235,7 @@
     </template>
     <template>
         <name>FMU</name>
-        <parameter>int id, int nOutput, int nInput, int inputType[MaxNInputs]</parameter>
+        <parameter>const int id, const int nOutput, const int nInput, const int inputType[MaxNInputs]</parameter>
         <declaration>
             int cTime := START_TIME;
             variable inputVariables[MaxNInputs] = { @{m.variableArray(m.maxNInputs)} };
