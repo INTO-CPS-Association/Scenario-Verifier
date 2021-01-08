@@ -8,6 +8,7 @@ import guru.nidi.graphviz.attribute.{Color, Label, Shape, Style}
 import guru.nidi.graphviz.engine.{Format, Graphviz}
 import guru.nidi.graphviz.model.Factory.{graph, mutGraph, mutNode}
 import guru.nidi.graphviz.model.MutableGraph
+import org.jcodec.api.awt.AWTSequenceEncoder
 
 
 object ScenarioPlotter {
@@ -39,9 +40,9 @@ object ScenarioPlotter {
       cluster.addTo(g)
 
       val connectionsFromFMU = modelEncoding.connections.filter(_.srcPort.fmu == fmu._1)
-      connectionsFromFMU.foreach(connection => 
+      connectionsFromFMU.foreach(connection =>
         g.add(mutNode(connection.srcPort.fmu + "." + connection.srcPort.port)
-            .addLink(mutNode(connection.trgPort.fmu + "." + connection.trgPort.port)))
+          .addLink(mutNode(connection.trgPort.fmu + "." + connection.trgPort.port)))
       )
     })
 
@@ -58,15 +59,23 @@ object ScenarioPlotter {
   }
 
   def plot(uppaalTrace: UppaalTrace): Unit = {
+    val init_movie = new File(s"example/init_${uppaalTrace.scenarioName}.mp4")
+    val encoder = AWTSequenceEncoder.createSequenceEncoder(init_movie, 1)
     uppaalTrace.initStates.indices.foreach(i => {
       val g = createGraphOfState(uppaalTrace.initStates(i), uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
-      Graphviz.fromGraph(g).render(Format.PNG).toFile(new File(String.format("example/%s/init_test%s.png", g.name().toString, i)))
+      encoder.encodeImage(Graphviz.fromGraph(g).height(512).width(512).render(Format.PNG).toImage)
     })
+    encoder.finish()
+
+    val scenario_movie = new File(s"example/simulation_${uppaalTrace.scenarioName}.mp4")
+    val scenario_Encoder = AWTSequenceEncoder.createSequenceEncoder(scenario_movie, 1)
 
     uppaalTrace.simulationStates.indices.foreach(i => {
       val g = createGraphOfState(uppaalTrace.simulationStates(i), uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
-      Graphviz.fromGraph(g).render(Format.PNG).toFile(new File(String.format("example/%s/simulation_test%s.png", g.name().toString, i)))
+      scenario_Encoder.encodeImage(Graphviz.fromGraph(g).height(512).width(512).render(Format.PNG).toImage)
     })
+
+    scenario_Encoder.finish()
   }
 
 }

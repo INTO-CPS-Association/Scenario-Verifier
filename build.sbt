@@ -26,5 +26,9 @@ libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % 
 // https://mvnrepository.com/artifact/commons-io/commons-io
 libraryDependencies += "commons-io" % "commons-io" % "2.8.0"
 
+// https://mvnrepository.com/artifact/org.jcodec/jcodec
+libraryDependencies += "org.jcodec" % "jcodec" % "0.2.5"
+libraryDependencies += "org.jcodec" % "jcodec-javase" % "0.2.5"
+
 // Set display options for scalatest
 testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-o")

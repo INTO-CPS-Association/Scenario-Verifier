@@ -1,6 +1,6 @@
 package cli
 
-import java.io.{File, IOException}
+import java.io.{BufferedWriter, File, FileWriter, IOException}
 
 import org.apache.logging.log4j.scala.Logging
 
@@ -30,7 +30,7 @@ object VerifyTA extends Logging {
       2
     } else {
       val output = pLog.output.toString
-      if (output.contains("Formula is NOT satisfied.")){
+      if (output.contains("Formula is NOT satisfied.")) {
         logger.error(s"Model is not valid.")
         logger.error(s"To see the trace, run: ${cmd}")
         1
@@ -40,14 +40,42 @@ object VerifyTA extends Logging {
     }
   }
 
+  def saveTraceToFile(uppaalFile: File, traceFile: File) = {
+    val fPath = uppaalFile.getAbsolutePath
+    val cmd = s"""${VERIFY} -t 1 -Y -s '${fPath}'"""
+    logger.info(s"Running command: ${cmd}")
+    val pLog = new VerifyTaProcessLogger()
+    val exitCode = Process(cmd).!(pLog)
+    if (exitCode != 0) {
+      logger.error(s"Command returned non zero exit code: ${exitCode}.")
+      logger.error(s"This is probably a syntax error.")
+    } else {
+      val bw = new BufferedWriter(new FileWriter(traceFile))
+      val trace = pLog.output.toString.replace("State", "\nState").replace("Transitions", "\nTransitions")
+        .split("\n")
+        .drop(2).toList
+
+      trace.slice(0, trace.indexWhere(_.contains("MasterA.Start"), 2))
+        .filterNot(_.contains("Transitions"))
+        .map(_.replaceAll("\\([^()]*\\)", ""))
+        .map(_.replaceAll("#depth=\\d+ *", ""))
+        .foreach(s => {
+          bw.write(s + "\n")
+        })
+      bw.close()
+      logger.info(s"Trace saved toﬂ ${traceFile}")
+    }
+  }
+
   val VERIFY = "verifyta"
+
   def checkEnvironment(): Boolean = {
     logger.info("Checking for binary in system.")
     try {
       val pLog = new VerifyTaProcessLogger()
       val cmd = s"""${VERIFY} -v"""
       val exitCode = Process(cmd).!(pLog)
-      if (exitCode != 0){
+      if (exitCode != 0) {
         logger.error(s"Command failed: $cmd")
         false
       } else {
