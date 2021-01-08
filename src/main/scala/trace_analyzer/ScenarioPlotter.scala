@@ -2,17 +2,15 @@ package trace_analyzer
 
 import java.io.File
 
-import core.{FmuModel, InputPortModel, ModelEncoding, OutputPortModel}
 import core.Reactivity.reactive
+import core.{ModelEncoding, OutputPortModel}
 import guru.nidi.graphviz.attribute.{Color, Label, Shape, Style}
 import guru.nidi.graphviz.engine.{Format, Graphviz}
-import guru.nidi.graphviz.model.Factory.{graph, mutGraph, mutNode, port}
+import guru.nidi.graphviz.model.Factory.{graph, mutGraph, mutNode}
 import guru.nidi.graphviz.model.{MutableGraph, MutableNode}
-import org.apache.logging.log4j.scala.Logging
 import org.jcodec.api.awt.AWTSequenceEncoder
 
-
-object ScenarioPlotter extends Logging {
+object ScenarioPlotter {
 
   def feedthroughConnections(outputPortModel: OutputPortModel, state: ModelState): List[String] =
     if (state.isInitState) outputPortModel.dependenciesInit else outputPortModel.dependenciesInit
@@ -42,6 +40,7 @@ object ScenarioPlotter extends Logging {
           state.portTime(fmu, portName, false)))
   }
 
+
   def createGraphOfState(state: ModelState, currentAction: SUAction, modelEncoding: ModelEncoding, name: String): MutableGraph = {
     val g = mutGraph(name).setDirected(true)
     modelEncoding.fmuModels.foreach(fmu => {
@@ -49,7 +48,8 @@ object ScenarioPlotter extends Logging {
       val cluster = graph.named(FMUName).cluster().graphAttr().`with`(Style.FILLED, Color.LIGHTGREY,
         Label.lines(FMUName.toUpperCase(),
           if (state.isInitState) "" else f"Timestamp: ${state.getTimeStamp(fmu._1)}",
-          if (state.isInitState) "" else f"IsSaved: ${state.isSaved(fmu._1)}"
+          if (state.isInitState) "" else f"IsSaved: ${state.isSaved(fmu._1)}",
+          if (state.isInitState) "" else f"Can Step: ${state.canStep(fmu._1)}",
         )).toMutable
       fmu._2.inputs.foreach(input => cluster.add(createInputNode(FMUName, input._1, input._2.reactivity == reactive, currentAction, state)))
 
@@ -68,13 +68,30 @@ object ScenarioPlotter extends Logging {
       )
     })
 
-    g.add(mutNode(state.action.action())
+    g.add(ActionNode(state, currentAction))
+
+    g.add(createLegend())
+  }
+
+  def createLegend(): MutableNode = {
+    mutNode("Legend")
+      .add(
+        Shape.SQUARE,
+        Label.htmlLines("<b>Legend:</b>",
+          "Black: defined",
+          "White: undefined",
+          "Red: current"
+        ))
+  }
+
+  private def ActionNode(state: ModelState, currentAction: SUAction): MutableNode = {
+    mutNode(state.action.action())
       .add(Shape.DIAMOND, Label.lines(
         if (state.isInitState) "Initialization" else "Simulation",
-        if(currentAction!= null) f"Current Action: ${currentAction.action()}" else "",
+        if (currentAction != null) f"Current Action: ${currentAction.action()}" else "",
         f"Next Action: ${state.action.action()}",
         if (state.isInitState) "" else s"Timestamp: ${state.timeStamp}"
-      )))
+      ))
   }
 
   private def isDefined(state: ModelState, fmu: String, port: String) = {
@@ -91,12 +108,15 @@ object ScenarioPlotter extends Logging {
 
   def makeAnimation(movie: File, states: Seq[ModelState], modelEncoding: ModelEncoding, scenarioName: String): Unit = {
     val encoder = AWTSequenceEncoder.createSequenceEncoder(movie, 1)
-    var currentAction : SUAction = null
-
+    var currentAction: SUAction = null
     states.indices.foreach(i => {
       val state = states(i)
       val g = createGraphOfState(state, currentAction, modelEncoding, scenarioName)
-      encoder.encodeImage(Graphviz.fromGraph(g).height(512).width(512).render(Format.PNG).toImage)
+      val nNodes = g.nodes().size()
+      val height = nNodes * 30
+      val width = nNodes * 30
+
+      encoder.encodeImage(Graphviz.fromGraph(g).height(height).width(width).render(Format.PNG).toImage)
       currentAction = state.action
     })
     encoder.finish()

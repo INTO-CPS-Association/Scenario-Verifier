@@ -16,8 +16,8 @@ case class SUAction(val FMU: String, val actionNumber: Int, Port: String, stepSi
     }
   }
 
-  def formatStep():String= {
-    if(stepSize != -1) f"by ${stepSize}"
+  def formatStep(): String = {
+    if (stepSize != -1) f"by ${stepSize}"
     else f"as same as ${relative_step_size}"
   }
 }
@@ -34,8 +34,13 @@ class ModelState(val stepFindingActive: Boolean, val loopActive: Boolean, val ti
                  val isInitState: Boolean,
                  val isSimulation: Boolean) {
 
+  def canStep(fmuName: String) = {
+    val fmu = FMUs.find(_.name == fmuName).get
+    fmu.inputPorts.forall(i => i.isReactive && i.time > fmu.timeStamp || !i.isReactive && i.time == fmu.timeStamp)
+  }
+
   def portTime(fmu: String, portName: String, isInput: Boolean): String = {
-    if(isInput)
+    if (isInput)
       FMUs.flatMap(i => i.inputPorts).find(i => i.fmu == fmu && i.name == portName).get.time.toString
     else
       FMUs.flatMap(i => i.outputPorts).find(i => i.fmu == fmu && i.name == portName).get.time.toString
