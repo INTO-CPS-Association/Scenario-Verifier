@@ -50,9 +50,9 @@ class TraceParser(modelEncoding: ModelEncoding) {
     val stepFinderActive = reducedString.find(i => i contains "stepFinderActive").get.split("=").last == "1"
     val time = reducedString.find(i => i startsWith "time=").get.split("=").last.toInt
 
-    val action = getAction(reducedString)
+    val nextAction = getAction(reducedString)
 
-    new ModelState(stepFinderActive, loopActive, time, FMUStates.toList, action, isInit, isSimulation)
+    new ModelState(stepFinderActive, loopActive, time, FMUStates.toList, nextAction, isInit, isSimulation)
   }
 
   def getPortName(fmuName: String, action: Int, variable: Int): String = {

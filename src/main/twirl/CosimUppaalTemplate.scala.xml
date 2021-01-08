@@ -482,7 +482,7 @@
             <label kind="guard" x="1079" y="34">cosimstep_pc == nStepOperations + 1
                 &amp;&amp; time &lt; end
             </label>
-            <label kind="assignment" x="1470" y="17">takeStep(global_h)</label>
+            <label kind="assignment" x="1470" y="17">takeStep(global_h), isSimulation= 0</label>
             <nail x="1351" y="34"/>
         </transition>
         <transition>

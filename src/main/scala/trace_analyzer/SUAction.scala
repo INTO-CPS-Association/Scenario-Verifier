@@ -12,7 +12,7 @@ case class SUAction(val FMU: String, val actionNumber: Int, Port: String, stepSi
       case 4 => f"Restore ${FMU}"
       case 9 => f"Solve Loop ${FMU}"
       case 10 => f"Step routine ${FMU}"
-      case _ => "Unknown"
+      case _ => "Done"
     }
   }
 

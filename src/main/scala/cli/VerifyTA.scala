@@ -63,7 +63,7 @@ object VerifyTA extends Logging {
           bw.write(s + "\n")
         })
       bw.close()
-      logger.info(s"Trace saved toﬂ ${traceFile}")
+      logger.info(s"Trace saved to file: ${traceFile}")
     }
   }
 
