@@ -1,8 +1,7 @@
-import java.io.{File, PrintWriter}
+import java.io.PrintWriter
 import java.nio.file.Files
 
 import cli.VerifyTA
-import cli.VerifyTA.VERIFY
 import core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
 import org.scalatest.Ignore
@@ -10,6 +9,7 @@ import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import trace_analyzer.TraceAnalyzer
 
+@Ignore
 class TraceTester extends AnyFlatSpec with should.Matchers {
   def writeToTempFile(content: String) = {
     val file = Files.createTempFile("uppaal_", ".xml").toFile
