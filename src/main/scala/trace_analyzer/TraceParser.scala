@@ -66,7 +66,8 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
     encoding.fmuNames.flatMap(i => transitions.filter(_.startsWith(i)).map(i => createAction(i))).toList
   }
 
-  def parseState(stateStrings: List[String]): ModelState = {
+  def parseState(stateString: String): ModelState = {
+    val stateStrings = stateString.split(" ").filterNot(notConstant).toList
     val stepVariables = stateStrings.filter(i => i startsWith "stepVariables")
     val FMUStrings = modelEncoding.fmuEncoding.flatMap(m => stateStrings.filter(i => i startsWith m._1))
     val possibleActions = getPossibleActions(FMUStrings.toList.filter(i => i.contains("Enabled") && i.contains("=1")), modelEncoding)
@@ -77,7 +78,7 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
 
     val reducedString = stateStrings.diff(stepVariables).diff(FMUStrings.toList)
     val loopActive = reducedString.find(_ contains "loopActive").get.split("=").last != "-1"
-    val stepFinderActive = reducedString.find(_ contains "stepFinderActive").get.split("=").last == "1"
+    //val stepFinderActive = reducedString.find(_ contains "stepFinderActive").get.split("=").last == "1"
     val time = reducedString.find(_ startsWith "time=").get.split("=").last.toInt
     val checksDisabled = reducedString.find(_ startsWith "checksDisabled=").get.split("=").last == "1"
 
@@ -106,20 +107,7 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
   }
 
   def parseScenarios(trace: Iterator[String]): Seq[ModelState] = {
-    val filteredTrace = trace.flatMap(_.split(" ")).filterNot(notConstant)
-    var states = Seq.empty[Seq[String]]
-    var currentActions = Seq.empty[String]
-    filteredTrace.filter(_.nonEmpty).foreach(i => {
-      if (i.contains("State")) {
-        states = states :+ (currentActions)
-        currentActions = Seq.empty[String]
-      } else {
-        currentActions = currentActions :+ i
-      }
-    })
-    //First is empty
-    states = states.drop(1)
-    states.map(o => o.toList).toList.map(parseState)
+    trace.toList.map(parseState)
   }
 
   def notConstant(line: String): Boolean = line.startsWith("fmusUnloaded") || line.contains("savedInputVariables") || line.startsWith("connectionVariable") || line.contains("isConsistent=") || line.contains("_pc") || line.contains("isConsistent") || line.contains(".i=") || line.contains(".n=") || line.contains("#depth=")

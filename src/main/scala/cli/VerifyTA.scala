@@ -55,7 +55,7 @@ object VerifyTA extends Logging {
         .split("\n")
         .drop(2).toList
 
-      trace.slice(0, trace.indexWhere(_.contains("MasterA.Start"), 2))
+      trace.drop(trace.indexWhere(_.contains("MasterA.Start"), 2))
         .filterNot(_.contains("Transitions"))
         .map(_.replaceAll("\\([^()]*\\)", ""))
         .map(_.replaceAll("#depth=\\d+ *", ""))

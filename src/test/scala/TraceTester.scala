@@ -9,7 +9,7 @@ import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import trace_analyzer.TraceAnalyzer
 
-@Ignore
+//@Ignore
 class TraceTester extends AnyFlatSpec with should.Matchers {
   def writeToTempFile(content: String) = {
     val file = Files.createTempFile("uppaal_", ".xml").toFile
@@ -41,19 +41,18 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
   }
 
 
-  "TraceTester" should "work for simple" in {
-    generateTrace("common_mistakes/simple_master_can_reject_step.conf", "simple_master_can_reject")
-  }
-
   "TraceTester" should "work for simple master" in {
     generateTrace("common_mistakes/simple_master_forget_connection.conf", "simple_master_forget_connection")
   }
 
-  "TraceTester" should "work for industrial" in {
-    generateTrace("common_mistakes/industrial_missing_step.conf", "industrial_missing_step")
+    "TraceTester" should "work for simple" in {
+    generateTrace("common_mistakes/simple_master_can_reject_step.conf", "simple_master_can_reject")
   }
+    "TraceTester" should "work for industrial" in {
+      generateTrace("common_mistakes/industrial_missing_step.conf", "industrial_missing_step")
+    }
 
-  "TraceTester" should "work for loop" in {
-    generateTrace("common_mistakes/algebraic_loop_msd_gs_forget_restore.conf", "algebraic_loop_msd_gs_forget_restore")
-  }
+    "TraceTester" should "work for loop" in {
+      generateTrace("common_mistakes/algebraic_loop_msd_gs_forget_restore.conf", "algebraic_loop_msd_gs_forget_restore")
+    }
 }
