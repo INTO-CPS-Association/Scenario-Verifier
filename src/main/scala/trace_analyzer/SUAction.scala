@@ -2,7 +2,7 @@ package trace_analyzer
 
 import core.ModelEncoding
 
-case class SUAction(val FMU: String, val actionNumber: Int, Port: String, stepSize: Int, relative_step_size: Int, commitment: Int) {
+case class SUAction(val FMU: String = "", val actionNumber: Int = -1, Port: String = "", stepSize: Int = -1, relative_step_size: Int = -1, commitment: Int = -1) {
   def action(): String = {
     actionNumber match {
       case 0 => f"Get ${FMU}.${Port}"
@@ -28,7 +28,7 @@ class UppaalTrace(val modelEncoding: ModelEncoding,
                   val simulationStates: Seq[ModelState],
                   val scenarioName: String) {}
 
-class ModelState(val stepFindingActive: Boolean, val loopActive: Boolean, val timeStamp: Int,
+class ModelState(val checksDisabled: Boolean, val loopActive: Boolean, val timeStamp: Int,
                  val FMUs: List[FMUState],
                  val action: SUAction,
                  val possibleActions: List[SUAction],
@@ -71,7 +71,7 @@ class ModelState(val stepFindingActive: Boolean, val loopActive: Boolean, val ti
 
   def printState(): Unit = {
     println("------------------------------------------")
-    println(f"StepFinderActive = ${stepFindingActive}")
+    println(f"ChecksDisabled = ${checksDisabled}")
     println(f"LoopActive = ${loopActive}")
     println(f"Time = ${timeStamp}")
     FMUs.foreach(_.printFMU())

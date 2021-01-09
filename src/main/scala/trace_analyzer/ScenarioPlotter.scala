@@ -71,10 +71,10 @@ object ScenarioPlotter {
       )
     })
 
-    g.add(ActionNode(state, currentAction))
-    g.add(PossibleAction(state, possibleActions))
+    g.add(actionNode(state, currentAction))
+    g.add(possibleAction(state, possibleActions))
 
-    g.add(createLegend())
+    //g.add(createLegend())
   }
 
   def createLegend(): MutableNode = {
@@ -88,23 +88,24 @@ object ScenarioPlotter {
         ))
   }
 
-  private def ActionNode(state: ModelState, currentAction: SUAction): MutableNode = {
+  private def actionNode(state: ModelState, currentAction: SUAction): MutableNode = {
     mutNode(state.action.action())
       .add(Shape.DIAMOND, Label.lines(
         if (state.isInitState) "Initialization" else "Simulation",
         if (currentAction != null) f"Current Action: ${currentAction.action()}" else "",
         f"Next Action: ${state.action.action()}",
-        if (state.isInitState) "" else s"Timestamp: ${state.timeStamp}"
+        if (state.isInitState) "" else s"Timestamp: ${state.timeStamp}",
+        if (state.loopActive) "Solving Algebraic loop" else ""
       ))
   }
 
-  private def PossibleAction(state: ModelState, actions: List[SUAction]): MutableNode = {
-    mutNode("Possible Next Actions:")
+  private def possibleAction(state: ModelState, actions: List[SUAction]): MutableNode = {
+    mutNode(s"Possible Next Actions :")
       .add(Shape.BOX,
         Label.html(
-        "<b>Possible Next Actions:</b><br/>" +
-          actions.sortBy(i => i.FMU).map(i => i.action()).mkString("<br/>")
-      ))
+          f"<b>Possible Next Actions ${if(state.checksDisabled) "(Checks disabled)"}:</b><br/>" +
+            actions.sortBy(i => i.FMU).map(i => i.action()).mkString("<br/>")
+        ))
   }
 
   private def isDefined(state: ModelState, fmu: String, port: String) = {
@@ -126,7 +127,7 @@ object ScenarioPlotter {
     states.indices.foreach(i => {
       val state = states(i)
       val g = createGraphOfState(state, currentAction, state.possibleActions
-        .filterNot(act => performedActions.exists(per => per.actionNumber == act.actionNumber && per.FMU == act.FMU && act.Port == per.Port)), modelEncoding, scenarioName)
+        .filterNot(act => if(state.checksDisabled) false else performedActions.exists(per => per.actionNumber == act.actionNumber && per.FMU == act.FMU && act.Port == per.Port)), modelEncoding, scenarioName)
       val nNodes = g.nodes().size()
       val height = nNodes * 30
       val width = nNodes * 30

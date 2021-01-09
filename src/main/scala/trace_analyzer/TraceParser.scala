@@ -39,7 +39,7 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
     in.matches(f".*\\[${o._1}\\].*")
   }
 
-  def createAction(enabledAction: String, encoding: ModelEncoding): SUAction = {
+  def createAction(enabledAction: String): SUAction = {
     //The last 4 characters _fmu should be removed
     val fmuName = enabledAction.split("\\.").head.dropRight(4)
     val actionType: Int = getActionType(enabledAction)
@@ -63,7 +63,7 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
   }
 
   def getPossibleActions(transitions: List[String], encoding: ModelEncoding): List[SUAction] = {
-    encoding.fmuNames.flatMap(i => transitions.filter(_.startsWith(i)).map(i => createAction(i, encoding))).toList
+    encoding.fmuNames.flatMap(i => transitions.filter(_.startsWith(i)).map(i => createAction(i))).toList
   }
 
   def parseState(stateStrings: List[String]): ModelState = {
@@ -76,13 +76,14 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
     val isSimulation = stateStrings.find(_ startsWith "isSimulation").get.split("=").last == "1"
 
     val reducedString = stateStrings.diff(stepVariables).diff(FMUStrings.toList)
-    val loopActive = reducedString.find(_ contains "loopActive").get.split("=").last == "1"
+    val loopActive = reducedString.find(_ contains "loopActive").get.split("=").last != "-1"
     val stepFinderActive = reducedString.find(_ contains "stepFinderActive").get.split("=").last == "1"
     val time = reducedString.find(_ startsWith "time=").get.split("=").last.toInt
+    val checksDisabled = reducedString.find(_ startsWith "checksDisabled=").get.split("=").last == "1"
 
     val nextAction = getAction(reducedString)
 
-    new ModelState(stepFinderActive, loopActive, time, FMUStates.toList, nextAction, possibleActions, isInit, isSimulation)
+    new ModelState(checksDisabled, loopActive, time, FMUStates.toList, nextAction, possibleActions, isInit, isSimulation)
   }
 
   def getPortName(fmuName: String, action: Int, variable: Int): String = {
@@ -98,7 +99,8 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
     val activeFMU = reducedString.find(i => i startsWith "activeFMU=").get.split("=").last.toInt
     val commitment = reducedString.find(i => i startsWith "commitment=").get.split("=").last.toInt
     val variable = reducedString.find(i => i startsWith "var=").get.split("=").last.toInt
-    val fmuName = modelEncoding.fmuEncodingInverse(activeFMU)
+
+    val fmuName = if(action != 9) modelEncoding.fmuEncodingInverse(activeFMU) else ""
     val portName = getPortName(fmuName, action, variable)
     SUAction(fmuName, action, portName, stepSize, relative_step_size, commitment)
   }

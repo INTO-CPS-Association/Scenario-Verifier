@@ -30,7 +30,7 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
 
     assert(VerifyTA.checkEnvironment())
     VerifyTA.saveTraceToFile(f, traceFile)
-    //FileUtils.deleteQuietly(f)
+    FileUtils.deleteQuietly(f)
     val source = scala.io.Source.fromFile(traceFile)
     try {
       val lines = source.getLines()
@@ -40,11 +40,20 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
     FileUtils.deleteQuietly(traceFile)
   }
 
-  "TraceTester" should "work" in {
+
+  "TraceTester" should "work for simple" in {
     generateTrace("common_mistakes/simple_master_can_reject_step.conf", "simple_master_can_reject")
   }
 
-  "TraceTester" should "work long" in {
+  "TraceTester" should "work for simple master" in {
+    generateTrace("common_mistakes/simple_master_forget_connection.conf", "simple_master_forget_connection")
+  }
+
+  "TraceTester" should "work for industrial" in {
     generateTrace("common_mistakes/industrial_missing_step.conf", "industrial_missing_step")
+  }
+
+  "TraceTester" should "work for loop" in {
+    generateTrace("common_mistakes/algebraic_loop_msd_gs_forget_restore.conf", "algebraic_loop_msd_gs_forget_restore")
   }
 }
