@@ -10,6 +10,8 @@ import guru.nidi.graphviz.model.Factory.{graph, mutGraph, mutNode}
 import guru.nidi.graphviz.model.{MutableGraph, MutableNode}
 import org.jcodec.api.awt.AWTSequenceEncoder
 
+import scala.collection.mutable.ListBuffer
+
 object ScenarioPlotter {
 
   def feedthroughConnections(outputPortModel: OutputPortModel, state: ModelState): List[String] =
@@ -23,7 +25,8 @@ object ScenarioPlotter {
     val nodeName = fmu + "." + portName
     mutNode(nodeName)
       .add(if (isCurrent(action, fmu, portName)) Color.RED
-      else if (isDefined(state, fmu, portName)) Color.BLACK else Color.WHITE,
+      else if (isDefined(state, fmu, portName)) Color.BLACK
+      else Color.WHITE,
         Shape.BOX,
         Label.lines(nodeName,
           state.portTime(fmu, portName, true),
@@ -41,7 +44,7 @@ object ScenarioPlotter {
   }
 
 
-  def createGraphOfState(state: ModelState, currentAction: SUAction, modelEncoding: ModelEncoding, name: String): MutableGraph = {
+  def createGraphOfState(state: ModelState, currentAction: SUAction, possibleActions: List[SUAction], modelEncoding: ModelEncoding, name: String): MutableGraph = {
     val g = mutGraph(name).setDirected(true)
     modelEncoding.fmuModels.foreach(fmu => {
       val FMUName = fmu._1
@@ -69,6 +72,7 @@ object ScenarioPlotter {
     })
 
     g.add(ActionNode(state, currentAction))
+    g.add(PossibleAction(state, possibleActions))
 
     g.add(createLegend())
   }
@@ -94,6 +98,15 @@ object ScenarioPlotter {
       ))
   }
 
+  private def PossibleAction(state: ModelState, actions: List[SUAction]): MutableNode = {
+    mutNode("Possible Next Actions:")
+      .add(Shape.BOX,
+        Label.html(
+        "<b>Possible Next Actions:</b><br/>" +
+          actions.sortBy(i => i.FMU).map(i => i.action()).mkString("<br/>")
+      ))
+  }
+
   private def isDefined(state: ModelState, fmu: String, port: String) = {
     state.isInitState && state.isDefinedInitInputState(fmu, port) || state.isSimulation && state.isDefinedInputState(fmu, port)
   }
@@ -109,15 +122,18 @@ object ScenarioPlotter {
   def makeAnimation(movie: File, states: Seq[ModelState], modelEncoding: ModelEncoding, scenarioName: String): Unit = {
     val encoder = AWTSequenceEncoder.createSequenceEncoder(movie, 1)
     var currentAction: SUAction = null
+    val performedActions = ListBuffer[SUAction]()
     states.indices.foreach(i => {
       val state = states(i)
-      val g = createGraphOfState(state, currentAction, modelEncoding, scenarioName)
+      val g = createGraphOfState(state, currentAction, state.possibleActions
+        .filterNot(act => performedActions.exists(per => per.actionNumber == act.actionNumber && per.FMU == act.FMU && act.Port == per.Port)), modelEncoding, scenarioName)
       val nNodes = g.nodes().size()
       val height = nNodes * 30
       val width = nNodes * 30
 
       encoder.encodeImage(Graphviz.fromGraph(g).height(height).width(width).render(Format.PNG).toImage)
       currentAction = state.action
+      performedActions += currentAction
     })
     encoder.finish()
   }

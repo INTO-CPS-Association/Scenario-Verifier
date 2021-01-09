@@ -159,7 +159,7 @@
         chan fmu[nFMU];
 
         //A channel for all actions - I can use fewer channels and use the actions to distinguish
-        chan actionPerformed;
+        broadcast chan actionPerformed;
 
         //A channel to start the stepFinder
         chan findStepChan;
@@ -1240,8 +1240,6 @@
             int cTime := START_TIME;
             variable inputVariables[MaxNInputs] = { @{m.variableArray(m.maxNInputs)} };
             variable outputVariables[MaxNOutputs] = { @{m.variableArray(m.maxNOutputs)} };
-            bool initialized := false;
-            bool simulated := false;
 
             //Index for the for-loop
             int i := 0;
@@ -1251,11 +1249,13 @@
             variable savedInputVariables[MaxNInputs];
             int savedTime;
             bool isSaved := false;
-
             bool isConsistent := true;
 
+            int stepEnabled := false;
+            bool getEnabled[MaxNOutputs] := { @m.getEnabled };
+            bool setEnabled[MaxNInputs] := { @m.setEnabled };
+
             void initialize(){
-                initialized := true;
                 //Set all variables to undefined
                 for(i = 0; i &lt; nInput; i++){
                     inputVariables[i].status := undefined;
@@ -1265,10 +1265,6 @@
                     outputVariables[i].status := undefined;
                     outputVariables[i].time := 0;
                 }
-            }
-
-            void simulate(){
-                simulated := true;
             }
 
             void getValue(int v, int a){
@@ -1348,7 +1344,7 @@
 
             }
 
-            bool preGetInit(int v, int a){
+            bool preGetInit(int v){
                 if(shouldChecksBeDisabled()){
                     return true;
                 }
@@ -1410,6 +1406,30 @@
                 //Should a requirement be a saved previous state?
                 return isSaved;
             }
+
+            void updateEnableActions(bool isInit){
+                if(isInit){
+                    for(i = 0; i &lt; nInput; i++){
+                        setEnabled[i] := preSetInit(i, final) &amp;&amp;
+                            inputVariables[i].status == undefined;
+                    }
+                    for(i := 0; i &lt; nOutput; i++){
+                        getEnabled[i] := preGetInit(i) &amp;&amp;
+                            outputVariables[i].status == undefined;
+                    }
+                stepEnabled := false;
+            }else{
+                    for(i = 0; i &lt; nInput; i++){
+                        setEnabled[i] := preSet(i, final);
+                    }
+                    for(i := 0; i &lt; nOutput; i++){
+                        getEnabled[i] := preGet(i);
+                    }
+                    stepEnabled := preDoStep(h);
+
+                }
+            }
+
         </declaration>
         <location id="id37" x="-9588" y="-11305">
             <name x="-9598" y="-11339">Unloaded</name>
@@ -1444,7 +1464,7 @@
             <committed/>
         </location>
         <location id="id48" x="-11058" y="-11186">
-            <label kind="invariant" x="-11101" y="-11169">preGetInit(var, commitment)</label>
+            <label kind="invariant" x="-11101" y="-11169">preGetInit(var)</label>
             <committed/>
         </location>
         <location id="id49" x="-11058" y="-11432">
@@ -1486,6 +1506,14 @@
             <label kind="synchronisation" x="-9808" y="-11322">fmu[id]?</label>
         </transition>
         <transition>
+            <source ref="id54"/>
+            <target ref="id54"/>
+            <label kind="synchronisation" x="-10965" y="-11203">actionPerformed?</label>
+            <label kind="assignment" x="-10990" y="-11169">updateEnableActions(true)</label>
+            <nail x="-10914" y="-11237"/>
+            <nail x="-11016" y="-11177"/>
+        </transition>
+        <transition>
             <source ref="id56"/>
             <target ref="id38"/>
             <label kind="guard" x="-10030" y="-11339">action == freeInstance</label>
@@ -1495,18 +1523,19 @@
             <source ref="id41"/>
             <target ref="id57"/>
             <label kind="synchronisation" x="-10693" y="-11322">actionPerformed!</label>
+            <label kind="assignment" x="-10693" y="-11322">updateEnableActions(false)</label>
         </transition>
         <transition>
             <source ref="id54"/>
             <target ref="id41"/>
             <label kind="guard" x="-10965" y="-11348">action == exitInitialization</label>
             <label kind="synchronisation" x="-10939" y="-11331">fmu[id]?</label>
-            <label kind="assignment" x="-10931" y="-11288">simulate()</label>
         </transition>
         <transition>
             <source ref="id42"/>
             <target ref="id54"/>
             <label kind="synchronisation" x="-11287" y="-11330">actionPerformed!</label>
+            <label kind="assignment" x="-11287" y="-11330">updateEnableActions(true), initialize()</label>
         </transition>
         <transition>
             <source ref="id45"/>
@@ -1561,13 +1590,14 @@
             <target ref="id44"/>
             <label kind="guard" x="-12400" y="-11339">action == instantiate</label>
             <label kind="synchronisation" x="-12382" y="-11305">fmu[id]?</label>
-            <label kind="assignment" x="-12382" y="-11288">initialize()</label>
+            <label kind="assignment" x="-12382" y="-11288">
+                </label>
         </transition>
         <transition>
             <source ref="id47"/>
             <target ref="id57"/>
             <label kind="synchronisation" x="-10616" y="-11237">actionPerformed!</label>
-            <label kind="assignment" x="-10582" y="-11262">restoreState()</label>
+            <label kind="assignment" x="-10582" y="-11262">restoreState(), updateEnableActions(false)</label>
         </transition>
         <transition>
             <source ref="id57"/>
@@ -1577,10 +1607,18 @@
             <nail x="-10395" y="-11092"/>
         </transition>
         <transition>
+            <source ref="id57"/>
+            <target ref="id57"/>
+            <label kind="synchronisation" x="-10608" y="-11186">actionPerformed?</label>
+            <label kind="assignment" x="-10642" y="-11143">updateEnableActions(false)</label>
+            <nail x="-10446" y="-11118"/>
+            <nail x="-10540" y="-11211"/>
+        </transition>
+        <transition>
             <source ref="id48"/>
             <target ref="id54"/>
             <label kind="synchronisation" x="-11228" y="-11237">actionPerformed!</label>
-            <label kind="assignment" x="-11245" y="-11211">getValue(var, commitment)</label>
+            <label kind="assignment" x="-11245" y="-11211">getValue(var, commitment), updateEnableActions(true)</label>
             <nail x="-11118" y="-11245"/>
         </transition>
         <transition>
@@ -1594,7 +1632,7 @@
             <source ref="id49"/>
             <target ref="id54"/>
             <label kind="synchronisation" x="-11024" y="-11432">actionPerformed!</label>
-            <label kind="assignment" x="-11016" y="-11407">setValue(var, commitment)</label>
+            <label kind="assignment" x="-11016" y="-11407">setValue(var, commitment), updateEnableActions(true)</label>
             <nail x="-10999" y="-11373"/>
         </transition>
         <transition>
@@ -1608,21 +1646,21 @@
             <source ref="id51"/>
             <target ref="id57"/>
             <label kind="synchronisation" x="-10191" y="-11152">actionPerformed!</label>
-            <label kind="assignment" x="-10183" y="-11186">saveState()</label>
+            <label kind="assignment" x="-10183" y="-11186">saveState(), updateEnableActions(false)</label>
             <nail x="-10191" y="-11160"/>
         </transition>
         <transition>
             <source ref="id52"/>
             <target ref="id57"/>
             <label kind="synchronisation" x="-10158" y="-11466">actionPerformed!</label>
-            <label kind="assignment" x="-10149" y="-11415">doStep(stepsize)</label>
+            <label kind="assignment" x="-10149" y="-11415">doStep(stepsize), updateEnableActions(false)</label>
             <nail x="-10132" y="-11373"/>
         </transition>
         <transition>
             <source ref="id53"/>
             <target ref="id57"/>
             <label kind="synchronisation" x="-10294" y="-11551">actionPerformed!</label>
-            <label kind="assignment" x="-10362" y="-11483">getValue(var, commitment)</label>
+            <label kind="assignment" x="-10362" y="-11483">getValue(var, commitment), updateEnableActions(false)</label>
             <nail x="-10226" y="-11517"/>
         </transition>
         <transition>
@@ -1647,7 +1685,7 @@
             <source ref="id55"/>
             <target ref="id57"/>
             <label kind="synchronisation" x="-10531" y="-11509">actionPerformed!</label>
-            <label kind="assignment" x="-10481" y="-11534">setValue(var, commitment)</label>
+            <label kind="assignment" x="-10481" y="-11534">setValue(var, commitment), updateEnableActions(false)</label>
             <nail x="-10387" y="-11492"/>
         </transition>
         <transition>

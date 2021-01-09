@@ -5,6 +5,7 @@ import cli.VerifyTA
 import cli.VerifyTA.VERIFY
 import core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
+import org.scalatest.Ignore
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import trace_analyzer.TraceAnalyzer
@@ -29,9 +30,13 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
 
     assert(VerifyTA.checkEnvironment())
     VerifyTA.saveTraceToFile(f, traceFile)
-    FileUtils.deleteQuietly(f)
-    val lines = scala.io.Source.fromFile(traceFile).getLines
-    TraceAnalyzer.AnalyseScenario(scenarioName, lines, encoding)
+    //FileUtils.deleteQuietly(f)
+    val source = scala.io.Source.fromFile(traceFile)
+    try {
+      val lines = source.getLines()
+      TraceAnalyzer.AnalyseScenario(scenarioName, lines, encoding)
+    }
+    finally source.close()
     FileUtils.deleteQuietly(traceFile)
   }
 
@@ -42,6 +47,4 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
   "TraceTester" should "work long" in {
     generateTrace("common_mistakes/industrial_missing_step.conf", "industrial_missing_step")
   }
-
-
 }

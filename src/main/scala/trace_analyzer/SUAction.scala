@@ -31,6 +31,7 @@ class UppaalTrace(val modelEncoding: ModelEncoding,
 class ModelState(val stepFindingActive: Boolean, val loopActive: Boolean, val timeStamp: Int,
                  val FMUs: List[FMUState],
                  val action: SUAction,
+                 val possibleActions: List[SUAction],
                  val isInitState: Boolean,
                  val isSimulation: Boolean) {
 

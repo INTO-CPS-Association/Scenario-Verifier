@@ -26,6 +26,9 @@ class ModelEncoding(model: MasterModel) {
 
   def stepVariables: String = (0 until nFMUs).map(_ => "H_max").mkString(",")
 
+  def getEnabled: String = (0 until maxNOutputs).map(_=>"false").mkString(",")
+  def setEnabled: String = (0 until maxNInputs).map(_=>"false").mkString(",")
+
   val fmuEncoding: Map[String, Int] = model.scenario.fmus.keys.zipWithIndex.toMap
   val fmuEncodingInverse = fmuEncoding.map(_.swap)
 
