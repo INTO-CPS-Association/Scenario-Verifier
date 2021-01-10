@@ -112,11 +112,11 @@ object ScenarioPlotter {
     state.isInitState && state.isDefinedInitInputState(fmu, port) || state.isSimulation && state.isDefinedInputState(fmu, port)
   }
 
-  def plot(uppaalTrace: UppaalTrace): Unit = {
-    val init_movie = new File(s"example/init_${uppaalTrace.scenarioName}.mp4")
+  def plot(uppaalTrace: UppaalTrace, outputDirectory: String): Unit = {
+    val init_movie = new File(s"${outputDirectory}/init_${uppaalTrace.scenarioName}.mp4")
     makeAnimation(init_movie, uppaalTrace.initStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
 
-    val scenario_movie = new File(s"example/simulation_${uppaalTrace.scenarioName}.mp4")
+    val scenario_movie = new File(s"${outputDirectory}/simulation_${uppaalTrace.scenarioName}.mp4")
     makeAnimation(scenario_movie, uppaalTrace.simulationStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
   }
 

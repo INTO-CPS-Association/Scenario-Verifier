@@ -9,7 +9,7 @@ import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import trace_analyzer.TraceAnalyzer
 
-//@Ignore
+@Ignore
 class TraceTester extends AnyFlatSpec with should.Matchers {
   def writeToTempFile(content: String) = {
     val file = Files.createTempFile("uppaal_", ".xml").toFile
@@ -34,7 +34,7 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
     val source = scala.io.Source.fromFile(traceFile)
     try {
       val lines = source.getLines()
-      TraceAnalyzer.AnalyseScenario(scenarioName, lines, encoding)
+      TraceAnalyzer.AnalyseScenario(scenarioName, lines, encoding, "example")
     }
     finally source.close()
     FileUtils.deleteQuietly(traceFile)

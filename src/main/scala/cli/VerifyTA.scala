@@ -32,7 +32,7 @@ object VerifyTA extends Logging {
       val output = pLog.output.toString
       if (output.contains("Formula is NOT satisfied.")) {
         logger.error(s"Model is not valid.")
-        logger.error(s"To see the trace, run: ${cmd}")
+        logger.error(s"Generate the trace and use to correct the algorithm.")
         1
       } else {
         0
@@ -40,30 +40,36 @@ object VerifyTA extends Logging {
     }
   }
 
-  def saveTraceToFile(uppaalFile: File, traceFile: File) = {
+  def saveTraceToFile(uppaalFile: File, traceFile: File): Int = {
     val fPath = uppaalFile.getAbsolutePath
     val cmd = s"""${VERIFY} -t 1 -Y -s '${fPath}'"""
-    logger.info(s"Running command: ${cmd}")
     val pLog = new VerifyTaProcessLogger()
     val exitCode = Process(cmd).!(pLog)
     if (exitCode != 0) {
       logger.error(s"Command returned non zero exit code: ${exitCode}.")
-      logger.error(s"This is probably a syntax error.")
+      logger.error(s"This is probably a syntax error - no trace generated.")
+      2
     } else {
-      val bw = new BufferedWriter(new FileWriter(traceFile))
-      val trace = pLog.output.toString.replace("State", "\nState").replace("Transitions", "\nTransitions")
-        .split("\n")
-        .drop(2).toList
+      val output = pLog.output.toString
+      if (output.contains("Formula is NOT satisfied.")) {
+        val bw = new BufferedWriter(new FileWriter(traceFile))
+        val trace = pLog.output.toString.replace("State", "\nState").replace("Transitions", "\nTransitions")
+          .split("\n")
+          .drop(2).toList
 
-      trace.drop(trace.indexWhere(_.contains("MasterA.Start"), 2))
-        .filterNot(_.contains("Transitions"))
-        .map(_.replaceAll("\\([^()]*\\)", ""))
-        .map(_.replaceAll("#depth=\\d+ *", ""))
-        .foreach(s => {
-          bw.write(s + "\n")
-        })
-      bw.close()
-      logger.info(s"Trace saved to file: ${traceFile}")
+        trace.drop(trace.indexWhere(_.contains("MasterA.Start"), 2))
+          .filterNot(s => !(s.contains("isInit=1") || s.contains("isSimulation=1")))
+          .map(_.replaceAll("\\([^()]*\\)", ""))
+          .map(_.replaceAll("#depth=\\d+ *", ""))
+          .foreach(s => {
+            bw.write(s + "\n")
+          })
+        bw.close()
+        1
+      } else {
+        logger.info("All Formulas are satisfied - no counter-example can be found.")
+        0
+      }
     }
   }
 

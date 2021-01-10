@@ -5,7 +5,7 @@ import org.apache.logging.log4j.scala.Logging
 
 object TraceAnalyzer extends Logging{
 
-  def AnalyseScenario(scenarioName: String, trace: Iterator[String], modelEncoding: ModelEncoding): Unit = {
+  def AnalyseScenario(scenarioName: String, trace: Iterator[String], modelEncoding: ModelEncoding, outputDirectory: String): Unit = {
     val parser = new TraceParser(modelEncoding)
     val modelStates = parser.parseScenarios(trace)
     //TODO: This filtering could be avoided by changing the Uppaal-model
@@ -13,7 +13,7 @@ object TraceAnalyzer extends Logging{
     val initStates = tempStates.slice(1, tempStates.indexWhere(_.action.actionNumber == 8) + 2).grouped(2).map(_.head).toList
 
     val simulationStates = modelStates.filter(_.isSimulation).grouped(2).map(_.head).toList
-    ScenarioPlotter.plot(new UppaalTrace(modelEncoding, initStates, simulationStates, scenarioName))
+    ScenarioPlotter.plot(new UppaalTrace(modelEncoding, initStates, simulationStates, scenarioName), outputDirectory)
   }
 }
 

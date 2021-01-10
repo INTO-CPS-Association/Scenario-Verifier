@@ -4,6 +4,7 @@ import java.nio.file.Files
 import cli.VerifyTA
 import core.{MasterModel, ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
+import org.scalatest.Ignore
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import synthesizer.LoopStrategy.{LoopStrategy, maximum, minimum}
@@ -11,6 +12,7 @@ import synthesizer._
 
 import scala.collection.immutable.HashSet
 
+@Ignore
 class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
   def writeToTempFile(content: String) = {
     val file = Files.createTempFile("uppaal_", ".xml").toFile

@@ -1,11 +1,13 @@
 package cli
 
-import java.io.PrintWriter
+import java.io.{File, PrintWriter}
 import java.nio.file.{Files, Paths}
 
 import core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
+import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.scala.Logging
 import scopt.OParser
+import trace_analyzer.TraceAnalyzer
 
 object ScenarioVerifierApp extends App with Logging {
 
@@ -26,6 +28,9 @@ object ScenarioVerifierApp extends App with Logging {
       opt[String]('o', "output")
         .action((x, c) => c.copy(output = x))
         .text("Output file containing master algorithm in UPPAAL."),
+      opt[Unit]("trace")
+        .action((_, c) => c.copy(trace = true))
+        .text("Create animation of the trace from the UPPAAL model"),
       opt[Unit]("verify")
         .action((_, c) => c.copy(verify = true))
         .text("Uses verifyta to check the resulting UPPAAL model"),
@@ -35,9 +40,8 @@ object ScenarioVerifierApp extends App with Logging {
   // OParser.parse returns Option[Config]
   OParser.parse(parser, args, CLIConfig(), OParserSetup()) match {
     case Some(config) =>
-
       logger.info(f"Output file: ${config.output}.")
-      if (Files.exists(Paths.get(config.output))){
+      if (Files.exists(Paths.get(config.output))) {
         logger.error(s"Output file already exists. Will not be overwritten. Delete it before running this app: ${config.output}")
         System.exit(1)
       }
@@ -49,13 +53,37 @@ object ScenarioVerifierApp extends App with Logging {
 
       val queryModel = new ModelEncoding(masterModel)
       val result = ScenarioGenerator.generate(queryModel)
-      new PrintWriter(config.output) { write(result); close() }
+      new PrintWriter(config.output) {
+        write(result);
+        close()
+      }
 
       if (config.verify) {
         logger.info(f"Verifying generated file.")
         val checkExitCode = VerifyTA.checkEnvironment()
-        if (! checkExitCode){
+        if (!checkExitCode) {
           System.exit(1)
+        }
+        val file = new File(config.output)
+        if (config.trace) {
+          val outputFolder = Paths.get(file.getParentFile.getName,"/video_trace")
+          if(!Files.exists(outputFolder))
+            Files.createDirectory(outputFolder)
+          val traceFile = Files.createTempFile("trace_", ".log").toFile
+          val result = VerifyTA.saveTraceToFile(file, traceFile)
+          if (result == 1) {
+            logger.info(s"Started generating the animation of trace ${masterModel.name} in folder: ${outputFolder}.")
+            val source = scala.io.Source.fromFile(traceFile)
+            try {
+              val lines = source.getLines()
+              TraceAnalyzer.AnalyseScenario(masterModel.name, lines, queryModel, outputFolder.toString)
+            }
+            finally source.close()
+            FileUtils.deleteQuietly(traceFile)
+          }
+        } else {
+          logger.info(s"Started verifying ${file.getName} in Uppaal.")
+          VerifyTA.verify(file)
         }
       }
 
