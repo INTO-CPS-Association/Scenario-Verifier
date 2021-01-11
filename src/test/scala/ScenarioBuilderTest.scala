@@ -55,8 +55,5 @@ class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
     val connections = ScenarioBuilder.generateConnections(fmuNames, 2)
     assert(connections.exists(o => o.srcPort.fmu == fmuNames.toVector(0)) &&  connections.exists(o => o.srcPort.fmu == fmuNames.toVector(1)))
     assert(connections.exists(o => o.trgPort.fmu == fmuNames.toVector(0)) &&  connections.exists(o => o.trgPort.fmu == fmuNames.toVector(1)))
-
   }
-
-
 }

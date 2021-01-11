@@ -53,7 +53,7 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     synthesizeOptAndVerify("examples/algebraic_loop_initialization.conf")
   }
   "Synthesizer" should "create valid Master Algorithm for Simple Master" in {
-    //synthesizeAndVerify("examples/simple_master.conf")
+    synthesizeAndVerify("examples/simple_master.conf")
     synthesizeOptAndVerify("examples/simple_master.conf")
   }
 
@@ -80,11 +80,6 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
   "Synthesizer" should "create valid Step Finding procedure for Step Loop" in {
     synthesizeAndVerify("examples/step_finding_loop_msd_1.conf", minimum)
     synthesizeOptAndVerify("examples/step_finding_loop_msd_1.conf", minimum)
-  }
-
-  "Synthesizer" should "create valid Step Finding And Algebraic procedure for Combined Step and GS Algebraic" in {
-    synthesizeAndVerify("examples/combined_step_algebraic.conf", minimum)
-    synthesizeOptAndVerify("examples/combined_step_algebraic.conf", minimum)
   }
 
   "Synthesizer" should "create a valid Step Finding And Algebraic procedure for Combined Step and Jac Algebraic" in {
