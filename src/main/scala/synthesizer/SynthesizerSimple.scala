@@ -37,7 +37,7 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, strategy: LoopStrategy) ex
     val setsReactive = graphBuilder.SetNodesReactive.values.flatten.filter(o => scc.contains(o)).toList
 
     var edgesInSCC = getEdgesInSCC(StepEdges, scc)
-    val FMUs = steps.map(o => o.name)
+    val FMUs = steps.map(o => o.fmuName)
 
     val reactiveGets = gets.filter(o => (edgesInSCC.exists(edge => edge.srcNode == o && setsReactive.contains(edge.trgNode)))).toSet
 

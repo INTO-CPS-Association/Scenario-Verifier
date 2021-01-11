@@ -101,7 +101,7 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
     val commitment = reducedString.find(i => i startsWith "commitment=").get.split("=").last.toInt
     val variable = reducedString.find(i => i startsWith "var=").get.split("=").last.toInt
 
-    val fmuName = if(action != 9) modelEncoding.fmuEncodingInverse(activeFMU) else ""
+    val fmuName = if(action != 9 && action != 10) modelEncoding.fmuEncodingInverse(activeFMU) else ""
     val portName = getPortName(fmuName, action, variable)
     SUAction(fmuName, action, portName, stepSize, relative_step_size, commitment)
   }

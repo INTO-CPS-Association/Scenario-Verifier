@@ -91,10 +91,10 @@ trait SynthesizerBase {
 
   def formatInitialInstruction(node: Node): List[InitializationInstruction] = {
     node match {
-      case GetNode(port) => List(InitGet(port))
-      case SetNode(port) => List(InitSet(port))
-      case GetOptimizedNode(ports) => ports.flatMap(o => formatInitialInstruction(GetNode(o))).toList
-      case SetOptimizedNode(ports) => ports.flatMap(o => formatInitialInstruction(SetNode(o))).toList
+      case GetNode(_, port) => List(InitGet(port))
+      case SetNode(_,port) => List(InitSet(port))
+      case GetOptimizedNode(fmu, ports) => ports.flatMap(o => formatInitialInstruction(GetNode(fmu, o))).toList
+      case SetOptimizedNode(fmu, ports) => ports.flatMap(o => formatInitialInstruction(SetNode(fmu, o))).toList
       case _ => throw new UnsupportedOperationException()
     }
   }
@@ -105,10 +105,10 @@ trait SynthesizerBase {
         FMUsStepped += name
         List(Step(name, DefaultStepSize()))
       }
-      case GetNode(port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) List(GetTentative(port)) else List(Get(port))
-      case SetNode(port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) List(SetTentative(port)) else List(core.Set(port))
-      case GetOptimizedNode(ports) => ports.flatMap(o => formatStepInstruction(GetNode(o), isReactiveLoop)).toList
-      case SetOptimizedNode(ports) => ports.flatMap(o => formatStepInstruction(SetNode(o), isReactiveLoop)).toList
+      case GetNode(_,port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) List(GetTentative(port)) else List(Get(port))
+      case SetNode(_,port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) List(SetTentative(port)) else List(core.Set(port))
+      case GetOptimizedNode(fmu,ports) => ports.flatMap(o => formatStepInstruction(GetNode(fmu, o), isReactiveLoop)).toList
+      case SetOptimizedNode(fmu,ports) => ports.flatMap(o => formatStepInstruction(SetNode(fmu, o), isReactiveLoop)).toList
       case RestoreNode(name) => List(RestoreState(name))
       case SaveNode(name) => {
         FMUsSaved += name
@@ -130,8 +130,8 @@ trait SynthesizerBase {
   }
 
   protected def IsLoopInstruction(instruction: CosimStepInstruction): Boolean = instruction match {
-    case RestoreState(fmu) => false
-    case SaveState(fmu) => false
+    case RestoreState(_) => false
+    case SaveState(_) => false
     case _ => true
   }
 

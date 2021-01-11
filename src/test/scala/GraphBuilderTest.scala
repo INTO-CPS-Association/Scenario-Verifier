@@ -12,12 +12,12 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
     val initialEdges = graph.initialEdges
 
     //There is an edge for all connections in the scenario
-    assert(scenario.connections.forall(c => initialEdges.contains(Edge[Node](GetNode(c.srcPort), SetNode(c.trgPort)))))
+    assert(scenario.connections.forall(c => initialEdges.contains(Edge[Node](GetNode(c.srcPort.fmu, c.srcPort), SetNode(c.trgPort.fmu, c.trgPort)))))
 
     //There is an edge for all initial feedthrough in the scenario
     scenario.fmus.foreach(fmu => {
       fmu._2.outputs.foreach(o => {
-        assert(o._2.dependenciesInit.forall(i => initialEdges.contains(Edge[Node](SetNode(PortRef(fmu._1, i)), GetNode(PortRef(fmu._1, o._1))))))
+        assert(o._2.dependenciesInit.forall(i => initialEdges.contains(Edge[Node](SetNode(fmu._1, PortRef(fmu._1, i)), GetNode(fmu._1, PortRef(fmu._1, o._1))))))
       })
     })
 
@@ -26,8 +26,8 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
 
     //All nodes are either get or set
     assert(nodes.forall(n => n match {
-      case GetNode(_) => true
-      case SetNode(_) => true
+      case GetNode(_, _) => true
+      case SetNode(_, _) => true
       case _ => false
     }))
   }
@@ -61,8 +61,8 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
 
     assert(nodes.size == scenario.cosimStep.size)
     assert(nodes.forall(n => n match {
-      case GetNode(_) => true
-      case SetNode(_) => true
+      case GetNode(_, _) => true
+      case SetNode(_, _) => true
       case DoStepNode(_) => true
       case _ => false
     }))

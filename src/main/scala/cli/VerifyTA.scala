@@ -4,8 +4,7 @@ import java.io.{BufferedWriter, File, FileWriter, IOException}
 
 import org.apache.logging.log4j.scala.Logging
 
-import scala.util.Properties
-import sys.process._
+import scala.sys.process._
 
 object VerifyTA extends Logging {
   def verify(uppaalFile: File) = {
@@ -53,7 +52,7 @@ object VerifyTA extends Logging {
       val output = pLog.output.toString
       if (output.contains("Formula is NOT satisfied.")) {
         val bw = new BufferedWriter(new FileWriter(traceFile))
-        val trace = pLog.output.toString.replace("State", "\nState").replace("Transitions", "\nTransitions")
+        val trace = pLog.output.toString.replace("State", "\n").replace("Transitions", "\nTransitions")
           .split("\n")
           .drop(2).toList
 

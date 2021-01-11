@@ -35,7 +35,7 @@ class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) exten
     val setsDelayed = graphBuilder.SetOptimizedNodesDelayed.values.filter(o => scc.contains(o)).toList
     val setsReactive = graphBuilder.SetOptimizedNodesReactive.values.filter(o => scc.contains(o)).toList
     var edgesInSCC = getEdgesInSCC(graphBuilder.stepEdgesOptimized, scc)
-    val FMUs = steps.map(o => o.name)
+    val FMUs = steps.map(o => o.fmuName)
 
     val reactiveGets = gets.filter(o => (edgesInSCC.exists(edge => edge.srcNode == o && setsReactive.contains(edge.trgNode)))).toSet
 
