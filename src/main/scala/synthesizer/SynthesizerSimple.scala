@@ -2,11 +2,11 @@ package synthesizer
 
 import core._
 import synthesizer.LoopStrategy.{LoopStrategy, maximum}
-import scala.collection.immutable.HashSet
+
 import scala.collection.mutable
 
 
-class SynthesizerSimple(scenarioModel: ScenarioModel, strategy: LoopStrategy) extends SynthesizerBase {
+class SynthesizerSimple(scenarioModel: ScenarioModel, strategy: LoopStrategy = maximum) extends SynthesizerBase {
   val graphBuilder: GraphBuilder = new GraphBuilder(scenarioModel)
   val FMUsStepped = new mutable.HashSet[String]()
   val FMUsSaved = new mutable.HashSet[String]()

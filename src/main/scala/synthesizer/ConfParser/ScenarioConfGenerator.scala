@@ -51,9 +51,10 @@ object ScenarioConfGenerator extends Logging {
 
   def generateFMUs(fmus: Map[String, FmuModel]): String = {
     fmus.map(o => {
+      val can_reject_string = if(o._2.canRejectStep) "can-reject-step = true,\n" else ""
       val inputs = o._2.inputs.map(i => f"${i._1} = {reactivity=${i._2.reactivity.toString}}").mkString("inputs = {\n", "\n", "},\n")
       val outputs = o._2.outputs.map(e => f"${e._1} = {${e._2.dependenciesInit.mkString("dependencies-init=[", ",", "]")}, ${e._2.dependencies.mkString("dependencies=[", ",", "]")}}").mkString("outputs = {\n", "\n", "}\n")
-      f"${o._1} = { \n ${inputs} ${outputs} }"
+      f"${o._1} = { \n ${can_reject_string} ${inputs} ${outputs} }"
     }).mkString("fmus = {\n", "\n", "}\n")
   }
 

@@ -14,12 +14,19 @@ mkdir uppall_files_success
 for f in examples/*.conf
 do 
     OUT=./uppall_files_success/$(basename ${f%.*}).xml
-    java -jar $JARFILE -m ${f} -o $OUT --verify 
+    java -D"log4j.configurationFile=log4j2.xml" -jar $JARFILE -m ${f} -o $OUT --verify 
 done
 
 mkdir uppall_files_mistakes
 for f in common_mistakes/*.conf
 do 
     OUT=./uppall_files_mistakes/$(basename ${f%.*}).xml
-    java -jar $JARFILE -m ${f} -o $OUT --verify --trace
+    java -D"log4j.configurationFile=log4j2.xml" -jar $JARFILE -m ${f} -o $OUT --verify --trace
+done
+
+mkdir uppall_created_algorithm
+for f in examples_no_algorithm/*.conf
+do 
+    OUT=./uppall_created_algorithm/$(basename ${f%.*}).xml
+    java -D"log4j.configurationFile=log4j2.xml" -jar $JARFILE -m ${f} -o $OUT --verify --generate
 done

@@ -1,18 +1,28 @@
 package cli
 
-import java.io.{File, PrintWriter}
+import java.io.{BufferedWriter, File, FileWriter, PrintWriter}
 import java.nio.file.{Files, Paths}
 
-import core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
+import core.{MasterModel, ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.scala.Logging
 import scopt.OParser
+import synthesizer.ConfParser.ScenarioConfGenerator
+import synthesizer.SynthesizerSimple
 import trace_analyzer.TraceAnalyzer
 
 object ScenarioVerifierApp extends App with Logging {
-
   logger.info("Logger started.")
   logger.debug("Debug logging enabled.")
+
+  def writeFile(filename: String, lines: Seq[String]): Unit = {
+    val file = new File(filename)
+    val bw = new BufferedWriter(new FileWriter(file))
+    for (line <- lines) {
+      bw.write(line)
+    }
+    bw.close()
+  }
 
   val builder = OParser.builder[CLIConfig]
   val parser = {
@@ -34,6 +44,9 @@ object ScenarioVerifierApp extends App with Logging {
       opt[Unit]("verify")
         .action((_, c) => c.copy(verify = true))
         .text("Uses verifyta to check the resulting UPPAAL model"),
+      opt[Unit]("generate")
+        .action((_, c) => c.copy(generateAlgorithm = true))
+        .text("Generate the master algorithm for the scenario"),
     )
   }
 
@@ -47,7 +60,19 @@ object ScenarioVerifierApp extends App with Logging {
       }
 
       logger.info(f"Master description: ${config.master}")
-      val masterModel = ScenarioLoader.load(config.master)
+      var masterModel = ScenarioLoader.load(config.master)
+
+      if(config.generateAlgorithm){
+        val synthesizer = new SynthesizerSimple(masterModel.scenario)
+        val initialization = synthesizer.synthesizeInitialization()
+        val cosimStep = synthesizer.synthesizeStep()
+        val master = MasterModel(masterModel.name, masterModel.scenario, masterModel.instantiation, initialization, cosimStep, masterModel.terminate)
+        FileUtils.deleteQuietly(new File(config.master))
+
+        writeFile(config.master, List(ScenarioConfGenerator.generate(master, masterModel.name)))
+        masterModel = ScenarioLoader.load(config.master)
+      }
+
       logger.debug("Loaded model: ")
       logger.debug(masterModel)
 
