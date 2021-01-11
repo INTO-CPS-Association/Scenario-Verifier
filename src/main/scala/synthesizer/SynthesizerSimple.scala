@@ -35,11 +35,11 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, strategy: LoopStrategy) ex
     scenarioModel.connections.count(i => i.srcPort.fmu == srcFMU && i.trgPort.fmu == trgFMU) == graphBuilder.reactiveConnections.count(i => i.srcPort.fmu == srcFMU && i.trgPort.fmu == trgFMU)
   }
 
-  def formatAlgebraicLoop(scc: List[Node], isNested: Boolean): List[CosimStepInstruction] = {
+  def formatAlgebraicLoop(scc: List[Node], edges: Predef.Set[Edge[Node]], isNested: Boolean): List[CosimStepInstruction] = {
     val gets = graphBuilder.GetNodes.values.flatten.filter(o => scc.contains(o)).toList
     val setsReactive = graphBuilder.SetNodesReactive.values.flatten.filter(o => scc.contains(o)).toList
 
-    var edgesInSCC = getEdgesInSCC(StepEdges, scc)
+    var edgesInSCC = getEdgesInSCC(edges, scc)
     val FMUs = gets.map(_.fmuName).toSet
 
     val reactiveGets = gets.filter(o => (edgesInSCC.exists(edge => edge.srcNode == o && setsReactive.contains(edge.trgNode)))).toSet
@@ -53,8 +53,8 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, strategy: LoopStrategy) ex
     }
 
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edgesInSCC)
-
     val instructions = tarjanGraph.topologicalSCC.flatten.flatMap(formatStepInstruction(_, true)).filter(IsLoopInstruction)
+
     val saves = if(isNested) List.empty[CosimStepInstruction] else createSaves(FMUs)
     val restores = createRestores(FMUs)
     saves.:+(AlgebraicLoop(reactiveGets.map(_.port).toList, instructions, restores))

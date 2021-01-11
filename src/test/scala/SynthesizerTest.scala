@@ -84,9 +84,16 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
 
   "Synthesizer" should "create valid Step Finding And Algebraic procedure for Combined Step and GS Algebraic" in {
     synthesizeAndVerify("examples/combined_step_algebraic.conf", minimum)
+    synthesizeOptAndVerify("examples/combined_step_algebraic.conf", minimum)
   }
-  
+
   "Synthesizer" should "create a valid Step Finding And Algebraic procedure for Combined Step and Jac Algebraic" in {
     synthesizeAndVerify("examples/loop_within_loop.conf", maximum)
+    //synthesizeOptAndVerify("examples/loop_within_loop.conf", maximum)
   }
+
+  /*
+  "Synthesizer" should "create a valid Step Finding And Algebraic procedure for Combined Step and Jac Algebraic using minimum " in {
+    synthesizeAndVerify("examples/loop_within_loop.conf", minimum)
+  }*/
 }

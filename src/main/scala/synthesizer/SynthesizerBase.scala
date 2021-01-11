@@ -37,21 +37,20 @@ trait SynthesizerBase extends Logging{
       FeedthroughLoop(scc)
   }
 
-  def formatAlgebraicLoop(nodes: List[Node], isNested: Boolean = false): List[CosimStepInstruction]
+  def formatAlgebraicLoop(nodes: List[Node], edges: Set[Edge[Node]], isNested: Boolean = false): List[CosimStepInstruction]
   def formatInitLoop(nodes: List[Node]): InitializationInstruction
   def onlyReactiveConnections(srcFMU: String, trgFMU: String): Boolean
 
   def formatStepLoop(scc: List[Node]): List[CosimStepInstruction] = {
-    //Remove Artificial edges between DoStep-edges with Reactive Connections
-    val edges = getEdgesInSCC(StepEdges, scc).filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode) && onlyReactiveConnections(o.srcNode.fmuName, o.trgNode.fmuName))
-
+    //Remove Artificial edges between DoStep-edges
+    val edges = getEdgesInSCC(StepEdges, scc).filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode))
     val FMUs = scc.filter(IsStepNode).map { case DoStepNode(name) => name }.toSet
 
     val tarjanGraph = new TarjanGraph[Node](edges)
 
     val instructions = if(!tarjanGraph.hasCycle)
       tarjanGraph.topologicalSCC.flatMap(o => formatStepInstruction(o.head))
-      else formatAlgebraicLoop(tarjanGraph.topologicalSCC.flatten, true)
+      else formatAlgebraicLoop(tarjanGraph.topologicalSCC.flatten, edges, true)
 
     val saves = createSaves(FMUs)
     val restores = createRestores(FMUs)
@@ -63,9 +62,9 @@ trait SynthesizerBase extends Logging{
     SCCs match {
       case ::(scc, next) => checkSCC(scc) match {
         case FeedthroughLoop(nodes) => throw new UnsupportedOperationException("Unsupported SCC in Graph")
-        case ReactiveLoop(nodes) => handLoops(next, instructions ++ formatAlgebraicLoop(nodes))
+        case ReactiveLoop(nodes) => handLoops(next, instructions ++ formatAlgebraicLoop(nodes, StepEdges, false))
         case StepLoopNodes(nodes) => handLoops(next, instructions ++ formatStepLoop(nodes))
-        case SimpleAction(node) => handLoops(next, instructions ++ (formatStepInstruction(node.head, false)))
+        case SimpleAction(node) => handLoops(next, instructions ++ formatStepInstruction(node.head, false))
         case _ => throw new UnsupportedOperationException("Unknown SCC in Graph")
       }
       case Nil => instructions
@@ -76,11 +75,8 @@ trait SynthesizerBase extends Logging{
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](InitEdge)
     val SCCs = tarjanGraph.topologicalSCC
     SCCs.flatMap(scc => {
-      if (scc.size == 1) {
-        formatInitialInstruction(scc.head)
-      } else {
-        List(formatInitLoop(scc))
-      }
+      if (scc.size == 1) formatInitialInstruction(scc.head)
+      else List(formatInitLoop(scc))
     })
   }
 

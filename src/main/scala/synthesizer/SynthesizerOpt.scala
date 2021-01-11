@@ -33,12 +33,12 @@ class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) exten
     scenarioModel.connections.count(i => i.srcPort.fmu == srcFMU && i.trgPort.fmu == trgFMU) == graphBuilder.reactiveConnections.count(i => i.srcPort.fmu == srcFMU && i.trgPort.fmu == trgFMU)
   }
 
-  def formatAlgebraicLoop(scc: List[Node], isNested:Boolean): List[CosimStepInstruction] = {
+  def formatAlgebraicLoop(scc: List[Node], edges: Predef.Set[Edge[Node]], isNested: Boolean): List[CosimStepInstruction] = {
     val steps = graphBuilder.stepNodes.filter(o => scc.contains(o))
     val gets = graphBuilder.GetOptimizedNodes.values.filter(o => scc.contains(o)).toList
     val setsDelayed = graphBuilder.SetOptimizedNodesDelayed.values.filter(o => scc.contains(o)).toList
     val setsReactive = graphBuilder.SetOptimizedNodesReactive.values.filter(o => scc.contains(o)).toList
-    var edgesInSCC = getEdgesInSCC(graphBuilder.stepEdgesOptimized, scc)
+    var edgesInSCC = getEdgesInSCC(edges, scc)
     val FMUs = steps.map(o => o.fmuName)
 
     val reactiveGets = gets.filter(o => (edgesInSCC.exists(edge => edge.srcNode == o && setsReactive.contains(edge.trgNode)))).toSet
@@ -55,9 +55,9 @@ class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) exten
     }
 
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edgesInSCC)
-    assert(!tarjanGraph.hasCycle)
 
-    val instructions = tarjanGraph.topologicalSCC.flatten.flatMap(formatStepInstruction(_, true)).filter(IsLoopInstruction).toList
+    val instructions = tarjanGraph.topologicalSCC.flatten.flatMap(formatStepInstruction(_, true)).filter(IsLoopInstruction)
+
     val saves = createSaves(FMUs)
     val restores = createRestores(FMUs)
     saves.:+(AlgebraicLoop(reactiveGets.flatMap(_.ports).toList, instructions, restores))

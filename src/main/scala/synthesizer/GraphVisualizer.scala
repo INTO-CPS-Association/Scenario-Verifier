@@ -6,10 +6,11 @@ import guru.nidi.graphviz.attribute.{Color, Label, Style}
 import guru.nidi.graphviz.engine.{Format, Graphviz}
 import guru.nidi.graphviz.model.Factory.{graph, mutGraph, mutNode}
 import guru.nidi.graphviz.model.MutableNode
+import org.apache.logging.log4j.scala.Logging
 
-object GraphVisualizer {
+object GraphVisualizer extends Logging{
   def getName(node: Node, SCCs: List[List[Node]]): String = {
-    val scc = SCCs.find(o => o.contains(node)).get
+    val scc = SCCs.find(_.contains(node)).get
     val index = SCCs.indexOf(scc)
     node match {
       case DoStepNode(name) => f"${index}:DoStep_${name}"
