@@ -1,6 +1,7 @@
 package synthesizer
 
 import core.{CosimStepInstruction, DefaultStepSize, Get, GetTentative, InitGet, InitSet, InitializationInstruction, RestoreState, SaveState, SetTentative, Step, StepLoop}
+import org.apache.logging.log4j.scala.Logging
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -18,7 +19,7 @@ case class FeedthroughLoop(nodes: List[Node]) extends SCCType
 case class StepLoopNodes(nodes: List[Node]) extends SCCType
 case class SimpleAction(nodes: List[Node]) extends SCCType
 
-trait SynthesizerBase {
+trait SynthesizerBase extends Logging{
   def FMUsStepped: mutable.HashSet[String]
   def FMUsSaved: mutable.HashSet[String]
   def FMUsMayRejectStepped: mutable.HashSet[String]
@@ -36,21 +37,21 @@ trait SynthesizerBase {
       FeedthroughLoop(scc)
   }
 
-  def formatAlgebraicLoop(nodes: List[Node]): List[CosimStepInstruction]
+  def formatAlgebraicLoop(nodes: List[Node], isNested: Boolean = false): List[CosimStepInstruction]
   def formatInitLoop(nodes: List[Node]): InitializationInstruction
+  def onlyReactiveConnections(srcFMU: String, trgFMU: String): Boolean
 
   def formatStepLoop(scc: List[Node]): List[CosimStepInstruction] = {
-    //Remove Artificial edges between DoStep-edges
-    val edges = getEdgesInSCC(StepEdges, scc).filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode))
+    //Remove Artificial edges between DoStep-edges with Reactive Connections
+    val edges = getEdgesInSCC(StepEdges, scc).filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode) && onlyReactiveConnections(o.srcNode.fmuName, o.trgNode.fmuName))
+
     val FMUs = scc.filter(IsStepNode).map { case DoStepNode(name) => name }.toSet
 
     val tarjanGraph = new TarjanGraph[Node](edges)
-    //Cycles are not yet supported
-    assert(!tarjanGraph.hasCycle)
 
-    val instructions = tarjanGraph.topologicalSCC.flatMap(o =>
-      if (o.size == 1) formatStepInstruction(o.head)
-      else formatAlgebraicLoop(o))
+    val instructions = if(!tarjanGraph.hasCycle)
+      tarjanGraph.topologicalSCC.flatMap(o => formatStepInstruction(o.head))
+      else formatAlgebraicLoop(tarjanGraph.topologicalSCC.flatten, true)
 
     val saves = createSaves(FMUs)
     val restores = createRestores(FMUs)

@@ -41,4 +41,8 @@ class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
   "ScenarioConfGenerator" should "create valid Step procedure for Two Algebraic Loops" in {
     confGenerationTest("examples/two_algebraic_loops.conf")
   }
+
+  "ScenarioConfGenerator" should "create valid Procedure for loop within loop" in {
+    confGenerationTest("examples/loop_within_loop.conf")
+  }
 }

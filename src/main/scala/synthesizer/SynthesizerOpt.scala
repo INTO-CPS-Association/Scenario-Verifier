@@ -29,7 +29,11 @@ class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) exten
     AlgebraicLoopInit(gets.flatMap(_.ports), tarjanGraph.topologicalSCC.flatten.flatMap(formatInitialInstruction))
   }
 
-  def formatAlgebraicLoop(scc: List[Node]): List[CosimStepInstruction] = {
+  override def onlyReactiveConnections(srcFMU: String, trgFMU: String): Boolean = {
+    scenarioModel.connections.count(i => i.srcPort.fmu == srcFMU && i.trgPort.fmu == trgFMU) == graphBuilder.reactiveConnections.count(i => i.srcPort.fmu == srcFMU && i.trgPort.fmu == trgFMU)
+  }
+
+  def formatAlgebraicLoop(scc: List[Node], isNested:Boolean): List[CosimStepInstruction] = {
     val steps = graphBuilder.stepNodes.filter(o => scc.contains(o))
     val gets = graphBuilder.GetOptimizedNodes.values.filter(o => scc.contains(o)).toList
     val setsDelayed = graphBuilder.SetOptimizedNodesDelayed.values.filter(o => scc.contains(o)).toList

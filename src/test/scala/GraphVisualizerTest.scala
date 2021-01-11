@@ -3,7 +3,6 @@ import org.scalatest.Ignore
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import synthesizer.{GraphBuilder, GraphVisualizer, Node, TarjanGraph}
-
 @Ignore
 class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
   def testGraph(file: String, name: String): Unit = {
@@ -43,5 +42,9 @@ class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
 
   "GraphVisualizer" should "should build graphs for Two Algebraic Loops" in{
     testGraph("examples/two_algebraic_loops.conf", "two_algebraic_loop")
+  }
+
+  "GraphVisualizer" should "should build graphs for Loop within Loop" in{
+    testGraph("examples/loop_within_loop.conf", "loop_within_loop")
   }
 }

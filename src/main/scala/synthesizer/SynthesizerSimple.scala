@@ -31,29 +31,31 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, strategy: LoopStrategy) ex
     AlgebraicLoopInit(gets.map(o => o.port), tarjanGraph.topologicalSCC.flatten.flatMap(formatInitialInstruction))
   }
 
-  def formatAlgebraicLoop(scc: List[Node]): List[CosimStepInstruction] = {
-    val steps = graphBuilder.stepNodes.filter(o => scc.contains(o))
+  override def onlyReactiveConnections(srcFMU: String, trgFMU: String): Boolean = {
+    scenarioModel.connections.count(i => i.srcPort.fmu == srcFMU && i.trgPort.fmu == trgFMU) == graphBuilder.reactiveConnections.count(i => i.srcPort.fmu == srcFMU && i.trgPort.fmu == trgFMU)
+  }
+
+  def formatAlgebraicLoop(scc: List[Node], isNested: Boolean): List[CosimStepInstruction] = {
     val gets = graphBuilder.GetNodes.values.flatten.filter(o => scc.contains(o)).toList
     val setsReactive = graphBuilder.SetNodesReactive.values.flatten.filter(o => scc.contains(o)).toList
 
     var edgesInSCC = getEdgesInSCC(StepEdges, scc)
-    val FMUs = steps.map(o => o.fmuName)
+    val FMUs = gets.map(_.fmuName).toSet
 
     val reactiveGets = gets.filter(o => (edgesInSCC.exists(edge => edge.srcNode == o && setsReactive.contains(edge.trgNode)))).toSet
 
-    if (strategy == maximum)
-    //Remove all connections between FMUs
-      edgesInSCC = edgesInSCC.filterNot(e => setsReactive.contains(e.trgNode) && gets.contains(e.srcNode))
-    else {
-      //Remove all connections to a single FMU
-      val reducedList = setsReactive.groupBy(o => o.port.fmu).toList.minBy(i => i._2.size)._2
-      edgesInSCC = edgesInSCC.filterNot(e => reducedList.contains(e.trgNode) && gets.contains(e.srcNode))
+    strategy match {
+      case synthesizer.LoopStrategy.maximum => edgesInSCC = edgesInSCC.filterNot(e => setsReactive.contains(e.trgNode) && gets.contains(e.srcNode))
+      case _ => {
+        val reducedList = setsReactive.groupBy(o => o.port.fmu).toList.minBy(i => i._2.size)._2
+        edgesInSCC = edgesInSCC.filterNot(e => reducedList.contains(e.trgNode) && gets.contains(e.srcNode))
+      }
     }
 
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edgesInSCC)
 
-    val instructions = tarjanGraph.topologicalSCC.flatten.flatMap(formatStepInstruction(_, true)).filter(IsLoopInstruction).toList
-    val saves = createSaves(FMUs)
+    val instructions = tarjanGraph.topologicalSCC.flatten.flatMap(formatStepInstruction(_, true)).filter(IsLoopInstruction)
+    val saves = if(isNested) List.empty[CosimStepInstruction] else createSaves(FMUs)
     val restores = createRestores(FMUs)
     saves.:+(AlgebraicLoop(reactiveGets.map(_.port).toList, instructions, restores))
   }

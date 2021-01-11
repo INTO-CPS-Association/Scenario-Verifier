@@ -36,10 +36,7 @@ object GraphVisualizer {
     edges.foreach(o => {
       val s = mutNode(getName(o.srcNode, SCCs))
       val t = mutNode(getName(o.trgNode, SCCs))
-      if(o.trgNode.fmuName == o.srcNode.fmuName) {
-        g.add(s.addLink(t).add(Style.DASHED))
-      } else
-        g.add(s.addLink(t).add(Style.SOLID))
+      g.add(s.addLink(t))
     })
     Graphviz.fromGraph(g).render(Format.SVG).toFile(new File(String.format("example/%s.svg", name)))
   }

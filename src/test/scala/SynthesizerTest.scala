@@ -48,7 +48,6 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     FileUtils.deleteQuietly(f)
   }
 
-
   "Synthesizer" should "create valid Master Algorithm for Algebraic Initialization" in{
     synthesizeAndVerify("examples/algebraic_loop_initialization.conf")
     synthesizeOptAndVerify("examples/algebraic_loop_initialization.conf")
@@ -86,12 +85,8 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
   "Synthesizer" should "create valid Step Finding And Algebraic procedure for Combined Step and GS Algebraic" in {
     synthesizeAndVerify("examples/combined_step_algebraic.conf", minimum)
   }
-
-  "Synthesizer" should "create valid Step Finding And Algebraic procedure for Combined Step and Jac Algebraic" in {
-    synthesizeAndVerify("examples/combined_step_algebraic.conf", maximum)
-  }
-
-  ignore should "not create a valid Step Finding And Algebraic procedure for Combined Step and Jac Algebraic" in {
-    synthesizeAndVerify("examples/nested_loops.conf", maximum)
+  
+  "Synthesizer" should "create a valid Step Finding And Algebraic procedure for Combined Step and Jac Algebraic" in {
+    synthesizeAndVerify("examples/loop_within_loop.conf", maximum)
   }
 }
