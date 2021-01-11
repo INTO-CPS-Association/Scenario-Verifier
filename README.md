@@ -44,7 +44,7 @@ To run it, set the location of the xml configuration of the logging:
 java -D"log4j.configurationFile=.\log4j2.xml" -jar .\scenario_verifier-assembly-0.1.jar
 ```
 
-We have an example of `log4j2.xml` in the source.
+We have an example of `log4j2.xml` in the source
 
 ## Todo
 
@@ -53,8 +53,6 @@ We have an example of `log4j2.xml` in the source.
 - [ ] Optimization of Algorithms
     - [ ] Parallelization
     - [ ] Fewest Possible Actions in a Step
-    - [ ] Saving of Scenario in Conf file (From Code create scenarios to Conf)
-- [ ] Optimize Docker Build Setup
 - [ ] Write Documentation about the Synthesizer
 - [ ] Write Documentation about the Generator
 - [ ] Extend the Uppaal-model so it can verify Hierarchical Co-simulation scenarios
