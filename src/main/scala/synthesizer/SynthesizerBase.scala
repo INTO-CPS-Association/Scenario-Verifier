@@ -14,16 +14,24 @@ object LoopStrategy extends Enumeration {
 trait SCCType {
   def nodes: List[Node]
 }
+
 case class ReactiveLoop(nodes: List[Node]) extends SCCType
+
 case class FeedthroughLoop(nodes: List[Node]) extends SCCType
+
 case class StepLoopNodes(nodes: List[Node]) extends SCCType
+
 case class SimpleAction(nodes: List[Node]) extends SCCType
 
-trait SynthesizerBase extends Logging{
+trait SynthesizerBase extends Logging {
   def FMUsStepped: mutable.HashSet[String]
+
   def FMUsSaved: mutable.HashSet[String]
+
   def FMUsMayRejectStepped: mutable.HashSet[String]
+
   def StepEdges: Set[Edge[Node]]
+
   def InitEdge: Set[Edge[Node]]
 
   def checkSCC(scc: List[Node]): SCCType = {
@@ -38,19 +46,44 @@ trait SynthesizerBase extends Logging{
   }
 
   def formatAlgebraicLoop(nodes: List[Node], edges: Set[Edge[Node]], isNested: Boolean = false): List[CosimStepInstruction]
+
   def formatInitLoop(nodes: List[Node]): InitializationInstruction
+
   def onlyReactiveConnections(srcFMU: String, trgFMU: String): Boolean
+
+  def removeOneEdge(edgesInSCC: List[Edge[Node]], value: Set[Edge[Node]]): Set[Edge[Node]] = {
+    edgesInSCC match {
+      case ::(head, next) => {
+        if (!value.exists(i => i.trgNode.fmuName == head.srcNode.fmuName && i.srcNode.fmuName == head.trgNode.fmuName))
+          removeOneEdge(next, value + head)
+        else
+          removeOneEdge(next, value)
+      }
+      case Nil => value
+    }
+  }
+
+  def filterEdges(StepEdges: Set[Edge[Node]], scc: List[Node], isReactiveStepLoop: Boolean): Set[Edge[Node]] = {
+    val edgesInSCC = getEdgesInSCC(StepEdges, scc)
+    if (isReactiveStepLoop)
+      edgesInSCC.filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode))
+    else {
+      //There is two edges between all doStepNodes - one of them should be preserved
+      removeOneEdge(edgesInSCC.toList, Set.empty[Edge[Node]])
+    }
+  }
 
   def formatStepLoop(scc: List[Node]): List[CosimStepInstruction] = {
     //Remove Artificial edges between DoStep-edges
-    val edges = getEdgesInSCC(StepEdges, scc).filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode))
     val FMUs = scc.filter(IsStepNode).map { case DoStepNode(name) => name }.toSet
 
-    val tarjanGraph = new TarjanGraph[Node](edges)
+    val isReactiveStepLoop = scc.size > FMUs.size
+    val edges = filterEdges(StepEdges, scc, isReactiveStepLoop)
 
-    val instructions = if(!tarjanGraph.hasCycle)
+    val tarjanGraph = new TarjanGraph[Node](edges)
+    val instructions = if (!tarjanGraph.hasCycle)
       tarjanGraph.topologicalSCC.flatMap(o => formatStepInstruction(o.head))
-      else formatAlgebraicLoop(tarjanGraph.topologicalSCC.flatten, edges, true)
+    else formatAlgebraicLoop(tarjanGraph.topologicalSCC.flatten, edges, true)
 
     val saves = createSaves(FMUs)
     val restores = createRestores(FMUs)
@@ -89,7 +122,7 @@ trait SynthesizerBase extends Logging{
   def formatInitialInstruction(node: Node): List[InitializationInstruction] = {
     node match {
       case GetNode(_, port) => List(InitGet(port))
-      case SetNode(_,port) => List(InitSet(port))
+      case SetNode(_, port) => List(InitSet(port))
       case GetOptimizedNode(fmu, ports) => ports.flatMap(o => formatInitialInstruction(GetNode(fmu, o))).toList
       case SetOptimizedNode(fmu, ports) => ports.flatMap(o => formatInitialInstruction(SetNode(fmu, o))).toList
       case _ => throw new UnsupportedOperationException()
@@ -102,10 +135,10 @@ trait SynthesizerBase extends Logging{
         FMUsStepped += name
         List(Step(name, DefaultStepSize()))
       }
-      case GetNode(_,port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) List(GetTentative(port)) else List(Get(port))
-      case SetNode(_,port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) List(SetTentative(port)) else List(core.Set(port))
-      case GetOptimizedNode(fmu,ports) => ports.flatMap(o => formatStepInstruction(GetNode(fmu, o), isReactiveLoop)).toList
-      case SetOptimizedNode(fmu,ports) => ports.flatMap(o => formatStepInstruction(SetNode(fmu, o), isReactiveLoop)).toList
+      case GetNode(_, port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) List(GetTentative(port)) else List(Get(port))
+      case SetNode(_, port) => if (FMUsStepped.contains(port.fmu) && isReactiveLoop) List(SetTentative(port)) else List(core.Set(port))
+      case GetOptimizedNode(fmu, ports) => ports.flatMap(o => formatStepInstruction(GetNode(fmu, o), isReactiveLoop)).toList
+      case SetOptimizedNode(fmu, ports) => ports.flatMap(o => formatStepInstruction(SetNode(fmu, o), isReactiveLoop)).toList
       case RestoreNode(name) => List(RestoreState(name))
       case SaveNode(name) => {
         FMUsSaved += name
@@ -114,7 +147,7 @@ trait SynthesizerBase extends Logging{
     }
   }
 
-  protected def createRestores(FMUs: Predef.Set[String]):List[CosimStepInstruction] = {
+  protected def createRestores(FMUs: Predef.Set[String]): List[CosimStepInstruction] = {
     FMUs.flatMap(o => formatStepInstruction(RestoreNode(o))).toList
   }
 
@@ -143,7 +176,7 @@ trait SynthesizerBase extends Logging{
     case _ => false
   }
 
-  protected def getEdgesInSCC(edges:Set[Edge[Node]], scc: List[Node]) = {
+  protected def getEdgesInSCC(edges: Set[Edge[Node]], scc: List[Node]) = {
     edges.filter(e => scc.contains(e.srcNode) && scc.contains(e.trgNode))
   }
 }

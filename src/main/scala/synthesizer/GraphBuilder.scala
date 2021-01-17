@@ -93,8 +93,12 @@ class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = fals
 
   private def StepFindingEdges: Set[Edge[Node]] = {
     //FMUs connected reactively that both may reject a step should be connected
-    reactiveConnections.filter(o => RejectFMUs.contains(o.trgPort.fmu) && RejectFMUs.contains(o.srcPort.fmu))
+    val reactiveEdges = reactiveConnections.filter(o => RejectFMUs.contains(o.trgPort.fmu) && RejectFMUs.contains(o.srcPort.fmu))
       .map(o => Edge[Node](DoStepNode(o.trgPort.fmu), DoStepNode(o.srcPort.fmu))).toSet
+    val connectionsBetweenRejectFMUs = scenario.connections.diff(reactiveConnections).filter(o => RejectFMUs.contains(o.trgPort.fmu) && RejectFMUs.contains(o.srcPort.fmu))
+    val trgToSrcFMUs = connectionsBetweenRejectFMUs.map(o => Edge[Node](DoStepNode(o.trgPort.fmu), DoStepNode(o.srcPort.fmu))).toSet
+    val srcToTrgFMUs = connectionsBetweenRejectFMUs.map(o => Edge[Node](DoStepNode(o.srcPort.fmu), DoStepNode(o.trgPort.fmu))).toSet
+    reactiveEdges ++ trgToSrcFMUs ++ srcToTrgFMUs
   }
 
 

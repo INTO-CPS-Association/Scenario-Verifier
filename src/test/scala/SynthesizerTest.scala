@@ -13,7 +13,8 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
   def writeToTempFile(content: String) = {
     val file = new File("uppaal_.xml")
     new PrintWriter(file) {
-      write(content); close()
+      write(content);
+      close()
     }
     file
   }
@@ -48,7 +49,7 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     FileUtils.deleteQuietly(f)
   }
 
-  "Synthesizer" should "create valid Master Algorithm for Algebraic Initialization" in{
+  "Synthesizer" should "create valid Master Algorithm for Algebraic Initialization" in {
     synthesizeAndVerify("examples/algebraic_loop_initialization.conf")
     synthesizeOptAndVerify("examples/algebraic_loop_initialization.conf")
   }
@@ -57,7 +58,7 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     synthesizeOptAndVerify("examples/simple_master.conf")
   }
 
-  "Synthesizer" should "create valid Master Algorithm for Industrial case study" in{
+  "Synthesizer" should "create valid Master Algorithm for Industrial case study" in {
     synthesizeAndVerify("examples/industrial_casestudy.conf")
     synthesizeOptAndVerify("examples/industrial_casestudy.conf")
   }
@@ -82,10 +83,20 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     synthesizeOptAndVerify("examples/step_finding_loop_msd_1.conf", minimum)
   }
 
+
+  "Synthesizer" should "create valid Step Finding procedure for Step Loop only delayed ports" in {
+    synthesizeAndVerify("examples_no_algorithm/step_finding_loop_two_delayed.conf", maximum)
+  }
+
+  "Synthesizer" should "create valid Step Finding procedure for Step Loop three delayed FMUs" in {
+    synthesizeAndVerify("examples_no_algorithm/step_finding_loop_three_delayed.conf", maximum)
+  }
+
   "Synthesizer" should "create a valid Step Finding And Algebraic procedure for Combined Step and Jac Algebraic" in {
     synthesizeAndVerify("examples/loop_within_loop.conf", maximum)
     //synthesizeOptAndVerify("examples/loop_within_loop.conf", maximum)
   }
+
 
   /*
   "Synthesizer" should "create a valid Step Finding And Algebraic procedure for Combined Step and Jac Algebraic using minimum " in {

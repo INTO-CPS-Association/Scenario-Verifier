@@ -47,4 +47,8 @@ class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
   "GraphVisualizer" should "should build graphs for Loop within Loop" in{
     testGraph("examples/loop_within_loop.conf", "loop_within_loop")
   }
+
+  "GraphVisualizer" should "should build graphs for Step Finding Loop Delayed Ports" in{
+    testGraph("examples_no_algorithm/step_finding_loop_two_delayed.conf", "step_finding_delayed")
+  }
 }

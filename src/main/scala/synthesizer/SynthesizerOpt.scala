@@ -41,7 +41,7 @@ class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) exten
     var edgesInSCC = getEdgesInSCC(edges, scc)
     val FMUs = steps.map(o => o.fmuName)
 
-    val reactiveGets = gets.filter(o => (edgesInSCC.exists(edge => edge.srcNode == o && setsReactive.contains(edge.trgNode)))).toSet
+    val reactiveGets = gets.filter(o => edgesInSCC.exists(edge => edge.srcNode == o && setsReactive.contains(edge.trgNode))).toSet
 
     //Add restore and save nodes:
     //ExpandReactiveSCC(FMUs, setsDelayed, setsReactive, reactiveGets.toList)
