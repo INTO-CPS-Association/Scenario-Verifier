@@ -2,25 +2,20 @@ name := "scenario_verifier"
 
 scalaVersion := "2.13.3"
 
-// library version
-version := "0.1"
+inThisBuild(List(
+  organization := "INTO-CPS-Association/",
+  homepage := Some(url("https://github.com/scalameta/sbt-scalafmt")),
+  licenses := List("INTO-CPS-LICENSE" -> url("https://github.com/INTO-CPS-Association/Scenario-Verifier/blob/master/LICENSE")),
+  developers := List(
+    Developer(
+      "SimplisticCode",
+      "Simon Thrane Hansen",
+      "sth@ece.au.dk",
+      url("https://simon.com")
+    )
+  )
+))
 
-publishTo := Some("Artifactory Realm" at "https://overture.au.dk/artifactory/into-cps")
-credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
-
-publishTo := Some("Artifactory Realm" at "https://overture.au.dk/artifactory/into-cps;build.timestamp=" + new java.util.Date().getTime)
-credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
-
-// groupId, SCM, license information
-organization := "INTO-CPS-Association"
-homepage := Some(url("https://github.com/INTO-CPS-Association/Scenario-Verifier"))
-scmInfo := Some(ScmInfo(url("https://github.com/INTO-CPS-Association/Scenario-Verifier"), "git@github.com:INTO-CPS-Association/Scenario-Verifier.git"))
-developers := List(Developer("SimplisticCode", "SimplisticCode", "sth@ece.au.dk", url("https://github.com/INTO-CPS-Association")))
-licenses += ("INTO-CPS-LICENSE", url("https://github.com/INTO-CPS-Association/Scenario-Verifier/blob/master/LICENSE"))
-publishMavenStyle := true
-
-// disable publish with scala version, otherwise artifact name will include scala version
-crossPaths := false
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.3.0-SNAP2" % Test
 
@@ -50,6 +45,3 @@ libraryDependencies += "org.jcodec" % "jcodec-javase" % "0.2.5"
 
 // Set display options for scalatest
 testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-o")
-
-resolvers +=
-  "Artifactory" at "https://overture.au.dk/artifactory/into-cps/"
