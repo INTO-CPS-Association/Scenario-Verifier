@@ -1,8 +1,21 @@
 name := "scenario_verifier"
 
-version := "0.1"
-
 scalaVersion := "2.13.3"
+
+inThisBuild(List(
+  organization := "INTO-CPS-Association/",
+  homepage := Some(url("https://github.com/scalameta/sbt-scalafmt")),
+  licenses := List("INTO-CPS-LICENSE" -> url("https://github.com/INTO-CPS-Association/Scenario-Verifier/blob/master/LICENSE")),
+  developers := List(
+    Developer(
+      "SimplisticCode",
+      "Simon Thrane Hansen",
+      "sth@ece.au.dk",
+      url("https://simon.com")
+    )
+  )
+))
+
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.3.0-SNAP2" % Test
 

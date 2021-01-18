@@ -3,7 +3,7 @@ import org.scalatest.Ignore
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import synthesizer.{GraphBuilder, GraphVisualizer, Node, TarjanGraph}
-@Ignore
+//@Ignore
 class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
   def testGraph(file: String, name: String): Unit = {
     val conf = getClass.getResourceAsStream(file)
@@ -50,5 +50,13 @@ class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
 
   "GraphVisualizer" should "should build graphs for Step Finding Loop Delayed Ports" in{
     testGraph("examples_no_algorithm/step_finding_loop_two_delayed.conf", "step_finding_delayed")
+  }
+
+  "GraphVisualizer" should "should build graphs for Step Finding Loop Three SUs" in{
+    testGraph("examples_no_algorithm/step_finding_loop_three_delayed.conf", "step_finding_three_delayed")
+  }
+
+  "GraphVisualizer" should "should build graphs for Simple Master v. 2" in{
+    testGraph("examples_no_algorithm/simple_master_2.conf", "simple_master_2")
   }
 }
