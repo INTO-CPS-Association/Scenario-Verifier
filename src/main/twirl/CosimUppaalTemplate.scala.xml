@@ -8,6 +8,7 @@
         //Do not change
         const int END_TIME = 1;
         const int START_TIME = 0;
+        int currentConfig := 0;
 
         //Is the stepFinder active
         bool stepFinderActive := false;
@@ -34,24 +35,23 @@
         //In case of a scenario with algebraic loops and step rejection,
         // we need to be able to turn off the precondition checks
         bool shouldChecksBeDisabled(){
+            //In case a loop is not activated all checks should be
+            if(loopActive == -1 &amp;&amp; !stepFinderActive){
+                return false;
+            }
 
-        //In case a loop is not activated all checks should be
-        if(loopActive == -1 &amp;&amp; !stepFinderActive){
-        return false;
-        }
+            //We are inside a loop is it nested
+            if(isLoopNested || isStepNested){
+                //Both loops should be on the extraIteration
+                return !(isStepExtraIteration &amp;&amp; isLoopExtraIteration);
+            }
 
-        //We are inside a loop is it nested
-        if(isLoopNested || isStepNested){
-        //Both loops should be on the extraIteration
-        return !(isStepExtraIteration &amp;&amp; isLoopExtraIteration);
-        }
+            //Not nested - if none of the loops is in the extra iteration we should disable the checks
+            if(!isLoopExtraIteration &amp;&amp; !isStepExtraIteration){
+                return true;
+            }
 
-        //Not nested - if none of the loops is in the extra iteration we should disable the checks
-        if(!isLoopExtraIteration &amp;&amp; !isStepExtraIteration){
-        return true;
-        }
-
-        return false;
+            return false;
         }
 
         //FMU of a variable
@@ -61,8 +61,8 @@
 
         //FMU of the variable
         typedef struct {
-        int[-1,1] status;
-        int time;
+            int[-1,1] status;
+            int time;
         } variable;
 
 
@@ -84,6 +84,8 @@
         const int nAlgebraicLoopsInInit := @m.nAlgebraicLoopsInInit;
         const int nAlgebraicLoopsInStep := @m.nAlgebraicLoopsInStep;
 
+        //Adaptive co-simulation - numbers of different configurations
+        const int nConfig := 1;
         //***********************************************************************************************************
         //Do not change
 
@@ -262,7 +264,7 @@
         @for(outName<- m.fmuOutNames(fName)) {
         const int @{m.fmuPortName(fName, outName)} := @m.fmuOutputEncoding(fName)(outName);
         }
-        const int @{fName}_inputTypes[MaxNInputs] := { @m.fmuInputTypes(fName) };
+        const int @{fName}_inputTypes[nConfig][MaxNInputs] := {{ @m.fmuInputTypes(fName) }};
         }
 
         //This array is to keep track of the value of each output port - each output port needs two variables (current and future)
@@ -272,7 +274,7 @@
         //Connections - do not longer contain the type of the input - but it is still a 1:1 mapping
         const ExternalConnection external[nExternal] = { @m.external };
 
-        const InternalConnection feedthroughInStep[nInternal] = { @m.feedthroughInStep };
+        const InternalConnection feedthroughInStep[nConfig][nInternal] = {{ @m.feedthroughInStep }};
 
         //The initial internal connection could be different from the connection in the simulation and should be represented differently
         const InternalConnection feedthroughInInit[nInternalInit] = { @m.feedthroughInInit };
@@ -283,7 +285,7 @@
         //Numbers of operations in each step
         const int nInstantiationOperations := @m.nInstantiationOperations;
         const int nInitializationOperations := @m.nInitializationOperations;
-        const int nStepOperations := @m.nStepOperations;
+        const int nStepOperations[nConfig] := {@m.nStepOperations};
         const int nTerminationOperations := @m.nTerminationOperations;
 
         // Numbers for algebraic loop operations in init
@@ -293,6 +295,8 @@
         //Numbers of operations to be performed per algebraic loop in init
         const int[0,maxNConvergeOperationsForAlgebraicLoopsInInit] nConvergencePortsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit] = {@m.nConvergencePortsPerAlgebraicLoopInInit};
         const int[0,maxNAlgebraicLoopOperationsInInit] nOperationsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit] = {@m.nOperationsPerAlgebraicLoopInInit};
+
+        const int maxStepOperations := @m.maxStepOperations;
 
 
         // Number of operations in the step finding loop
@@ -305,16 +309,16 @@
         const int maxNConvergeOperationsForAlgebraicLoopsInStep := @m.maxNConvergeOperationsForAlgebraicLoopsInStep;
 
         //Numbers of operations to be performed per algebraic loop in step
-        const int[0,maxNConvergeOperationsForAlgebraicLoopsInStep] nConvergencePortsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep] = {@m.nConvergencePortsPerAlgebraicLoopInStep};
-        const int[0,maxNAlgebraicLoopOperationsInStep] nOperationsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep] = {@m.nOperationsPerAlgebraicLoopInStep};
-        const int[0,maxNRetryOperationsForAlgebraicLoopsInStep] nRetryOperationsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep] = {@m.nRetryOperationsPerAlgebraicLoopInStep};
+        const int[0,maxNConvergeOperationsForAlgebraicLoopsInStep] nConvergencePortsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep] = {{@m.nConvergencePortsPerAlgebraicLoopInStep}};
+        const int[0,maxNAlgebraicLoopOperationsInStep] nOperationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep] = {{@m.nOperationsPerAlgebraicLoopInStep}};
+        const int[0,maxNRetryOperationsForAlgebraicLoopsInStep] nRetryOperationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep] = {{@m.nRetryOperationsPerAlgebraicLoopInStep}};
 
         //These operations define what should be performed in the simulation - it is assumed that the operation first loads the fmus
         const Operation instantiationOperations[nInstantiationOperations] = { @m.instantiationOperations };
 
         const Operation initializationOperations[nInitializationOperations] = { @m.initializationOperations };
 
-        const Operation stepOperations[nStepOperations] = { @m.stepOperations };
+        const Operation stepOperations[nConfig][maxStepOperations] = {{ @m.stepOperations }};
 
         //These are the operations to be performed in order to find the correct step
         //In these operation there is a difference on the third parameter to doStep:
@@ -327,15 +331,15 @@
 
         //Possible multiple loops
         //Loop operations are to solve algebraic loops in the co-simulation scenario
-        const Operation operationsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep][maxNAlgebraicLoopOperationsInStep] = {@m.operationsPerAlgebraicLoopInStep };
+        const Operation operationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep][maxNAlgebraicLoopOperationsInStep] = {{@m.operationsPerAlgebraicLoopInStep }};
         const Operation operationsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit][maxNAlgebraicLoopOperationsInInit] = {@m.operationsPerAlgebraicLoopInInit };
 
         //The converge ports is to mark which variables that needs to be checked in the convergence loop
         //The convention is now to specify the FMU first and the port to denote the variables that should be checked
-        const FmuOutputPort convergencePortsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep][maxNConvergeOperationsForAlgebraicLoopsInStep] = {@m.convergencePortsPerAlgebraicLoopInStep };
+        const FmuOutputPort convergencePortsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep][maxNConvergeOperationsForAlgebraicLoopsInStep] = {{@m.convergencePortsPerAlgebraicLoopInStep }};
         const FmuOutputPort convergencePortsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit][maxNConvergeOperationsForAlgebraicLoopsInInit] = {@m.convergencePortsPerAlgebraicLoopInInit };
 
-        const Operation retryOperationsPerAlgebraicLoopInStep[nAlgebraicLoopsInStep][maxNRetryOperationsForAlgebraicLoopsInStep] = {@m.retryOperationsPerAlgebraicLoopInStep };
+        const Operation retryOperationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep][maxNRetryOperationsForAlgebraicLoopsInStep] = {{@m.retryOperationsPerAlgebraicLoopInStep }};
 
         const Operation terminationOperations[nTerminationOperations] = { @m.terminationOperations };
 
@@ -363,8 +367,8 @@
 
 
             void selectNextCosimStepAction(){
-            if(cosimstep_pc &lt; nStepOperations){
-            unpackOperation(stepOperations[cosimstep_pc]);
+            if(cosimstep_pc &lt; nStepOperations[currentConfig]){
+            unpackOperation(stepOperations[currentConfig][cosimstep_pc]);
             }
             //Proceed to next action
             cosimstep_pc++;
@@ -376,7 +380,8 @@
             terminate_pc++;
             }
 
-            void takeStep(int global_h){
+
+            void takeStep(int global_h, int newConfig){
             //h is progression of time
             time := time + h;
             //Reset the loop actions
@@ -385,6 +390,7 @@
             h := global_h;
             //reset n
             n := 0;
+            currentConfig := newConfig;
             }
 
             void setStepsizeFMU(int fmu, int fmu_step_size){
@@ -483,11 +489,11 @@
         <transition>
             <source ref="id18"/>
             <target ref="id8"/>
-            <label kind="select" x="1377" y="51">global_h:int[1,H_max]</label>
-            <label kind="guard" x="1079" y="34">cosimstep_pc == nStepOperations + 1
+            <label kind="select" x="1377" y="51">global_h:int[1,H_max], config:int[0,nConfig-1]</label>
+            <label kind="guard" x="1079" y="34">cosimstep_pc == nStepOperations[currentConfig] + 1
                 &amp;&amp; time &lt; end
             </label>
-            <label kind="assignment" x="1470" y="17">takeStep(global_h), isSimulation= 0</label>
+            <label kind="assignment" x="1470" y="17">takeStep(global_h,config), isSimulation= 0</label>
             <nail x="1351" y="34"/>
         </transition>
         <transition>
@@ -597,7 +603,7 @@
                 action == step ||
                 action == save ||
                 action == restore)
-                &amp;&amp; cosimstep_pc &lt; (nStepOperations +1)
+                &amp;&amp; cosimstep_pc &lt; (nStepOperations[currentConfig] +1)
             </label>
             <label kind="synchronisation" x="1470" y="-255">fmu[activeFMU]!</label>
         </transition>
@@ -626,7 +632,7 @@
         <transition>
             <source ref="id18"/>
             <target ref="id17"/>
-            <label kind="guard" x="1436" y="102">cosimstep_pc == nStepOperations + 1
+            <label kind="guard" x="1436" y="102">cosimstep_pc == nStepOperations[currentConfig] + 1
                 &amp;&amp; time &gt;= end
             </label>
             <label kind="assignment" x="1436" y="161">findFMUTerminateAction(), isSimulation = 0</label>
@@ -825,7 +831,7 @@
     </template>
     <template>
         <name>LoopSolver</name>
-        <parameter>const int maxIteration</parameter>
+        <parameter>int maxIteration</parameter>
         <declaration>
             int convergence_pc := 0;
             int restore_pc := 0;
@@ -837,215 +843,202 @@
             int i := 0;
 
             void selectNextLoopAction(int l){
-                unpackOperation(operationsPerAlgebraicLoopInStep[l][convergence_pc]);
-                //Proceed to next action
-                convergence_pc ++;
+            unpackOperation(operationsPerAlgebraicLoopInStep[currentConfig][l][convergence_pc]);
+            //Proceed to next action
+            convergence_pc ++;
             }
 
             void selectNextRestoreAction(int l){
-                unpackOperation(retryOperationsPerAlgebraicLoopInStep[l][restore_pc]);
-                restore_pc++;
+            unpackOperation(retryOperationsPerAlgebraicLoopInStep[currentConfig][l][restore_pc]);
+            restore_pc++;
             }
 
 
             void updateConvergenceVariables(int l){
-                int fmu;
-                int v;
-                for(i = 0; i &lt; nConvergencePortsPerAlgebraicLoopInStep[l]; i++){
-                    fmu = convergencePortsPerAlgebraicLoopInStep[l][i].FMU;
-                    v = convergencePortsPerAlgebraicLoopInStep[l][i].port;
-                    connectionVariable[fmu][v][final].status := connectionVariable[fmu][v][tentative].status;
-                    connectionVariable[fmu][v][final].time := connectionVariable[fmu][v][tentative].time;
-                }
+            int fmu;
+            int v;
+            for(i = 0; i &lt; nConvergencePortsPerAlgebraicLoopInStep[currentConfig][l]; i++){
+            fmu = convergencePortsPerAlgebraicLoopInStep[currentConfig][l][i].FMU;
+            v = convergencePortsPerAlgebraicLoopInStep[currentConfig][l][i].port;
+            connectionVariable[fmu][v][final].status := connectionVariable[fmu][v][tentative].status;
+            connectionVariable[fmu][v][final].time := connectionVariable[fmu][v][tentative].time;
+            }
             }
 
             void loopConverge(){
-                //Loop not longer active
-                loopActive := -1;
-                //Loop action counter reset
-                convergence_pc := 0;
-                //Reset convergence counter
-                currentConvergeLoopIteration := 0;
+            //Loop not longer active
+            loopActive := -1;
+            //Loop action counter reset
+            convergence_pc := 0;
+            //Reset convergence counter
+            currentConvergeLoopIteration := 0;
             }
 
 
             void resetConvergenceloop(){
-                convergence_pc := 0;
-                restore_pc := 0;
-                selectNextLoopAction(loopActive);
+            convergence_pc := 0;
+            restore_pc := 0;
+            selectNextLoopAction(loopActive);
             }
 
             //Convergence will happen when all convergenceVariables have a similar future and current value
             bool convergenceCriteria(int l){
             return forall(x:int[0,maxNConvergeOperationsForAlgebraicLoopsInStep-1])
-                convergencePortsPerAlgebraicLoopInStep[l][x].FMU != noFMU imply
-                connectionVariable[convergencePortsPerAlgebraicLoopInStep[l][x].FMU][convergencePortsPerAlgebraicLoopInStep[l][x].port][final].status
-                ==
-                connectionVariable[convergencePortsPerAlgebraicLoopInStep[l][x].FMU][convergencePortsPerAlgebraicLoopInStep[l][x].port][tentative].status
-                &amp;&amp;
-                connectionVariable[convergencePortsPerAlgebraicLoopInStep[l][x].FMU][convergencePortsPerAlgebraicLoopInStep[l][x].port][final].time
-                ==
-                connectionVariable[convergencePortsPerAlgebraicLoopInStep[l][x].FMU][convergencePortsPerAlgebraicLoopInStep[l][x].port][tentative].time;
+            convergencePortsPerAlgebraicLoopInStep[currentConfig][l][x].FMU != noFMU imply
+            connectionVariable[convergencePortsPerAlgebraicLoopInStep[currentConfig][l][x].FMU][convergencePortsPerAlgebraicLoopInStep[currentConfig][l][x].port][final].status
+            ==
+            connectionVariable[convergencePortsPerAlgebraicLoopInStep[currentConfig][l][x].FMU][convergencePortsPerAlgebraicLoopInStep[currentConfig][l][x].port][tentative].status
+            &amp;&amp;
+            connectionVariable[convergencePortsPerAlgebraicLoopInStep[currentConfig][l][x].FMU][convergencePortsPerAlgebraicLoopInStep[currentConfig][l][x].port][final].time
+            ==
+            connectionVariable[convergencePortsPerAlgebraicLoopInStep[currentConfig][l][x].FMU][convergencePortsPerAlgebraicLoopInStep[currentConfig][l][x].port][tentative].time;
             }
 
             bool convergence(int l){
-                return (convergenceCriteria(l) &amp;&amp; isLoopExtraIteration);
+            return (convergenceCriteria(l) &amp;&amp; isLoopExtraIteration);
             }
 
 
             void updateIsExtra(int l){
-                if(convergenceCriteria(l)){
-                    isLoopExtraIteration := true;
-                }
+            if(convergenceCriteria(l)){
+            isLoopExtraIteration := true;
+            }
             }
         </declaration>
-        <location id="id15" x="-1011" y="-518">
+        <location id="id24" x="-1011" y="-518">
             <committed/>
         </location>
-        <location id="id16" x="-1079" y="-663">
+        <location id="id25" x="-1079" y="-663">
         </location>
-        <location id="id17" x="-442" y="-824">
+        <location id="id26" x="-442" y="-824">
             <name x="-494" y="-858">NotConverging</name>
         </location>
-        <location id="id18" x="-484" y="-255">
+        <location id="id27" x="-484" y="-255">
             <name x="-433" y="-221">UpdateVariables</name>
             <committed/>
         </location>
-        <location id="id19" x="-17" y="-518">
+        <location id="id28" x="-17" y="-518">
         </location>
-        <location id="id20" x="-340" y="-518">
-            <name x="-332" y="-509">Restore</name>
+        <location id="id29" x="-340" y="-518">
+            <name x="-332" y="-509">RestoreState</name>
             <committed/>
         </location>
-        <location id="id21" x="-739" y="-518">
+        <location id="id30" x="-739" y="-518">
             <name x="-714" y="-543">CheckConvergence</name>
             <committed/>
         </location>
-        <location id="id22" x="-1088" y="-357">
+        <location id="id31" x="-1088" y="-357">
         </location>
-        <location id="id23" x="-1343" y="-518">
+        <location id="id32" x="-1343" y="-518">
             <committed/>
         </location>
-        <location id="id24" x="-1708" y="-518">
+        <location id="id33" x="-1708" y="-518">
         </location>
-        <init ref="id24"/>
+        <init ref="id33"/>
         <transition>
-            <source ref="id15"/>
-            <target ref="id23"/>
-            <label kind="guard" x="-1291" y="-548">convergence_pc &lt; nOperationsPerAlgebraicLoopInStep[loopActive]
-            </label>
+            <source ref="id24"/>
+            <target ref="id32"/>
+            <label kind="guard" x="-1283" y="-748">convergence_pc &lt; nOperationsPerAlgebraicLoopInStep[currentConfig][loopActive]</label>
             <label kind="assignment" x="-1283" y="-510">selectNextLoopAction(loopActive)</label>
         </transition>
         <transition>
-            <source ref="id23"/>
-            <target ref="id16"/>
+            <source ref="id32"/>
+            <target ref="id25"/>
             <label kind="guard" x="-1292" y="-646">action == findStep</label>
             <label kind="synchronisation" x="-1317" y="-612">findStepChan!</label>
             <label kind="assignment" x="-1334" y="-680">isStepNested := true</label>
         </transition>
         <transition>
-            <source ref="id15"/>
-            <target ref="id21"/>
-            <label kind="guard" x="-1011" y="-552">convergence_pc == nOperationsPerAlgebraicLoopInStep[loopActive]
-            </label>
+            <source ref="id24"/>
+            <target ref="id30"/>
+            <label kind="guard" x="-1003" y="-467">convergence_pc == nOperationsPerAlgebraicLoopInStep[currentConfig][loopActive]</label>
             <label kind="assignment" x="-993" y="-518">currentConvergeLoopIteration++</label>
         </transition>
         <transition>
-            <source ref="id16"/>
-            <target ref="id15"/>
+            <source ref="id25"/>
+            <target ref="id24"/>
             <label kind="synchronisation" x="-1011" y="-612">findStepChan?</label>
             <label kind="assignment" x="-1020" y="-586">isStepNested = false</label>
         </transition>
         <transition>
-            <source ref="id22"/>
-            <target ref="id15"/>
+            <source ref="id31"/>
+            <target ref="id24"/>
             <label kind="synchronisation" x="-1020" y="-433">actionPerformed?</label>
         </transition>
         <transition>
-            <source ref="id23"/>
-            <target ref="id22"/>
-            <label kind="guard" x="-1249" y="-374">action == get ||
+            <source ref="id32"/>
+            <target ref="id31"/>
+            <label kind="guard" x="-1309" y="-374">action == get ||
                 action == set ||
-                action == step ||
-                action == restore
-            </label>
+                action == step</label>
             <label kind="synchronisation" x="-1282" y="-403">fmu[activeFMU]!</label>
         </transition>
         <transition>
-            <source ref="id18"/>
-            <target ref="id23"/>
+            <source ref="id27"/>
+            <target ref="id32"/>
             <label kind="assignment" x="-1402" y="-212">updateConvergenceVariables(loopActive),
-                resetConvergenceloop()
-            </label>
+                resetConvergenceloop()</label>
             <nail x="-1309" y="-246"/>
             <nail x="-1343" y="-246"/>
         </transition>
         <transition>
-            <source ref="id21"/>
-            <target ref="id17"/>
+            <source ref="id30"/>
+            <target ref="id26"/>
             <label kind="guard" x="-816" y="-867">!convergence(loopActive) &amp;&amp;
-                currentConvergeLoopIteration == maxIteration
-            </label>
+                currentConvergeLoopIteration == maxIteration</label>
             <label kind="synchronisation" x="-646" y="-892">ErrorChan!</label>
             <nail x="-671" y="-628"/>
             <nail x="-671" y="-824"/>
         </transition>
         <transition>
-            <source ref="id19"/>
-            <target ref="id18"/>
-            <label kind="guard" x="-229" y="-306">restore_pc == nRetryOperationsPerAlgebraicLoopInStep[loopActive]
-            </label>
+            <source ref="id28"/>
+            <target ref="id27"/>
+            <label kind="guard" x="-229" y="-306">restore_pc == nRetryOperationsPerAlgebraicLoopInStep[currentConfig][loopActive]</label>
             <label kind="synchronisation" x="-221" y="-280">actionPerformed?</label>
             <nail x="-17" y="-255"/>
         </transition>
         <transition>
-            <source ref="id19"/>
-            <target ref="id20"/>
-            <label kind="guard" x="-272" y="-731">restore_pc &lt; nRetryOperationsPerAlgebraicLoopInStep[loopActive]
-            </label>
+            <source ref="id28"/>
+            <target ref="id29"/>
+            <label kind="guard" x="-272" y="-731">restore_pc &lt; nRetryOperationsPerAlgebraicLoopInStep[currentConfig][loopActive]</label>
             <label kind="synchronisation" x="-272" y="-705">actionPerformed?</label>
             <label kind="assignment" x="-297" y="-663">selectNextRestoreAction(loopActive)</label>
             <nail x="-17" y="-680"/>
             <nail x="-340" y="-680"/>
         </transition>
         <transition>
-            <source ref="id20"/>
-            <target ref="id19"/>
+            <source ref="id29"/>
+            <target ref="id28"/>
             <label kind="synchronisation" x="-247" y="-552">fmu[activeFMU]!</label>
             <nail x="-213" y="-518"/>
         </transition>
         <transition>
-            <source ref="id21"/>
-            <target ref="id24"/>
+            <source ref="id30"/>
+            <target ref="id33"/>
             <label kind="guard" x="-1249" y="-816">convergence(loopActive)</label>
             <label kind="synchronisation" x="-1071" y="-816">solveLoop!</label>
             <label kind="assignment" x="-1385" y="-859">loopConverge(),
-                isLoopExtraIteration:= false
-            </label>
+                isLoopExtraIteration:= false</label>
             <nail x="-739" y="-790"/>
             <nail x="-1105" y="-790"/>
             <nail x="-1708" y="-790"/>
         </transition>
         <transition>
-            <source ref="id21"/>
-            <target ref="id20"/>
+            <source ref="id30"/>
+            <target ref="id29"/>
             <label kind="guard" x="-671" y="-586">!convergence(loopActive) &amp;&amp;
-                currentConvergeLoopIteration &lt; maxIteration
-            </label>
+                currentConvergeLoopIteration &lt; maxIteration</label>
             <label kind="assignment" x="-663" y="-510">selectNextRestoreAction(loopActive),
-                updateIsExtra(loopActive)
-            </label>
+                updateIsExtra(loopActive)</label>
         </transition>
         <transition>
-            <source ref="id24"/>
-            <target ref="id23"/>
+            <source ref="id33"/>
+            <target ref="id32"/>
             <label kind="guard" x="-1581" y="-569">loopActive != -1
-                &amp;&amp; action == loop
-            </label>
+                &amp;&amp; action == loop</label>
             <label kind="synchronisation" x="-1505" y="-536">solveLoop?</label>
             <label kind="assignment" x="-1632" y="-493">selectNextLoopAction(loopActive),
-                currentConvergeLoopIteration := 0
-            </label>
+                currentConvergeLoopIteration := 0</label>
             <nail x="-1377" y="-518"/>
         </transition>
     </template>
@@ -1232,15 +1225,14 @@
             <target ref="id35"/>
             <label kind="guard" x="-467" y="-382">action == get ||
                 action == set ||
-                action == step ||
-                action == restore
+                action == step
             </label>
             <label kind="synchronisation" x="-484" y="-289">fmu[activeFMU]!</label>
         </transition>
     </template>
     <template>
         <name>FMU</name>
-        <parameter>const int id, const int nOutput, const int nInput, const int inputType[MaxNInputs]</parameter>
+        <parameter>const int id, const int nOutput, const int nInput, const int inputType[nConfig][MaxNInputs]</parameter>
         <declaration>
             int cTime := START_TIME;
             variable inputVariables[MaxNInputs] = { @{m.variableArray(m.maxNInputs)} };
@@ -1366,9 +1358,9 @@
 
             //If the connection is reactive the connected variable needs to have a greater than the time of the FMU and be defined
             return (forall(x:int[0, nExternal-1]) external[x].TrgFMU == id &amp;&amp; external[x].input == v &amp;&amp;
-                inputType[v] == reactive imply connectionVariable[external[x].SrcFMU][external[x].output][a].status == defined &amp;&amp;
+                inputType[currentConfig][v] == reactive imply connectionVariable[external[x].SrcFMU][external[x].output][a].status == defined &amp;&amp;
                                 connectionVariable[external[x].SrcFMU][external[x].output][a].time &gt; cTime) &amp;&amp;
-                (forall(x:int[0, nExternal-1]) external[x].TrgFMU == id &amp;&amp; external[x].input == v &amp;&amp; inputType[v] == delayed
+                (forall(x:int[0, nExternal-1]) external[x].TrgFMU == id &amp;&amp; external[x].input == v &amp;&amp; inputType[currentConfig][v] == delayed
                 imply connectionVariable[external[x].SrcFMU][external[x].output][a].status == defined &amp;&amp;
                 connectionVariable[external[x].SrcFMU][external[x].output][a].time == cTime);
             }
@@ -1380,8 +1372,8 @@
                 }
 
                 //All internal connections should be defined at time cTime
-                return forall(x:int[0, nInternal-1]) feedthroughInStep[x].FMU == id &amp;&amp; feedthroughInStep[x].output == v
-                imply inputVariables[feedthroughInStep[x].input].status == defined &amp;&amp; inputVariables[feedthroughInStep[x].input].time == cTime;
+                return forall(x:int[0, nInternal-1]) feedthroughInStep[currentConfig][x].FMU == id &amp;&amp; feedthroughInStep[currentConfig][x].output == v
+                imply inputVariables[feedthroughInStep[currentConfig][x].input].status == defined &amp;&amp; inputVariables[feedthroughInStep[currentConfig][x].input].time == cTime;
             }
 
             bool preDoStep(int t){
@@ -1391,8 +1383,8 @@
 
                 //All delayed input ports should be defined at the current time
                 //And all reactive inputs ports should be defined at the next time step
-                return (forall(x:int[0, MaxNInputs-1]) inputType[x] == reactive imply inputVariables[x].status == defined &amp;&amp; inputVariables[x].time == cTime + t) &amp;&amp;
-                (forall(x:int[0, MaxNInputs-1]) inputType[x] == delayed imply inputVariables[x].status == defined &amp;&amp; inputVariables[x].time == cTime);
+                return (forall(x:int[0, MaxNInputs-1]) inputType[currentConfig][x] == reactive imply inputVariables[x].status == defined &amp;&amp; inputVariables[x].time == cTime + t) &amp;&amp;
+                (forall(x:int[0, MaxNInputs-1]) inputType[currentConfig][x] == delayed imply inputVariables[x].status == defined &amp;&amp; inputVariables[x].time == cTime);
             }
 
             //An FMU can only enter the Simulation mode when all connected FMU variables are defined at time 0

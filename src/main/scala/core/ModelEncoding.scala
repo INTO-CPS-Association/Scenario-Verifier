@@ -139,6 +139,8 @@ class ModelEncoding(model: MasterModel) {
   val maxNAlgebraicLoopOperationsInStep = maxOr1(allAlgebraicLoopsInStep.map(i => i.iterate.length))
   val maxNAlgebraicLoopOperationsInInit = maxOr1(allAlgebraicLoopsInInit.map(i => i.iterate.length))
 
+  val maxStepOperations = nStepOperations
+
   def fillNoOps(value: List[String], max: Int): List[String] = value ++ (0 until (max - value.length)).map(_ => encodeOperation(NoOP))
 
 
