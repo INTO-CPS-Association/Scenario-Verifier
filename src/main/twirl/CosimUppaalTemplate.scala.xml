@@ -1427,274 +1427,286 @@
             }
 
         </declaration>
-        <location id="id37" x="-9588" y="-11305">
-            <name x="-9598" y="-11339">Unloaded</name>
-        </location>
-        <location id="id38" x="-9826" y="-11305">
-        </location>
-        <location id="id39" x="-11584" y="-11118">
-        </location>
-        <location id="id40" x="-12034" y="-11118">
+        <location id="id45" x="-10285" y="-11662">
             <committed/>
         </location>
-        <location id="id41" x="-10752" y="-11305">
-            <label kind="invariant" x="-10795" y="-11280">preSimulation()</label>
+        <location id="id46" x="-11058" y="-11509">
+            <name x="-11109" y="-11560">ActionPerformed_Init</name>
             <committed/>
         </location>
-        <location id="id42" x="-11339" y="-11305">
+        <location id="id47" x="-9800" y="-10990">
+            <name x="-9810" y="-11024">Unloaded</name>
+        </location>
+        <location id="id48" x="-10030" y="-10990">
+            <name x="-10081" y="-11033">Instance_Freed</name>
+        </location>
+        <location id="id49" x="-11584" y="-11118">
+        </location>
+        <location id="id50" x="-12034" y="-11118">
             <committed/>
         </location>
-        <location id="id43" x="-11813" y="-11305">
+        <location id="id51" x="-10752" y="-11305">
+            <label kind="invariant" x="-10795" y="-11279">preSimulation()</label>
             <committed/>
         </location>
-        <location id="id44" x="-12230" y="-11305">
+        <location id="id52" x="-11339" y="-11305">
             <committed/>
         </location>
-        <location id="id45" x="-11584" y="-11305">
-        </location>
-        <location id="id46" x="-12034" y="-11305">
-            <name x="-12204" y="-11543">Instantiated</name>
-        </location>
-        <location id="id47" x="-10574" y="-11152">
-            <label kind="invariant" x="-10584" y="-11135">preRestoreFMU()</label>
+        <location id="id53" x="-11813" y="-11305">
             <committed/>
         </location>
-        <location id="id48" x="-11058" y="-11186">
-            <label kind="invariant" x="-11101" y="-11169">preGetInit(var)</label>
+        <location id="id54" x="-12230" y="-11305">
             <committed/>
         </location>
-        <location id="id49" x="-11058" y="-11432">
-            <label kind="invariant" x="-11118" y="-11483">preSetInit(var, commitment)</label>
+        <location id="id55" x="-11584" y="-11305">
+            <name x="-11645" y="-11381">Experiment_Setup</name>
+        </location>
+        <location id="id56" x="-12034" y="-11305">
+            <name x="-12078" y="-11390">Instantiated</name>
+        </location>
+        <location id="id57" x="-10183" y="-11475">
+            <label kind="invariant" x="-10174" y="-11458">preRestoreFMU()</label>
             <committed/>
         </location>
-        <location id="id50" x="-12425" y="-11296">
-            <name x="-12484" y="-11279">loaded</name>
-        </location>
-        <location id="id51" x="-10293" y="-11101">
-            <label kind="invariant" x="-10250" y="-11109">preSaveFMU()</label>
+        <location id="id58" x="-10948" y="-11415">
+            <label kind="invariant" x="-10922" y="-11432">preGetInit(var)</label>
             <committed/>
         </location>
-        <location id="id52" x="-10192" y="-11500">
-            <label kind="invariant" x="-10175" y="-11526">preDoStep(stepsize)</label>
+        <location id="id59" x="-11177" y="-11415">
+            <label kind="invariant" x="-11381" y="-11441">preSetInit(var, commitment)</label>
             <committed/>
         </location>
-        <location id="id53" x="-10345" y="-11543">
-            <label kind="invariant" x="-10379" y="-11585">preGet(var)</label>
+        <location id="id60" x="-12418" y="-11305">
+            <name x="-12477" y="-11288">loaded</name>
+        </location>
+        <location id="id61" x="-10030" y="-11373">
+            <label kind="invariant" x="-10047" y="-11407">preSaveFMU()</label>
             <committed/>
         </location>
-        <location id="id54" x="-11058" y="-11305">
-            <name x="-11143" y="-11296">Initialize</name>
-        </location>
-        <location id="id55" x="-10549" y="-11492">
-            <label kind="invariant" x="-10617" y="-11551">preSet(var, commitment)</label>
+        <location id="id62" x="-10336" y="-11492">
+            <label kind="invariant" x="-10370" y="-11466">preDoStep(stepsize)</label>
             <committed/>
         </location>
-        <location id="id56" x="-10072" y="-11305">
+        <location id="id63" x="-10523" y="-11500">
+            <label kind="invariant" x="-10599" y="-11492">preGet(var)</label>
+            <committed/>
         </location>
-        <location id="id57" x="-10387" y="-11305">
+        <location id="id64" x="-11058" y="-11305">
+            <name x="-11050" y="-11296">Initialize</name>
+        </location>
+        <location id="id65" x="-10642" y="-11441">
+            <label kind="invariant" x="-10812" y="-11492">preSet(var, commitment)</label>
+            <committed/>
+        </location>
+        <location id="id66" x="-10387" y="-10990">
+        </location>
+        <location id="id67" x="-10387" y="-11305">
             <name x="-10498" y="-11330">Simulation</name>
         </location>
-        <init ref="id50"/>
+        <init ref="id60"/>
         <transition>
-            <source ref="id38"/>
-            <target ref="id37"/>
-            <label kind="guard" x="-9808" y="-11339">action == unload</label>
-            <label kind="synchronisation" x="-9808" y="-11322">fmu[id]?</label>
+            <source ref="id45"/>
+            <target ref="id67"/>
+            <label kind="synchronisation" x="-10183" y="-11679">actionPerformed!</label>
+            <label kind="assignment" x="-9928" y="-11560">updateEnableActions(true)</label>
+            <nail x="-9936" y="-11653"/>
+            <nail x="-9936" y="-11313"/>
         </transition>
         <transition>
-            <source ref="id54"/>
-            <target ref="id54"/>
-            <label kind="synchronisation" x="-10965" y="-11203">actionPerformed?</label>
-            <label kind="assignment" x="-10990" y="-11169">updateEnableActions(true)</label>
-            <nail x="-10914" y="-11237"/>
-            <nail x="-11016" y="-11177"/>
+            <source ref="id61"/>
+            <target ref="id45"/>
+            <label kind="assignment" x="-10149" y="-11602">saveFMU()</label>
+            <nail x="-10038" y="-11526"/>
         </transition>
         <transition>
-            <source ref="id56"/>
-            <target ref="id38"/>
-            <label kind="guard" x="-10030" y="-11339">action == freeInstance</label>
-            <label kind="synchronisation" x="-9996" y="-11296">fmu[id]?</label>
+            <source ref="id57"/>
+            <target ref="id45"/>
+            <label kind="assignment" x="-10259" y="-11526">restoreFMU()</label>
         </transition>
         <transition>
-            <source ref="id41"/>
-            <target ref="id57"/>
+            <source ref="id62"/>
+            <target ref="id45"/>
+            <label kind="assignment" x="-10361" y="-11560">doStep(stepsize)</label>
+        </transition>
+        <transition>
+            <source ref="id63"/>
+            <target ref="id45"/>
+            <label kind="assignment" x="-10557" y="-11577">getValue(var, commitment)</label>
+        </transition>
+        <transition>
+            <source ref="id65"/>
+            <target ref="id45"/>
+            <label kind="assignment" x="-10565" y="-11679">setValue(var, commitment)</label>
+            <nail x="-10582" y="-11645"/>
+        </transition>
+        <transition>
+            <source ref="id58"/>
+            <target ref="id46"/>
+            <label kind="assignment" x="-10990" y="-11534">getValue(var, commitment)</label>
+        </transition>
+        <transition>
+            <source ref="id46"/>
+            <target ref="id64"/>
+            <label kind="synchronisation" x="-11118" y="-11449">actionPerformed!</label>
+            <label kind="assignment" x="-11143" y="-11415">updateEnableActions(true)</label>
+        </transition>
+        <transition>
+            <source ref="id59"/>
+            <target ref="id46"/>
+            <label kind="assignment" x="-11288" y="-11509">setValue(var, commitment)</label>
+        </transition>
+        <transition>
+            <source ref="id48"/>
+            <target ref="id47"/>
+            <label kind="guard" x="-9979" y="-11016">action == unload</label>
+            <label kind="synchronisation" x="-9936" y="-10973">fmu[id]?</label>
+        </transition>
+        <transition>
+            <source ref="id64"/>
+            <target ref="id64"/>
+            <label kind="synchronisation" x="-11101" y="-11152">actionPerformed?</label>
+            <label kind="assignment" x="-11126" y="-11109">updateEnableActions(true)</label>
+            <label kind="comments" x="-11152" y="-11058">Other SUs have performed an action</label>
+            <nail x="-10999" y="-11169"/>
+            <nail x="-11126" y="-11169"/>
+        </transition>
+        <transition>
+            <source ref="id66"/>
+            <target ref="id48"/>
+            <label kind="guard" x="-10259" y="-11016">action == freeInstance</label>
+            <label kind="synchronisation" x="-10242" y="-10973">fmu[id]?</label>
+        </transition>
+        <transition>
+            <source ref="id51"/>
+            <target ref="id67"/>
             <label kind="synchronisation" x="-10693" y="-11322">actionPerformed!</label>
-            <label kind="assignment" x="-10693" y="-11322">updateEnableActions(false)</label>
+            <label kind="assignment" x="-10727" y="-11347">updateEnableActions(false)</label>
         </transition>
         <transition>
-            <source ref="id54"/>
-            <target ref="id41"/>
-            <label kind="guard" x="-10965" y="-11348">action == exitInitialization</label>
+            <source ref="id64"/>
+            <target ref="id51"/>
+            <label kind="guard" x="-10973" y="-11305">action == exitInitialization</label>
             <label kind="synchronisation" x="-10939" y="-11331">fmu[id]?</label>
         </transition>
         <transition>
-            <source ref="id42"/>
-            <target ref="id54"/>
+            <source ref="id52"/>
+            <target ref="id64"/>
             <label kind="synchronisation" x="-11287" y="-11330">actionPerformed!</label>
-            <label kind="assignment" x="-11287" y="-11330">updateEnableActions(true), initialize()</label>
+            <label kind="assignment" x="-11322" y="-11296">updateEnableActions(true),
+                initialize()</label>
         </transition>
         <transition>
-            <source ref="id45"/>
-            <target ref="id42"/>
+            <source ref="id55"/>
+            <target ref="id52"/>
             <label kind="guard" x="-11559" y="-11356">action == enterInitialization</label>
             <label kind="synchronisation" x="-11542" y="-11331">fmu[id]?</label>
         </transition>
         <transition>
-            <source ref="id39"/>
-            <target ref="id45"/>
+            <source ref="id49"/>
+            <target ref="id55"/>
             <label kind="synchronisation" x="-11771" y="-11245">actionPerformed!</label>
             <nail x="-11660" y="-11211"/>
         </transition>
         <transition>
-            <source ref="id45"/>
-            <target ref="id39"/>
+            <source ref="id55"/>
+            <target ref="id49"/>
             <label kind="guard" x="-11533" y="-11160">action == setParameter</label>
             <label kind="synchronisation" x="-11516" y="-11186">fmu[id]?</label>
             <nail x="-11507" y="-11211"/>
         </transition>
         <transition>
-            <source ref="id40"/>
-            <target ref="id46"/>
+            <source ref="id50"/>
+            <target ref="id56"/>
             <label kind="synchronisation" x="-12255" y="-11169">actionPerformed!</label>
             <nail x="-12136" y="-11211"/>
         </transition>
         <transition>
-            <source ref="id46"/>
-            <target ref="id40"/>
+            <source ref="id56"/>
+            <target ref="id50"/>
             <label kind="guard" x="-11958" y="-11152">action == setParameter</label>
             <label kind="synchronisation" x="-11924" y="-11211">fmu[id]?</label>
             <nail x="-11932" y="-11203"/>
         </transition>
         <transition>
-            <source ref="id43"/>
-            <target ref="id45"/>
+            <source ref="id53"/>
+            <target ref="id55"/>
             <label kind="synchronisation" x="-11779" y="-11330">actionPerformed!</label>
         </transition>
         <transition>
-            <source ref="id46"/>
-            <target ref="id43"/>
+            <source ref="id56"/>
+            <target ref="id53"/>
             <label kind="guard" x="-12000" y="-11339">action == setupExperiment</label>
             <label kind="synchronisation" x="-11992" y="-11288">fmu[id]?</label>
         </transition>
         <transition>
-            <source ref="id44"/>
-            <target ref="id46"/>
+            <source ref="id54"/>
+            <target ref="id56"/>
             <label kind="synchronisation" x="-12204" y="-11330">actionPerformed!</label>
         </transition>
         <transition>
-            <source ref="id50"/>
-            <target ref="id44"/>
+            <source ref="id60"/>
+            <target ref="id54"/>
             <label kind="guard" x="-12400" y="-11339">action == instantiate</label>
             <label kind="synchronisation" x="-12382" y="-11305">fmu[id]?</label>
-            <label kind="assignment" x="-12382" y="-11288">
-                </label>
         </transition>
         <transition>
-            <source ref="id47"/>
+            <source ref="id67"/>
             <target ref="id57"/>
-            <label kind="synchronisation" x="-10616" y="-11237">actionPerformed!</label>
-            <label kind="assignment" x="-10582" y="-11262">restoreFMU(), updateEnableActions(false)</label>
+            <label kind="guard" x="-10259" y="-11390">action == restore</label>
+            <label kind="synchronisation" x="-10302" y="-11373">fmu[id]?</label>
+            <nail x="-10200" y="-11390"/>
         </transition>
         <transition>
-            <source ref="id57"/>
-            <target ref="id47"/>
-            <label kind="guard" x="-10472" y="-11058">action == restore</label>
-            <label kind="synchronisation" x="-10455" y="-11092">fmu[id]?</label>
-            <nail x="-10395" y="-11092"/>
+            <source ref="id67"/>
+            <target ref="id67"/>
+            <label kind="synchronisation" x="-10633" y="-11203">actionPerformed?</label>
+            <label kind="assignment" x="-10659" y="-11177">updateEnableActions(false)</label>
+            <nail x="-10438" y="-11143"/>
+            <nail x="-10557" y="-11237"/>
         </transition>
         <transition>
-            <source ref="id57"/>
-            <target ref="id57"/>
-            <label kind="synchronisation" x="-10608" y="-11186">actionPerformed?</label>
-            <label kind="assignment" x="-10642" y="-11143">updateEnableActions(false)</label>
-            <nail x="-10446" y="-11118"/>
-            <nail x="-10540" y="-11211"/>
+            <source ref="id64"/>
+            <target ref="id58"/>
+            <label kind="guard" x="-10973" y="-11390">action == get</label>
+            <label kind="synchronisation" x="-10982" y="-11373">fmu[id]?</label>
+            <nail x="-10990" y="-11373"/>
         </transition>
         <transition>
-            <source ref="id48"/>
-            <target ref="id54"/>
-            <label kind="synchronisation" x="-11228" y="-11237">actionPerformed!</label>
-            <label kind="assignment" x="-11245" y="-11211">getValue(var, commitment), updateEnableActions(true)</label>
-            <nail x="-11118" y="-11245"/>
+            <source ref="id64"/>
+            <target ref="id59"/>
+            <label kind="guard" x="-11254" y="-11398">action == set</label>
+            <label kind="synchronisation" x="-11254" y="-11415">fmu[id]?</label>
+            <nail x="-11135" y="-11373"/>
         </transition>
         <transition>
-            <source ref="id54"/>
-            <target ref="id48"/>
-            <label kind="guard" x="-10999" y="-11228">action == get</label>
-            <label kind="synchronisation" x="-10990" y="-11254">fmu[id]?</label>
-            <nail x="-10999" y="-11245"/>
+            <source ref="id67"/>
+            <target ref="id61"/>
+            <label kind="guard" x="-10234" y="-11339">action == save</label>
+            <label kind="synchronisation" x="-10140" y="-11356">fmu[id]?</label>
         </transition>
         <transition>
-            <source ref="id49"/>
-            <target ref="id54"/>
-            <label kind="synchronisation" x="-11024" y="-11432">actionPerformed!</label>
-            <label kind="assignment" x="-11016" y="-11407">setValue(var, commitment), updateEnableActions(true)</label>
-            <nail x="-10999" y="-11373"/>
+            <source ref="id67"/>
+            <target ref="id62"/>
+            <label kind="guard" x="-10369" y="-11415">action == step</label>
+            <label kind="synchronisation" x="-10361" y="-11398">fmu[id]?</label>
         </transition>
         <transition>
-            <source ref="id54"/>
-            <target ref="id49"/>
-            <label kind="guard" x="-11186" y="-11449">action == set</label>
-            <label kind="synchronisation" x="-11160" y="-11424">fmu[id]?</label>
-            <nail x="-11118" y="-11381"/>
+            <source ref="id67"/>
+            <target ref="id63"/>
+            <label kind="guard" x="-10489" y="-11475">action == get</label>
+            <label kind="synchronisation" x="-10463" y="-11449">fmu[id]?</label>
         </transition>
         <transition>
-            <source ref="id51"/>
-            <target ref="id57"/>
-            <label kind="synchronisation" x="-10191" y="-11152">actionPerformed!</label>
-            <label kind="assignment" x="-10183" y="-11186">saveFMU(), updateEnableActions(false)</label>
-            <nail x="-10191" y="-11160"/>
+            <source ref="id67"/>
+            <target ref="id65"/>
+            <label kind="guard" x="-10608" y="-11441">action == set</label>
+            <label kind="synchronisation" x="-10633" y="-11415">fmu[id]?</label>
         </transition>
         <transition>
-            <source ref="id52"/>
-            <target ref="id57"/>
-            <label kind="synchronisation" x="-10158" y="-11466">actionPerformed!</label>
-            <label kind="assignment" x="-10149" y="-11415">doStep(stepsize), updateEnableActions(false)</label>
-            <nail x="-10132" y="-11373"/>
-        </transition>
-        <transition>
-            <source ref="id53"/>
-            <target ref="id57"/>
-            <label kind="synchronisation" x="-10294" y="-11551">actionPerformed!</label>
-            <label kind="assignment" x="-10362" y="-11483">getValue(var, commitment), updateEnableActions(false)</label>
-            <nail x="-10226" y="-11517"/>
-        </transition>
-        <transition>
-            <source ref="id57"/>
-            <target ref="id51"/>
-            <label kind="guard" x="-10319" y="-11169">action == save</label>
-            <label kind="synchronisation" x="-10319" y="-11203">fmu[id]?</label>
-        </transition>
-        <transition>
-            <source ref="id57"/>
-            <target ref="id52"/>
-            <label kind="guard" x="-10277" y="-11415">action == step</label>
-            <label kind="synchronisation" x="-10294" y="-11390">fmu[id]?</label>
-        </transition>
-        <transition>
-            <source ref="id57"/>
-            <target ref="id53"/>
-            <label kind="guard" x="-10345" y="-11509">action == get</label>
-            <label kind="synchronisation" x="-10362" y="-11432">fmu[id]?</label>
-        </transition>
-        <transition>
-            <source ref="id55"/>
-            <target ref="id57"/>
-            <label kind="synchronisation" x="-10531" y="-11509">actionPerformed!</label>
-            <label kind="assignment" x="-10481" y="-11534">setValue(var, commitment), updateEnableActions(false)</label>
-            <nail x="-10387" y="-11492"/>
-        </transition>
-        <transition>
-            <source ref="id57"/>
-            <target ref="id55"/>
-            <label kind="guard" x="-10591" y="-11432">action == set</label>
-            <label kind="synchronisation" x="-10540" y="-11407">fmu[id]?</label>
-        </transition>
-        <transition>
-            <source ref="id57"/>
-            <target ref="id56"/>
-            <label kind="guard" x="-10225" y="-11305">action == terminate</label>
-            <label kind="synchronisation" x="-10191" y="-11279">fmu[id]?</label>
+            <source ref="id67"/>
+            <target ref="id66"/>
+            <label kind="guard" x="-10378" y="-11101">action == terminate</label>
+            <label kind="synchronisation" x="-10378" y="-11126">fmu[id]?</label>
         </transition>
     </template>
     <system>

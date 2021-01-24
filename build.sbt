@@ -17,7 +17,7 @@ licenses += ("INTO-CPS-LICENSE", url("https://github.com/INTO-CPS-Association/Sc
 publishMavenStyle := true
 
 // disable publish with scala version, otherwise artifact name will include scala version
-crossPaths := false
+//crossPaths := false
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.3.0-SNAP2" % Test
 
