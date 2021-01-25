@@ -1247,12 +1247,14 @@
             int savedTime;
             bool isSaved := false;
             bool isConsistent := true;
+            bool isInitialized := false;
 
             int stepEnabled := false;
             bool getEnabled[MaxNOutputs] := { @m.getEnabled };
             bool setEnabled[MaxNInputs] := { @m.setEnabled };
 
             void initialize(){
+                isInitialized := true;
                 //Set all variables to undefined
                 for(i = 0; i &lt; nInput; i++){
                     inputVariables[i].status := undefined;
@@ -1404,8 +1406,8 @@
                 return isSaved;
             }
 
-            void updateEnableActions(bool isInit){
-                if(isInit){
+            void updateEnableActions(){
+                if(!isInitialized){
                     for(i = 0; i &lt; nInput; i++){
                         setEnabled[i] := preSetInit(i, final) &amp;&amp;
                             inputVariables[i].status == undefined;
@@ -1508,7 +1510,7 @@
             <source ref="id45"/>
             <target ref="id67"/>
             <label kind="synchronisation" x="-10183" y="-11679">actionPerformed!</label>
-            <label kind="assignment" x="-9928" y="-11560">updateEnableActions(true)</label>
+            <label kind="assignment" x="-9928" y="-11560">updateEnableActions()</label>
             <nail x="-9936" y="-11653"/>
             <nail x="-9936" y="-11313"/>
         </transition>
@@ -1548,7 +1550,7 @@
             <source ref="id46"/>
             <target ref="id64"/>
             <label kind="synchronisation" x="-11118" y="-11449">actionPerformed!</label>
-            <label kind="assignment" x="-11143" y="-11415">updateEnableActions(true)</label>
+            <label kind="assignment" x="-11143" y="-11415">updateEnableActions()</label>
         </transition>
         <transition>
             <source ref="id59"/>
@@ -1565,7 +1567,7 @@
             <source ref="id64"/>
             <target ref="id64"/>
             <label kind="synchronisation" x="-11101" y="-11152">actionPerformed?</label>
-            <label kind="assignment" x="-11126" y="-11109">updateEnableActions(true)</label>
+            <label kind="assignment" x="-11126" y="-11109">updateEnableActions()</label>
             <label kind="comments" x="-11152" y="-11058">Other SUs have performed an action</label>
             <nail x="-10999" y="-11169"/>
             <nail x="-11126" y="-11169"/>
@@ -1580,7 +1582,7 @@
             <source ref="id51"/>
             <target ref="id67"/>
             <label kind="synchronisation" x="-10693" y="-11322">actionPerformed!</label>
-            <label kind="assignment" x="-10727" y="-11347">updateEnableActions(false)</label>
+            <label kind="assignment" x="-10727" y="-11347">updateEnableActions()</label>
         </transition>
         <transition>
             <source ref="id64"/>
@@ -1592,7 +1594,7 @@
             <source ref="id52"/>
             <target ref="id64"/>
             <label kind="synchronisation" x="-11287" y="-11330">actionPerformed!</label>
-            <label kind="assignment" x="-11322" y="-11296">updateEnableActions(true),
+            <label kind="assignment" x="-11322" y="-11296">updateEnableActions(),
                 initialize()</label>
         </transition>
         <transition>
@@ -1660,7 +1662,7 @@
             <source ref="id67"/>
             <target ref="id67"/>
             <label kind="synchronisation" x="-10633" y="-11203">actionPerformed?</label>
-            <label kind="assignment" x="-10659" y="-11177">updateEnableActions(false)</label>
+            <label kind="assignment" x="-10659" y="-11177">updateEnableActions()</label>
             <nail x="-10438" y="-11143"/>
             <nail x="-10557" y="-11237"/>
         </transition>
