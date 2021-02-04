@@ -17,12 +17,14 @@ object ScenarioBuilder {
     inputNames.take(dependencies)
   }
 
-  def generateScenario(nFMU: Int, nConnection: Int, supportFeedthrough: Boolean): ScenarioModel = {
+  def generateScenario(nFMU: Int, nConnection: Int, supportFeedthrough: Boolean, fmusMayRejectStep: Boolean = false): ScenarioModel = {
     assert(nFMU > 0)
     assert(nFMU <= nConnection, "Scenario should have minimum the same number og edges as FMU")
 
     val fmuNames = (0 until nFMU).map(i => f"fmu_${i}").toSet
     val connections = generateConnections(fmuNames, nConnection)
+    assert(connections.groupBy(i => i.trgPort).forall(_._2.size == 1))
+
     val outputPortsPerFMU = connections.groupBy(o => o.srcPort.fmu).map(o => (o._1, o._2.map(o => o.srcPort)))
     val inputPortsPerFMU = connections.groupBy(o => o.trgPort.fmu).map(o => (o._1, o._2.map(o => o.trgPort)))
 
@@ -33,12 +35,12 @@ object ScenarioBuilder {
       val outputs = outputPortsPerFMU(i).map(n => (n.port, OutputPortModel(createFeedthrough(inputNames, supportFeedthrough), createFeedthrough(inputNames, supportFeedthrough)))).toMap
       assert(outputs.nonEmpty)
 
-      val canReject = Random.nextBoolean()
+      val canReject = if(fmusMayRejectStep) Random.nextBoolean() else false
       //All FMUs can accept a step of arbitrary size
-      (i, FmuModel(inputs, outputs, canRejectStep = false))
+      (i, FmuModel(inputs, outputs, canReject))
     }).toMap
 
-    ScenarioModel(FMUs, connections, nFMU)
+    ScenarioModel(FMUs, connections, if(fmusMayRejectStep) 2 else 1)
   }
 
   def generateConnections(fmuNames:Set[String], nConnection: Int): List[ConnectionModel] =

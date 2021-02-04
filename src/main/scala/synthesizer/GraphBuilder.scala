@@ -22,6 +22,9 @@ case class RestoreNode(override val fmuName: String) extends Node(fmuName)
 
 case class SaveNode(override val fmuName: String) extends Node(fmuName)
 
+case class EmptyNode(override val fmuName: String) extends Node(fmuName)
+
+
 case class Edge[Node](srcNode: Node, trgNode: Node)
 
 case class EdgeCost(val srcNode: Node, val trgNode: Node, cost: Int)
@@ -91,14 +94,16 @@ class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = fals
     stepToGet ++ reactiveToStep ++ stepToDelayed
   }
 
-  private def StepFindingEdges: Set[Edge[Node]] = {
+  private def stepFindingEdges: Set[Edge[Node]] = {
     //FMUs connected reactively that both may reject a step should be connected
-    val reactiveEdges = reactiveConnections.filter(o => RejectFMUs.contains(o.trgPort.fmu) && RejectFMUs.contains(o.srcPort.fmu))
-      .map(o => Edge[Node](DoStepNode(o.trgPort.fmu), DoStepNode(o.srcPort.fmu))).toSet
-    val connectionsBetweenRejectFMUs = scenario.connections.diff(reactiveConnections).filter(o => RejectFMUs.contains(o.trgPort.fmu) && RejectFMUs.contains(o.srcPort.fmu))
-    val trgToSrcFMUs = connectionsBetweenRejectFMUs.map(o => Edge[Node](DoStepNode(o.trgPort.fmu), DoStepNode(o.srcPort.fmu))).toSet
-    val srcToTrgFMUs = connectionsBetweenRejectFMUs.map(o => Edge[Node](DoStepNode(o.srcPort.fmu), DoStepNode(o.trgPort.fmu))).toSet
-    reactiveEdges ++ trgToSrcFMUs ++ srcToTrgFMUs
+    val combinations = RejectFMUs.subsets(2).map(_.toList).toList
+    val edgesBetweenRejectFMUs =  combinations.map(i => Edge[Node](DoStepNode(i.head), DoStepNode(i.last))).toSet ++ combinations.map(i => Edge[Node](DoStepNode(i.last), DoStepNode(i.head))).toSet
+
+    //This makes sure step loops will be run first
+    val FMUsCanTakeArbitraryStep = scenario.fmus.keySet.diff(RejectFMUs)
+    val edgesFromRejectFMUsToNonRejectFMUs = RejectFMUs.flatMap(i => FMUsCanTakeArbitraryStep.map(o => Edge[Node](DoStepNode(i), DoStepNode(o))))
+    val edges = edgesBetweenRejectFMUs ++ edgesFromRejectFMUsToNonRejectFMUs
+    edges
   }
 
 
@@ -147,14 +152,14 @@ class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = fals
       else SetOptimizedNodesDelayed(c.trgPort.fmu))).toSet
   }
 
-  lazy val initialEdges: Set[Edge[Node]] = removeEdges(connectionEdges ++ feedthroughInit)
+  lazy val initialEdges: Set[Edge[Node]] = connectionEdges ++ feedthroughInit
 
   lazy val stepEdges: Set[Edge[Node]] =
-    removeEdges(connectionEdges ++ feedthrough ++ doStepEdges ++ StepFindingEdges)
+    connectionEdges ++ feedthrough ++ doStepEdges ++ stepFindingEdges
 
-  lazy val initialEdgesOptimized: Set[Edge[Node]] = removeEdges(connectionEdgesOptimizedInit ++ feedthroughOptimizedInit)
+  lazy val initialEdgesOptimized: Set[Edge[Node]] = connectionEdgesOptimizedInit ++ feedthroughOptimizedInit
 
-  lazy val stepEdgesOptimized: Set[Edge[Node]] = removeEdges(connectionEdgesOptimized ++ feedthroughOptimized ++ doStepEdgesOptimized ++ StepFindingEdges)
+  lazy val stepEdgesOptimized: Set[Edge[Node]] = connectionEdgesOptimized ++ feedthroughOptimized ++ doStepEdgesOptimized ++ stepFindingEdges
 
   private def removeEdges(edges: Set[Edge[Node]]): Set[Edge[Node]] = {
     val tarjanGraph = new TarjanGraph[Node](edges)

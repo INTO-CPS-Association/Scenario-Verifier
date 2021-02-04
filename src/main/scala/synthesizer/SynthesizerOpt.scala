@@ -6,7 +6,7 @@ import synthesizer.LoopStrategy.{LoopStrategy, maximum}
 import scala.collection.immutable.HashSet
 import scala.collection.mutable
 
-
+/*
 class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) extends SynthesizerBase {
   val graphBuilder: GraphBuilder = new GraphBuilder(scenarioModel, true)
   val FMUsStepped: mutable.HashSet[String] = new mutable.HashSet[String]()
@@ -17,13 +17,14 @@ class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) exten
 
   def formatInitLoop(scc: List[Node]): InitializationInstruction = {
     val gets = graphBuilder.GetOptimizedNodes.values.filter(o => scc.contains(o)).toList
-    var edgesInGraph = getEdgesInSCC(graphBuilder.initialEdgesOptimized, scc)
-    if (strategy == maximum)
-    //Remove all connections between FMUs
-      edgesInGraph = edgesInGraph.filterNot(e => gets.contains(e.trgNode))
+    val fmus =  scc.distinctBy(i => i.fmuName).map(i => i.fmuName)
+    val edgesInGraph = getEdgesInSCC(graphBuilder.initialEdgesOptimized, scc)
+    val edges = if (strategy == maximum)
+      //Remove all connections between FMUs
+      edgesInGraph.filter(e => e.srcNode.fmuName == e.trgNode.fmuName)
     else {
       //Remove all connections to a single FMU
-      edgesInGraph = edgesInGraph.filter(e => e.srcNode == gets.head)
+      removeMinimumNumberOfEdges(fmus, edgesInGraph)
     }
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edgesInGraph)
     AlgebraicLoopInit(gets.flatMap(_.ports), tarjanGraph.topologicalSCC.flatten.flatMap(formatInitialInstruction))
@@ -33,7 +34,12 @@ class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) exten
     scenarioModel.connections.count(i => i.srcPort.fmu == srcFMU && i.trgPort.fmu == trgFMU) == graphBuilder.reactiveConnections.count(i => i.srcPort.fmu == srcFMU && i.trgPort.fmu == trgFMU)
   }
 
-  def formatAlgebraicLoop(scc: List[Node], edges: Predef.Set[Edge[Node]], isNested: Boolean): List[CosimStepInstruction] = {
+  def formatFeedthroughLoop(sccNodes: List[Node], edges: Set[Edge[Node]], isNested: Boolean): List[CosimStepInstruction] = {
+
+  }
+
+
+    def formatReactiveLoop(scc: List[Node], edges: Predef.Set[Edge[Node]], isNested: Boolean): List[CosimStepInstruction] = {
     val steps = graphBuilder.stepNodes.filter(o => scc.contains(o))
     val gets = graphBuilder.GetOptimizedNodes.values.filter(o => scc.contains(o)).toList
     val setsDelayed = graphBuilder.SetOptimizedNodesDelayed.values.filter(o => scc.contains(o)).toList
@@ -47,7 +53,7 @@ class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) exten
     //ExpandReactiveSCC(FMUs, setsDelayed, setsReactive, reactiveGets.toList)
 
     if (strategy == maximum)
-    //Remove all connections between FMUs
+      //Remove all reactive connections between FMUs
       edgesInSCC = edgesInSCC.filterNot(e => setsReactive.contains(e.trgNode) && gets.contains(e.srcNode))
     else {
       //Remove all connections to a single FMU
@@ -78,5 +84,5 @@ class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) exten
     edgesInSCC
   }
 }
-
+*/
 

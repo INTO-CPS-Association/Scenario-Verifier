@@ -26,7 +26,7 @@ object GraphVisualizer extends Logging{
   def plotGraph(name: String, edges: Set[Edge[Node]], SCCs: List[List[Node]]): Unit = {
     val nonTrivialSCCs = SCCs.filter(_.size > 1).flatten
     val g = mutGraph(name).setDirected(true)
-    val nodes = (edges.map(_.trgNode) ++ edges.map(_.srcNode)).groupBy(_.fmuName)
+    val nodes = (edges.map(_.trgNode) ++ edges.map(_.srcNode)).groupBy(_.fmuName).filterNot(i => i._1 == "Empty")
     nodes.foreach(fmu => {
       val FMUName = fmu._1
       val cluster = graph.named(FMUName).cluster().graphAttr().`with`(Label.lines(FMUName.toUpperCase())).toMutable

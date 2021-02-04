@@ -22,12 +22,13 @@ class ModelEncoding(model: MasterModel) {
 
   def nExternal: Int = model.scenario.connections.length
 
-  def fmuModels : Map[String, FmuModel] = model.scenario.fmus
+  def fmuModels: Map[String, FmuModel] = model.scenario.fmus
 
   def stepVariables: String = (0 until nFMUs).map(_ => "H_max").mkString(",")
 
-  def getEnabled: String = (0 until maxNOutputs).map(_=>"false").mkString(",")
-  def setEnabled: String = (0 until maxNInputs).map(_=>"false").mkString(",")
+  def getEnabled: String = (0 until maxNOutputs).map(_ => "false").mkString(",")
+
+  def setEnabled: String = (0 until maxNInputs).map(_ => "false").mkString(",")
 
   val fmuEncoding: Map[String, Int] = model.scenario.fmus.keys.zipWithIndex.toMap
   val fmuEncodingInverse = fmuEncoding.map(_.swap)
@@ -123,7 +124,7 @@ class ModelEncoding(model: MasterModel) {
   def nAlgebraicLoopsInInit: Int = math.max(allAlgebraicLoopsInInit.length, 1)
 
   def maxOr1(l: List[Int]): Int = {
-    if (l.isEmpty) {
+    if (l.isEmpty || l.forall(_ == 0)) {
       1
     } else {
       l.max
