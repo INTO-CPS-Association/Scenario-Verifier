@@ -60,7 +60,6 @@ class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
     result
   }
 
-
   "ScenarioBuilderTest" should "create valid Simple example" in {
     generateSynthesisAndVerify("Test_Simple_Example", 2, 2)
   }
@@ -77,16 +76,13 @@ class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
     generateSynthesisAndVerify("Big_Very_Advanced_Example", 10, 20, true, true)
   }
 
-
-  "ScenarioBuilderTest" should "create valid Big example with no Feedthrough" in {
+  "ScenarioBuilderTest" should "create valid Big example with no Feedthrough" ignore  {
     generateSynthesisAndVerify("Test_Simple_Big_Example", 20, 40, false, true)
   }
 
-
-  "ScenarioBuilderTest" should "create very big simple example" in {
+  "ScenarioBuilderTest" should "create very big simple example" ignore  {
     generateSynthesisAndVerify("Big_Simple_Example", 100, 200, false, false)
   }
-
 
   "ScenarioBuilderTest" should "create valid Connection example" in {
     val fmuNames = HashSet("fmu1", "fmu2")
