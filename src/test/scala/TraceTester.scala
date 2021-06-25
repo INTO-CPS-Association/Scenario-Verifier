@@ -61,4 +61,8 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
   "TraceTester" should "work for loop" in {
     generateTrace("common_mistakes/algebraic_loop_msd_gs_forget_restore.conf", "algebraic_loop_msd_gs_forget_restore")
   }
+
+  "TraceTester" should "work for nested loop" in {
+    generateTrace("common_mistakes/loop_within_loop_forgot_one_connection.conf", "Example master that has a loop within a loop")
+  }
 }
