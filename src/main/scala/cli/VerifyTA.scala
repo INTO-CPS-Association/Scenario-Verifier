@@ -87,7 +87,7 @@ object VerifyTA extends Logging {
         val versionOut = pLog.output.toString
         logger.debug(s"${VERIFY} version:")
         logger.debug(versionOut)
-        versionOut.contains("UPPAAL")
+        versionOut.contains("UPPAAL") && versionOut.contains("4.1")
       }
     } catch {
       case e: IOException => {
@@ -100,4 +100,36 @@ object VerifyTA extends Logging {
       }
     }
   }
+
+  /*
+  def checkEnvironment(): String = {
+    logger.info("Checking for binary in system.")
+    try {
+      val pLog = new VerifyTaProcessLogger()
+      val result = new StringBuilder()
+      val cmd = s"""${VERIFY} -v"""
+      val exitCode = Process(cmd).!(pLog)
+      if (exitCode != 0) {
+        logger.error(s"Command failed: $cmd")
+        result.append(s"Command failed: $cmd")
+        false
+      } else {
+        val versionOut = pLog.output.toString
+        logger.debug(s"${VERIFY} version:")
+        logger.debug(versionOut)
+        versionOut.contains("UPPAAL") && versionOut.contains("4.1")
+      }
+    } catch {
+      case e: IOException => {
+        logger.error("Problem with verifyta binary. Make sure it is in the PATH.")
+        logger.info("Current PATH:")
+        logger.info(System.getenv("PATH"))
+        logger.info("Underlying exception was:")
+        logger.info(e)
+        false
+      }
+    }
+  }
+
+   */
 }

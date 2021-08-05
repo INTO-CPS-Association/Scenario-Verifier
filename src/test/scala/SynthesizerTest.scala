@@ -43,7 +43,7 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     val step = synthesizer.synthesizeStep()
 
     val init = ScenarioLoader.generateEnterInitInstructions(scenario.scenario) ++ synthesizer.synthesizeInitialization() ++ ScenarioLoader.generateExitInitInstructions(scenario.scenario)
-    val model = MasterModel(scenario.name, scenario.scenario, instantiation = scenario.instantiation, initialization = init.toList, cosimStep = step, terminate = scenario.terminate)
+    val model = MasterModel(scenario.name, scenario.scenario, instantiation = scenario.instantiation, initialization = init.toList, cosimStep = Map("cosim" -> step), terminate = scenario.terminate)
     val encoding = new ModelEncoding(model)
     val result = ScenarioGenerator.generate(encoding)
     val f = writeToTempFile(result)

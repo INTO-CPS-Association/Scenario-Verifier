@@ -175,7 +175,7 @@ trait SynthesizerBase extends Logging {
     FMUs.diff(FMUsSaved).flatMap(o => formatStepInstruction(SaveNode(o))).toList
   }
 
-  protected def isStepLoop(scc: List[Node]): Boolean = {
+  def isStepLoop(scc: List[Node]): Boolean = {
     getEdgesInSCC(StepEdges, scc).count(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode)) > 0
   }
 

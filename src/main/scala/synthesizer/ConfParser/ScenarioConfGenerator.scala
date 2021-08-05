@@ -8,7 +8,16 @@ object ScenarioConfGenerator extends Logging {
     val scenario = model.scenario
     val builder = new StringBuilder(generateScenario(scenario, name))
     builder.append(s"initialization = [${generateInit(model.initialization)}]\n")
-    builder.append(s"cosim-step = [${generateStep(model.cosimStep)}]\n")
+    builder.append(s"cosim-step = {${generateCoSimStep(model.cosimStep)}}")
+    builder.toString()
+  }
+
+  def generateCoSimStep(steps: Map[String, List[CosimStepInstruction]]): String = {
+    val builder = new StringBuilder()
+    steps.foreach(keyValue => {
+      builder.append(s"${keyValue._1} = ")
+      builder.append(s"[${generateStep(keyValue._2)}]\n")
+    })
     builder.toString()
   }
 
@@ -51,7 +60,7 @@ object ScenarioConfGenerator extends Logging {
 
   def generateFMUs(fmus: Map[String, FmuModel]): String = {
     fmus.map(o => {
-      val can_reject_string = if(o._2.canRejectStep) "can-reject-step = true,\n" else ""
+      val can_reject_string = if (o._2.canRejectStep) "can-reject-step = true,\n" else ""
       val inputs = o._2.inputs.map(i => f"${i._1} = {reactivity=${i._2.reactivity.toString}}").mkString("inputs = {\n", "\n", "},\n")
       val outputs = o._2.outputs.map(e => f"${e._1} = {${e._2.dependenciesInit.mkString("dependencies-init=[", ",", "]")}, ${e._2.dependencies.mkString("dependencies=[", ",", "]")}}").mkString("outputs = {\n", "\n", "}\n")
       f"${o._1} = { \n ${can_reject_string} ${inputs} ${outputs} }"

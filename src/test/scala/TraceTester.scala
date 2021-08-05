@@ -9,7 +9,6 @@ import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import trace_analyzer.TraceAnalyzer
 
-@Ignore
 class TraceTester extends AnyFlatSpec with should.Matchers {
   def writeToTempFile(content: String) = {
     val file = Files.createTempFile("uppaal_", ".xml").toFile
@@ -46,7 +45,7 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
   "TraceTester" should "work for simple master" in {
     generateTrace("common_mistakes/simple_master_forget_connection.conf", "simple_master_forget_connection")
   }
-
+/*
   "TraceTester" should "work for step finding" in {
     generateTrace("common_mistakes/step_finding_loop_msd_forget_connection.conf", "step_finding_loop_msd_forget_connection")
   }
@@ -65,4 +64,10 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
   "TraceTester" should "work for nested loop" in {
     generateTrace("common_mistakes/loop_within_loop_forgot_one_connection.conf", "Example master that has a loop within a loop")
   }
+
+  "TraceTester" should "work for nested loop alt" in {
+    generateTrace("examples/loop_within_loop_alt.conf", "Example master that has a loop within a loop")
+  }
+
+ */
 }

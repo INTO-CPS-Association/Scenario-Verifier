@@ -10,6 +10,7 @@ case class FmuConfig(
 
 case class ScenarioConfig(
                            fmus: Map[String, FmuConfig],
+                           configuration : AdaptiveConfig = NoConfiguration,
                            connections: List[String], // Each connection is notes as for usability "msd1.x1 -> msd2.x1"
                            maxPossibleStepSize: Int = 1
                          )
@@ -24,6 +25,7 @@ case class LoopInitConfig(untilConverged: List[String],
                       iterate: List[NestedInitStatement],
                      )
 
+object NoConfiguration extends AdaptiveConfig(Nil, Map.empty)
 object NoLoop extends LoopConfig(Nil, Nil, Nil, Nil)
 object NoLoopInit extends LoopInitConfig(Nil, Nil)
 
@@ -77,5 +79,15 @@ case class MasterConfig(
                          name: String,
                          scenario: ScenarioConfig,
                          initialization: List[RootInitStatement],
-                         cosimStep: List[RootStepStatement]
+                         cosimStep: Map[String, List[RootStepStatement]]
                        )
+
+case class AdaptiveConfig(
+                           configurableInputs : List[String] = Nil,
+                           configurations : Map[String, SettingConfig]  = Map.empty
+                         )
+
+case class SettingConfig(
+                          inputs: Map[String, InputPortConfig] = Map.empty,
+                          cosimStep : String
+                        )

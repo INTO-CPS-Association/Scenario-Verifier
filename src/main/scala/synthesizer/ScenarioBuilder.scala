@@ -1,7 +1,7 @@
 package synthesizer
 
 import core.Reactivity.{Reactivity, delayed, reactive}
-import core.{ConnectionModel, FmuModel, InputPortConfig, InputPortModel, OutputPortModel, PortRef, ScenarioModel}
+import core.{AdaptiveModel, ConnectionModel, FmuModel, InputPortConfig, InputPortModel, OutputPortModel, PortRef, ScenarioModel}
 
 import scala.annotation.tailrec
 import scala.util.Random
@@ -16,6 +16,8 @@ object ScenarioBuilder {
     val dependencies = if (supportFeedthrough) Random.between(0, inputNames.size) else 0
     inputNames.take(dependencies)
   }
+
+  def buildConfiguration(): AdaptiveModel = AdaptiveModel(List.empty, Map.empty)
 
   def generateScenario(nFMU: Int, nConnection: Int, supportFeedthrough: Boolean, fmusMayRejectStep: Boolean = false): ScenarioModel = {
     assert(nFMU > 0)
@@ -40,7 +42,7 @@ object ScenarioBuilder {
       (i, FmuModel(inputs, outputs, canReject))
     }).toMap
 
-    ScenarioModel(FMUs, connections, if(fmusMayRejectStep) 2 else 1)
+    ScenarioModel(FMUs, buildConfiguration(), connections, if(fmusMayRejectStep) 2 else 1)
   }
 
   def generateConnections(fmuNames:Set[String], nConnection: Int): List[ConnectionModel] =

@@ -1,36 +1,35 @@
-import java.io.{InputStreamReader, PrintWriter}
+import java.io.PrintWriter
 import java.nio.file.Files
-import cli.VerifyTA
-import com.typesafe.config.ConfigFactory
-import core.{MasterConfig, ModelEncoding, ScenarioGenerator, ScenarioLoader}
+
+import cli.{MaudeRunner, VerifyTA}
+import core.{MaudeModelEncoding, MaudeScenarioGenerator, ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import pureconfig.ConfigSource
-import pureconfig.generic.auto._
 
-class PositiveTests extends AnyFlatSpec with should.Matchers {
+class MaudeTests extends AnyFlatSpec with should.Matchers {
 
   def writeToTempFile(content: String) = {
-    val file = Files.createTempFile("uppaal_", ".xml").toFile
+    val file = Files.createTempFile("maude_", ".maude").toFile
     new PrintWriter(file) { write(content); close() }
     file
   }
 
   def generateAndVerify(resourcesFile: String) = {
     val conf = getClass.getResourceAsStream(resourcesFile)
-    val encoding = new ModelEncoding(ScenarioLoader.load(conf))
-    val result = ScenarioGenerator.generate(encoding)
+    val fullMaudeFile = getClass.getResource("full-maude.maude").getPath
+    val encoding = new MaudeModelEncoding(ScenarioLoader.load(conf))
+    val result = MaudeScenarioGenerator.generate(encoding)
     val f = writeToTempFile(result)
-    assert(VerifyTA.checkEnvironment())
-    VerifyTA.verify(f) should be (0)
+    assert(MaudeRunner.checkEnvironment())
+    MaudeRunner.verify(f, fullMaudeFile) should be (0)
     FileUtils.deleteQuietly(f)
   }
 
   "ScenarioGenerator" should "work for simple_master.conf" in {
     generateAndVerify("examples/simple_master.conf")
   }
-
+/*
   it should "work for algebraic_loop_msd" in {
     generateAndVerify("examples/algebraic_loop_msd_gs.conf")
   }
@@ -74,4 +73,6 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
   it should "work for loop_within_loop_alt.conf" in {
     generateAndVerify("examples/loop_within_loop_alt.conf")
   }
+
+ */
 }

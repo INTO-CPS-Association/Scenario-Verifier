@@ -7,3 +7,9 @@ object ScenarioGenerator extends Logging {
     xml.CosimUppaalTemplate.render(model).toString().trim
   }
 }
+
+object MaudeScenarioGenerator extends Logging {
+  def generate(model: MaudeModelEncoding): String = {
+    txt.maudeTemplate.render(model).toString().trim
+  }
+}

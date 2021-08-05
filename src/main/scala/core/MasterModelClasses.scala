@@ -24,6 +24,7 @@ case class ConnectionModel(
 
 case class ScenarioModel(
                           fmus: Map[String, FmuModel],
+                          config: AdaptiveModel,
                           connections: List[ConnectionModel],
                           maxPossibleStepSize: Int
                         )
@@ -71,6 +72,16 @@ case class MasterModel(
                         scenario: ScenarioModel,
                         instantiation: List[InstantiationInstruction],
                         initialization: List[InitializationInstruction],
-                        cosimStep: List[CosimStepInstruction],
+                        cosimStep: Map[String, List[CosimStepInstruction]],
                         terminate: List[TerminationInstruction]
                       )
+
+case class AdaptiveModel(
+                          configurableInputs : List[PortRef],
+                          configurations : Map[String, ConfigurationModel]
+                        )
+
+case class ConfigurationModel(
+                               inputs: Map[PortRef, InputPortModel],
+                               cosimStep : String
+                             )

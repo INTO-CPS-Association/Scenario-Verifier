@@ -85,7 +85,7 @@
         const int nAlgebraicLoopsInStep := @m.nAlgebraicLoopsInStep;
 
         //Adaptive co-simulation - numbers of different configurations
-        const int nConfig := 1;
+        const int nConfig := @m.nConfigs;
         //***********************************************************************************************************
         //Do not change
 
@@ -264,7 +264,7 @@
         @for(outName<- m.fmuOutNames(fName)) {
         const int @{m.fmuPortName(fName, outName)} := @m.fmuOutputEncoding(fName)(outName);
         }
-        const int @{fName}_inputTypes[nConfig][MaxNInputs] := {{ @m.fmuInputTypes(fName) }};
+        const int @{fName}_inputTypes[nConfig][MaxNInputs] := { @m.fmuInputTypes(fName) };
         }
 
         //This array is to keep track of the value of each output port - each output port needs two variables (current and future)
@@ -274,7 +274,7 @@
         //Connections - do not longer contain the type of the input - but it is still a 1:1 mapping
         const ExternalConnection external[nExternal] = { @m.external };
 
-        const InternalConnection feedthroughInStep[nConfig][nInternal] = {{ @m.feedthroughInStep }};
+        const InternalConnection feedthroughInStep[nConfig][nInternal] = { @m.feedthroughInStep };
 
         //The initial internal connection could be different from the connection in the simulation and should be represented differently
         const InternalConnection feedthroughInInit[nInternalInit] = { @m.feedthroughInInit };
@@ -282,10 +282,13 @@
         //The array show if an FMU can reject a step or not - if the FMU can reject a step the value is 1 on the index defined by the fmus
         const bool mayRejectStep[nFMU] = { @m.mayRejectStep };
 
+
+        const int maxStepOperations := @m.maxStepOperations;
+
         //Numbers of operations in each step
         const int nInstantiationOperations := @m.nInstantiationOperations;
         const int nInitializationOperations := @m.nInitializationOperations;
-        const int nStepOperations[nConfig] := {@m.nStepOperations};
+        const int[0,maxStepOperations] nStepOperations[nConfig] := {@m.nStepOperations};
         const int nTerminationOperations := @m.nTerminationOperations;
 
         // Numbers for algebraic loop operations in init
@@ -296,12 +299,14 @@
         const int[0,maxNConvergeOperationsForAlgebraicLoopsInInit] nConvergencePortsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit] = {@m.nConvergencePortsPerAlgebraicLoopInInit};
         const int[0,maxNAlgebraicLoopOperationsInInit] nOperationsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit] = {@m.nOperationsPerAlgebraicLoopInInit};
 
-        const int maxStepOperations := @m.maxStepOperations;
 
 
         // Number of operations in the step finding loop
-        const int nFindStepOperations := @m.nFindStepOperations;
-        const int nRestore := @m.nRestore;
+        const int maxFindStepOperations := @m.maxFindStepOperations;
+        const int maxFindStepRestoreOperations := @m.maxFindStepRestoreOperations;
+
+        const int[0,maxFindStepOperations] nFindStepOperations[nConfig] := {@m.nFindStepOperations};
+        const int[0,maxFindStepRestoreOperations] nRestore[nConfig] := {@m.nRestore};
 
         // Numbers for algebraic loop operations in step
         const int maxNAlgebraicLoopOperationsInStep := @m.maxNAlgebraicLoopOperationsInStep;
@@ -309,16 +314,16 @@
         const int maxNConvergeOperationsForAlgebraicLoopsInStep := @m.maxNConvergeOperationsForAlgebraicLoopsInStep;
 
         //Numbers of operations to be performed per algebraic loop in step
-        const int[0,maxNConvergeOperationsForAlgebraicLoopsInStep] nConvergencePortsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep] = {{@m.nConvergencePortsPerAlgebraicLoopInStep}};
-        const int[0,maxNAlgebraicLoopOperationsInStep] nOperationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep] = {{@m.nOperationsPerAlgebraicLoopInStep}};
-        const int[0,maxNRetryOperationsForAlgebraicLoopsInStep] nRetryOperationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep] = {{@m.nRetryOperationsPerAlgebraicLoopInStep}};
+        const int[0,maxNConvergeOperationsForAlgebraicLoopsInStep] nConvergencePortsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep] = {@m.nConvergencePortsPerAlgebraicLoopInStep};
+        const int[0,maxNAlgebraicLoopOperationsInStep] nOperationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep] = {@m.nOperationsPerAlgebraicLoopInStep};
+        const int[0,maxNRetryOperationsForAlgebraicLoopsInStep] nRetryOperationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep] = {@m.nRetryOperationsPerAlgebraicLoopInStep};
 
         //These operations define what should be performed in the simulation - it is assumed that the operation first loads the fmus
         const Operation instantiationOperations[nInstantiationOperations] = { @m.instantiationOperations };
 
         const Operation initializationOperations[nInitializationOperations] = { @m.initializationOperations };
 
-        const Operation stepOperations[nConfig][maxStepOperations] = {{ @m.stepOperations }};
+        const Operation stepOperations[nConfig][maxStepOperations] = { @m.stepOperations };
 
         //These are the operations to be performed in order to find the correct step
         //In these operation there is a difference on the third parameter to doStep:
@@ -326,20 +331,20 @@
         // A stepSize (0:(nFMU-1)) means that the should look at that index in stepVariables use that as the step
         //This is being done inside - findStepAction
 
-        const Operation findStepIteration[nFindStepOperations] = { @m.findStepLoopOperations };
-        const Operation StepFix[nRestore] = { @m.findStepLoopRestoreOperations };
+        const Operation findStepIteration[nConfig][maxFindStepOperations] = { @m.findStepLoopOperations };
+        const Operation StepFix[nConfig][maxFindStepRestoreOperations] = { @m.findStepLoopRestoreOperations };
 
         //Possible multiple loops
         //Loop operations are to solve algebraic loops in the co-simulation scenario
-        const Operation operationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep][maxNAlgebraicLoopOperationsInStep] = {{@m.operationsPerAlgebraicLoopInStep }};
+        const Operation operationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep][maxNAlgebraicLoopOperationsInStep] = {@m.operationsPerAlgebraicLoopInStep };
         const Operation operationsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit][maxNAlgebraicLoopOperationsInInit] = {@m.operationsPerAlgebraicLoopInInit };
 
         //The converge ports is to mark which variables that needs to be checked in the convergence loop
         //The convention is now to specify the FMU first and the port to denote the variables that should be checked
-        const FmuOutputPort convergencePortsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep][maxNConvergeOperationsForAlgebraicLoopsInStep] = {{@m.convergencePortsPerAlgebraicLoopInStep }};
+        const FmuOutputPort convergencePortsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep][maxNConvergeOperationsForAlgebraicLoopsInStep] = {@m.convergencePortsPerAlgebraicLoopInStep };
         const FmuOutputPort convergencePortsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit][maxNConvergeOperationsForAlgebraicLoopsInInit] = {@m.convergencePortsPerAlgebraicLoopInInit };
 
-        const Operation retryOperationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep][maxNRetryOperationsForAlgebraicLoopsInStep] = {{@m.retryOperationsPerAlgebraicLoopInStep }};
+        const Operation retryOperationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep][maxNRetryOperationsForAlgebraicLoopsInStep] = {@m.retryOperationsPerAlgebraicLoopInStep };
 
         const Operation terminationOperations[nTerminationOperations] = { @m.terminationOperations };
 
@@ -1048,12 +1053,12 @@
     int numbersOfTries := 0;
 
     void selectNextStepFinderAction(){
-        unpackOperation(findStepIteration[step_pc]);
+        unpackOperation(findStepIteration[currentConfig][step_pc]);
         step_pc++;
     }
 
     void selectNextStepRestoreAction(){
-        unpackOperation(StepFix[restore_pc]);
+        unpackOperation(StepFix[currentConfig][restore_pc]);
         restore_pc++;
     }
 
@@ -1129,14 +1134,14 @@
 <transition>
     <source ref="id34"/>
     <target ref="id37"/>
-    <label kind="guard" x="884" y="110">nRestore == restore_pc</label>
+    <label kind="guard" x="884" y="110">nRestore[currentConfig] == restore_pc</label>
     <nail x="1147" y="-178"/>
     <nail x="1147" y="144"/>
 </transition>
 <transition>
     <source ref="id34"/>
     <target ref="id41"/>
-    <label kind="guard" x="892" y="-212">restore_pc &lt; nRestore</label>
+    <label kind="guard" x="892" y="-212">restore_pc &lt; nRestore[currentConfig]</label>
     <label kind="assignment" x="901" y="-170">selectNextStepRestoreAction()</label>
 </transition>
 <transition>
@@ -1147,7 +1152,7 @@
 <transition>
     <source ref="id35"/>
     <target ref="id44"/>
-    <label kind="guard" x="-365" y="-212">step_pc &lt; nFindStepOperations</label>
+    <label kind="guard" x="-365" y="-212">step_pc &lt; nFindStepOperations[currentConfig]</label>
     <label kind="assignment" x="-416" y="-178">selectNextStepFinderAction()</label>
 </transition>
 <transition>
@@ -1159,7 +1164,7 @@
 <transition>
     <source ref="id35"/>
     <target ref="id42"/>
-    <label kind="guard" x="-16" y="-212">nFindStepOperations == step_pc</label>
+    <label kind="guard" x="-16" y="-212">nFindStepOperations[currentConfig] == step_pc</label>
     <label kind="assignment" x="110" y="-161">findMinStep(),
         numbersOfTries++</label>
 </transition>

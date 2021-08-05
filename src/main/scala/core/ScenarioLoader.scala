@@ -83,10 +83,11 @@ object ScenarioLoader extends Logging {
     config match {
       case MasterConfig(name, scenario, initialization, cosimStep) => {
         val scenarioModel = parse(scenario)
+        logger.info(scenarioModel.config)
         val instantiationModel = generateInstantiationInstructions(scenarioModel).toList
         val initializationModel = initialization.map(instruction => parse(instruction, scenarioModel))
         val expandedInitModel = generateEnterInitInstructions(scenarioModel) ++ initializationModel ++ generateExitInitInstructions(scenarioModel)
-        val cosimStepModel = cosimStep.map(instruction => parse(instruction, scenarioModel))
+        val cosimStepModel = cosimStep.map(instructions => (instructions._1, instructions._2.map(instruction => parse(instruction, scenarioModel))))
         val terminateModel = generateTerminateInstructions(scenarioModel).toList
         MasterModel(name, scenarioModel, instantiationModel, expandedInitModel.toList, cosimStepModel, terminateModel)
       }
@@ -151,7 +152,8 @@ object ScenarioLoader extends Logging {
     }
   }
 
-  def parse(instruction: StepStatement, scenarioModel: ScenarioModel): CosimStepInstruction = {
+
+    def parse(instruction: StepStatement, scenarioModel: ScenarioModel): CosimStepInstruction = {
     // Check uniqueness of instruction
     instruction match {
       case NestedStepStatement(get, set, step, saveState, restoreState, loop, getTentative, setTentative, by, bySameAs) => {
@@ -256,13 +258,32 @@ object ScenarioLoader extends Logging {
     AlgebraicLoopInit(untilConverged, iterate)
   }
 
+  def parseAdaptiveConfig(configuration: AdaptiveConfig, fmus: Map[String, FmuModel]): AdaptiveModel = {
+    val configurableInputs = configuration.configurableInputs.map(p => {
+      val pRef = parsePortRef(p, s"instruction ", fmus)
+      assert(fmus(pRef.fmu).inputs.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
+      pRef
+    })
+    val configurationModels = configuration.configurations.map(keyValues => {
+      val inputs = keyValues._2.inputs.map(p => {
+        val pRef = configurableInputs.filter(_.port == p._1).head
+        (pRef, parse(p._2))
+      })
+      (keyValues._1, ConfigurationModel(inputs, keyValues._2.cosimStep))
+    })
+
+    AdaptiveModel(configurableInputs = configurableInputs, configurations = configurationModels)
+  }
+
   def parse(scenario: ScenarioConfig): ScenarioModel = {
     scenario match {
-      case ScenarioConfig(fmus, connections, maxPossibleStepSize) => {
+      case ScenarioConfig(fmus, configuration, connections, maxPossibleStepSize) => {
         assert(maxPossibleStepSize > 0, "Max possible step size has to be greater than 0 in scenario configuration.")
         val fmusModel = fmus.map(keyValPair => (keyValPair._1, parse(keyValPair._1, keyValPair._2)))
         val connectionsModel = connections.map((c) => parseConnection(c, fmusModel))
-        core.ScenarioModel(fmusModel, connectionsModel, maxPossibleStepSize)
+        logger.info(configuration)
+        val configurationModel = parseAdaptiveConfig(configuration, fmusModel)
+        core.ScenarioModel(fmusModel, configurationModel, connectionsModel, maxPossibleStepSize)
       }
     }
   }

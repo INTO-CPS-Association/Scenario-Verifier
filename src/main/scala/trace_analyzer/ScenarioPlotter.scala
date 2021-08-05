@@ -135,6 +135,8 @@ object ScenarioPlotter {
       encoder.encodeImage(Graphviz.fromGraph(g).height(height).width(width).render(Format.PNG).toImage)
       currentAction = state.action
       performedActions += currentAction
+      if(state == states.last)
+        Graphviz.fromGraph(g).render(Format.SVG).toFile(new File(String.format("example/%s.svg", scenarioName)))
     })
     encoder.finish()
   }
