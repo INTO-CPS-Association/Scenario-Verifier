@@ -38,7 +38,7 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
   it should "work for algebraic_loop_msd" in {
     generateAndVerify("examples/algebraic_loop_msd_gs.conf")
   }
-
+/*
   it should "work for algebraic_loop_msd_fail_converge" in {
     generateAndVerify("examples/algebraic_loop_msd_jac.conf")
   }
@@ -78,4 +78,6 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
   it should "work for loop_within_loop_alt.conf" in {
     generateAndVerify("examples/loop_within_loop_alt.conf")
   }
+
+ */
 }
