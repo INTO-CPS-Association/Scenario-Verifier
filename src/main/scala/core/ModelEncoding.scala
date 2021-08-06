@@ -164,18 +164,8 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
   val maxStepOperations = model.cosimStep.valuesIterator.map(_.length).max
 
   def fillNoOps(value: List[String], max: Int): List[String] = value ++ (0 until (max - value.length)).map(_ => encodeOperation(NoOP, ""))
+  def fillNoPorts(value: List[String], max: Int) = value ++ (0 until (max - value.length)).map(_ => s"""{ noFMU, noPort}""")
 
-  def operationsPerAlgebraicLoopInStep: String = {
-    (0 until nConfigs).map(id => {
-      val conf = configurationStep(id)
-      val loopConfig = loopOpsEncoding(conf._2)
-      (0 until nAlgebraicLoopsInStep).map(idx => {
-        val loopsInstructions: AlgebraicLoop = loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil))
-        val encoded = fillNoOps(loopsInstructions.iterate.map(op => encodeOperation(op, conf._1)), maxNAlgebraicLoopOperationsInStep)
-        s"""{ ${encoded.mkString(",")} }"""
-      }).mkString(",")
-    }).mkString("{", "}, {", "}")
-  }
 
   def operationsPerAlgebraicLoopInInit: String = {
     (0 until nAlgebraicLoopsInInit).map(idx => {
@@ -208,41 +198,35 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
     ).mkString("{", "}, {", "}")
   }
 
-  def nOperationsPerAlgebraicLoopInStep: String = {
-    (0 until nConfigs).map(id => {
-      val conf = configurationStep(id)
-      val loopConfig = loopOpsEncoding(conf._2)
-      (0 until nAlgebraicLoopsInStep).map(idx => {
-        loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil)).iterate.size
-      }).mkString(",")
-    }
-    ).mkString("{", "}, {", "}")
-  }
+  def nOperationsPerAlgebraicLoopInStep: String = getAlgebraicLoop(getLoopOperations, length).mkString("{", "}, {", "}")
+  def nRetryOperationsPerAlgebraicLoopInStep: String = getAlgebraicLoop(getRetryOperations, length).mkString("{", "}, {", "}")
 
-  def nRetryOperationsPerAlgebraicLoopInStep: String = {
-    (0 until nConfigs).map(id => {
-      val conf = configurationStep(id)
-      val loopConfig = loopOpsEncoding(conf._2)
-      (0 until nAlgebraicLoopsInStep).map(idx => {
-        loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil)).ifRetryNeeded.size
-      }).mkString(",")
-    }
-    ).mkString("{", "}, {", "}")
-  }
+  def retryOperationsPerAlgebraicLoopInStep: String = getAlgebraicLoopOp(getRetryOperations, encodeList, maxNRetryOperationsForAlgebraicLoopsInStep)
+  def operationsPerAlgebraicLoopInStep: String = getAlgebraicLoopOp(getLoopOperations, encodeList, maxNAlgebraicLoopOperationsInStep)
 
-  def retryOperationsPerAlgebraicLoopInStep: String = {
+  def getAlgebraicLoop(op: AlgebraicLoop => List[CosimStepInstruction], f: (List[CosimStepInstruction], String) => String): List[String] = {
     (0 until nConfigs).map(id => {
       val conf = configurationStep(id)
-      val loopConfig = loopOpsEncoding(conf._2)
+      val configName = if (isAdaptive) conf._1 else ""
+      val loopConfig = if (isAdaptive) loopOpsEncoding(conf._2) else loopOpsEncoding.values.head
       (0 until nAlgebraicLoopsInStep).map(idx => {
         val loopsInstructions: AlgebraicLoop = loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil))
-        val encoded = fillNoOps(loopsInstructions.ifRetryNeeded.map(op => encodeOperation(op, conf._1)), maxNRetryOperationsForAlgebraicLoopsInStep)
-        s"""{ ${encoded.mkString(",")} }"""
+        f(op(loopsInstructions), configName).mkString
+      }).mkString(",")
+    }).toList
+  }
+
+  def getAlgebraicLoopOp(op: AlgebraicLoop => List[CosimStepInstruction], f: (List[CosimStepInstruction], String) => List[String], nOperations: Int): String = {
+    (0 until nConfigs).map(id => {
+      val conf = configurationStep(id)
+      val configName = if (isAdaptive) conf._1 else ""
+      val loopConfig = if (isAdaptive) loopOpsEncoding(conf._2) else loopOpsEncoding.values.head
+      (0 until nAlgebraicLoopsInStep).map(idx => {
+        val loopsInstructions: AlgebraicLoop = loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil))
+        fillNoOps(f(op(loopsInstructions), configName), nOperations).mkString("{", ",", "}")
       }).mkString(",")
     }).mkString("{", "}, {", "}")
   }
-
-  def fillNoPorts(value: List[String], max: Int) = value ++ (0 until (max - value.length)).map(_ => s"""{ noFMU, noPort}""")
 
   def convergencePortsPerAlgebraicLoopInStep: String = {
     (0 until nConfigs).map(id => {
@@ -284,8 +268,8 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
   }
 
   def nRestore: String = getStepLoop(getRetryOperations, length, 1.toString).mkString(",")
-  def nFindStepOperations: String = getStepLoop(getStepLoopOperations, length, 1.toString).mkString(",")
-  def findStepLoopOperations: String = getStepLoop(getStepLoopOperations, encode, noOpEncoding).mkString("{", "}, {", "}")
+  def nFindStepOperations: String = getStepLoop(getLoopOperations, length, 1.toString).mkString(",")
+  def findStepLoopOperations: String = getStepLoop(getLoopOperations, encode, noOpEncoding).mkString("{", "}, {", "}")
   def findStepLoopRestoreOperations: String = getStepLoop(getRetryOperations, encode, noOpEncoding).mkString("{", "}, {", "}")
 
   def getStepLoop(op: StepLoop => List[CosimStepInstruction], f: (List[CosimStepInstruction], String) => String, defaultValue: String): List[String] = {
@@ -297,13 +281,13 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
     }).toList
   }
 
+  def getRetryOperations(algebraicLoop: AlgebraicLoop): List[CosimStepInstruction] = algebraicLoop.ifRetryNeeded
+  def getLoopOperations(algebraicLoop: AlgebraicLoop): List[CosimStepInstruction] = algebraicLoop.iterate
   def getRetryOperations(stepLoop: StepLoop): List[CosimStepInstruction] = stepLoop.ifRetryNeeded
-
-  def getStepLoopOperations(stepLoop: StepLoop): List[CosimStepInstruction] = stepLoop.iterate
-
+  def getLoopOperations(stepLoop: StepLoop): List[CosimStepInstruction] = stepLoop.iterate
   def length(value: List[CosimStepInstruction], conf: String = ""): String = value.length.toString
-
   def encode(value: List[CosimStepInstruction], conf: String = ""): String = value.map(encodeOperation(_, conf)).mkString(",")
+  def encodeList(value: List[CosimStepInstruction], conf: String = ""): List[String] = value.map(encodeOperation(_, conf))
 
   def initializationOperations: String = model.initialization
     .map(op => encodeOperation(op))
