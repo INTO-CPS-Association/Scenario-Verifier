@@ -175,17 +175,18 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
     }).mkString(",")
   }
 
-  def nConvergencePortsPerAlgebraicLoopInInit: String = {
+
+  def getAlgebraicLoopInInit(getOperations : AlgebraicLoopInit => Int): String = {
     (0 until nAlgebraicLoopsInInit).map(idx => {
-      loopOpsEncodingInit.getOrElse(idx, AlgebraicLoopInit(Nil, Nil)).untilConverged.size
+      getOperations(loopOpsEncodingInit.getOrElse(idx, AlgebraicLoopInit(Nil, Nil)))
     }).mkString(",")
   }
 
-  def nOperationsPerAlgebraicLoopInInit: String = {
-    (0 until nAlgebraicLoopsInInit).map(idx => {
-      loopOpsEncodingInit.getOrElse(idx, AlgebraicLoopInit(Nil, Nil)).iterate.size
-    }).mkString(",")
-  }
+  def getConvergencePorts(algebraicLoopInit: AlgebraicLoopInit): Int = algebraicLoopInit.untilConverged.size
+  def getOperations(algebraicLoopInit: AlgebraicLoopInit): Int = algebraicLoopInit.iterate.size
+
+  def nConvergencePortsPerAlgebraicLoopInInit: String = getAlgebraicLoopInInit(getConvergencePorts)
+  def nOperationsPerAlgebraicLoopInInit: String = getAlgebraicLoopInInit(getOperations)
 
   def nConvergencePortsPerAlgebraicLoopInStep: String = {
     (0 until nConfigs).map(id => {
