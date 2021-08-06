@@ -10,7 +10,7 @@ case class FmuConfig(
 
 case class ScenarioConfig(
                            fmus: Map[String, FmuConfig],
-                           configuration : AdaptiveConfig = NoConfiguration,
+                           configuration : Option[AdaptiveConfig],
                            connections: List[String], // Each connection is notes as for usability "msd1.x1 -> msd2.x1"
                            maxPossibleStepSize: Int = 1
                          )

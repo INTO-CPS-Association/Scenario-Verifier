@@ -282,7 +282,13 @@ object ScenarioLoader extends Logging {
         val fmusModel = fmus.map(keyValPair => (keyValPair._1, parse(keyValPair._1, keyValPair._2)))
         val connectionsModel = connections.map((c) => parseConnection(c, fmusModel))
         logger.info(configuration)
-        val configurationModel = parseAdaptiveConfig(configuration, fmusModel)
+
+        val configurationModel =
+          if (configuration.isDefined)
+          parseAdaptiveConfig(configuration.get, fmusModel)
+          else
+            parseAdaptiveConfig(AdaptiveConfig(Nil, Map.empty), fmusModel)
+
         core.ScenarioModel(fmusModel, configurationModel, connectionsModel, maxPossibleStepSize)
       }
     }

@@ -4,7 +4,7 @@ import org.apache.logging.log4j.scala.Logging
 
 class ModelEncoding(model: MasterModel) extends Logging {
 
-  val noOpEncoding = s"""{noFMU, noOp, noPort, noStep, noFMU, noCommitment, noLoop}"""
+  val noOpEncoding = "{noFMU, noOp, noPort, noStep, noFMU, noCommitment, noLoop}"
 
   def maxNInputs = model.scenario.fmus.map(f => f._2.inputs.size).max
 
@@ -47,13 +47,15 @@ class ModelEncoding(model: MasterModel) extends Logging {
 
   val fmuInputEncoding: Map[String, Map[String, Int]] = fmuNames.map(fName => (fName, model.scenario.fmus(fName).inputs.keys.zipWithIndex.toMap)).toMap
   val fmuInputEncodingInverse: Map[String, Map[Int, String]] = fmuInputEncoding.map(f => (f._1, f._2.map(_.swap)))
+
   val fmuOutputEncoding: Map[String, Map[String, Int]] = fmuNames.map(fName => (fName, model.scenario.fmus(fName).outputs.keys.zipWithIndex.toMap)).toMap
   val fmuOutputEncodingInverse: Map[String, Map[Int, String]] = fmuOutputEncoding.map(f => (f._1, f._2.map(_.swap)))
+
+  val isAdaptive: Boolean = model.scenario.config.configurableInputs.nonEmpty
 
   def fmuInNames(f: String) = model.scenario.fmus(f).inputs.keys
 
   def fmuOutNames(f: String) = model.scenario.fmus(f).outputs.keys
-
 
   def fmuPortName(f: String, p: String) = s"""${f}_${p}"""
 
@@ -65,6 +67,7 @@ class ModelEncoding(model: MasterModel) extends Logging {
   def connectionName(c: ConnectionModel) = s"${c.srcPort.fmu}_${c.srcPort.port}__${c.trgPort.fmu}_${c.trgPort.port}"
 
   val configurationStep: Map[Int, (String, String)] = model.scenario.config.configurations.zipWithIndex.map(_.swap).toMap.map(i => (i._1, (i._2._1, i._2._2.cosimStep)))
+
 
   def fmuInputTypes(f: String) = {
     val inputs = model.scenario.fmus(f).inputs
@@ -94,30 +97,36 @@ class ModelEncoding(model: MasterModel) extends Logging {
     .map(c => f"""{${c.srcPort.fmu}, ${fmuPortName(c.srcPort.fmu, c.srcPort.port)}, ${c.trgPort.fmu}, ${fmuPortName(c.trgPort.fmu, c.trgPort.port)}}""")
     .mkString(",")
 
+val noFeedThrough : String = "{noFMU, noPort, noPort}"
+
   def feedthroughInStep: String = {
-    (0 until nConfigs).map(i => {
+    (0 until nConfigs).map(_ => {
       val feedthrough = model.scenario.fmus
         .flatMap(f => f._2.outputs
           .flatMap(o => o._2.dependencies
-            .map(d => s"{${f._1}, ${fmuPortName(f._1, d)}, ${fmuPortName(f._1, o._1)}}"))).mkString(",")
+            .map(d => feedThroughString(f, o, d)))).mkString(",")
       if (!feedthrough.isEmpty)
-        s"{${feedthrough}}"
+        feedthrough
       else {
-        "{{noFMU, noPort, noPort}}"
+        noFeedThrough
       }
     }).mkString("{", "}, {", "}")
+  }
+
+  private def feedThroughString(f: (String, FmuModel), o: (String, OutputPortModel), d: String) = {
+    s"{${f._1}, ${fmuPortName(f._1, d)}, ${fmuPortName(f._1, o._1)}}"
   }
 
   def feedthroughInInit: String = {
     val feedthrough = model.scenario.fmus
       .flatMap(f => f._2.outputs
         .flatMap(o => o._2.dependenciesInit
-          .map(d => s"{${f._1}, ${fmuPortName(f._1, d)}, ${fmuPortName(f._1, o._1)}}")))
+          .map(d => feedThroughString(f, o, d))))
       .mkString(",")
     if (!feedthrough.isEmpty)
-      return feedthrough
+      feedthrough
     else
-      return "{noFMU, noPort, noPort}"
+      noFeedThrough
   }
 
   def mayRejectStep: String = (0 until nFMUs)
@@ -141,13 +150,7 @@ class ModelEncoding(model: MasterModel) extends Logging {
 
   def nAlgebraicLoopsInInit: Int = math.max(allAlgebraicLoopsInInit.length, 1)
 
-  def maxOr1(l: List[Int]): Int = {
-    if (l.isEmpty || l.forall(_ == 0)) {
-      1
-    } else {
-      l.max
-    }
-  }
+  def maxOr1(l: List[Int]): Int = if (l.isEmpty || l.forall(_ == 0)) 1 else l.max
 
   val loopOpsEncodingInit: Map[Int, AlgebraicLoopInit] = allAlgebraicLoopsInInit.zipWithIndex.map(_.swap).toMap
   val loopOpsEncodingInitInverse: Map[AlgebraicLoopInit, Int] = loopOpsEncodingInit.map(_.swap).toMap
@@ -162,7 +165,6 @@ class ModelEncoding(model: MasterModel) extends Logging {
 
   def fillNoOps(value: List[String], max: Int): List[String] = value ++ (0 until (max - value.length)).map(_ => encodeOperation(NoOP, ""))
 
-
   def operationsPerAlgebraicLoopInStep: String = {
     (0 until nConfigs).map(id => {
       val conf = configurationStep(id)
@@ -172,7 +174,7 @@ class ModelEncoding(model: MasterModel) extends Logging {
         val encoded = fillNoOps(loopsInstructions.iterate.map(op => encodeOperation(op, conf._1)), maxNAlgebraicLoopOperationsInStep)
         s"""{ ${encoded.mkString(",")} }"""
       }).mkString(",")
-    }).mkString("{", "},", "")
+    }).mkString("{", "}, {", "}")
   }
 
   def operationsPerAlgebraicLoopInInit: String = {
@@ -273,60 +275,35 @@ class ModelEncoding(model: MasterModel) extends Logging {
   val maxFindStepOperations = maxOr1(allStepFindingLoopsInStep.valuesIterator.flatMap(i => i.map(_.iterate.length)).toList)
   val maxFindStepRestoreOperations = maxOr1(allStepFindingLoopsInStep.valuesIterator.flatMap(i => i.map(_.ifRetryNeeded.length)).toList)
 
-  def nFindStepOperations: String = {
-    val n = allStepFindingLoopsInStep.valuesIterator.map(_.length).max
-    assert(n <= 1, "More than one step finding loop is not supported yet.")
-    (0 until nConfigs).map(id => {
-      val conf = configurationStep(id)
-      if (allStepFindingLoopsInStep(conf._2).isEmpty) {
-        1
-      } else {
-        allStepFindingLoopsInStep(conf._2).map(j => j.iterate.length)
-      }
-    }).mkString(",")
-  }
 
   val nTerminationOperations = model.terminate.length
 
-  def nRestore: String = {
-    val n = allStepFindingLoopsInStep.valuesIterator.map(_.length).max
-    assert(n <= 1, "More than one step finding loop is not supported yet.")
-    (0 until nConfigs).map(id => {
-      val conf = configurationStep(id)
-      if (allStepFindingLoopsInStep(conf._2).isEmpty) {
-        1
-      } else {
-        allStepFindingLoopsInStep(conf._2).map(j => j.ifRetryNeeded.length)
-      }
-    }).mkString(",")
+  val nStepFinding: Int = {
+    assert(allStepFindingLoopsInStep.valuesIterator.map(_.length).max <= 1, "More than one step finding loop is not supported yet.")
+    allStepFindingLoopsInStep.valuesIterator.map(_.length).max
   }
 
+  def nRestore: String = getStepLoop(getRetryOperations, length, 1.toString).mkString(",")
+  def nFindStepOperations: String = getStepLoop(getStepLoopOperations, length, 1.toString).mkString(",")
+  def findStepLoopOperations: String = getStepLoop(getStepLoopOperations, encode, noOpEncoding).mkString("{", "}, {", "}")
+  def findStepLoopRestoreOperations: String = getStepLoop(getRetryOperations, encode, noOpEncoding).mkString("{", "}, {", "}")
 
-  def findStepLoopOperations: String = {
-    val n = allStepFindingLoopsInStep.valuesIterator.map(_.length).max
-    assert(n <= 1, "More than one step finding loop is not supported yet.")
+  def getStepLoop(op: StepLoop => List[CosimStepInstruction], f: (List[CosimStepInstruction], String) => String, defaultValue: String): List[String] = {
     (0 until nConfigs).map(id => {
       val conf = configurationStep(id)
-      if (allStepFindingLoopsInStep(conf._2).isEmpty) {
-        noOpEncoding
-      } else {
-        allStepFindingLoopsInStep(conf._2).map(j => j.iterate.map(op => encodeOperation(op, conf._1)).mkString(","))
-      }
-    }).mkString("{", "}, {", "}")
+      val configName = if (isAdaptive) conf._1 else ""
+      val configurationStepLoop = if (isAdaptive) allStepFindingLoopsInStep(conf._2) else allStepFindingLoopsInStep.values.head
+      if (configurationStepLoop.isEmpty) defaultValue else configurationStepLoop.map(x => f(op(x), configName)).mkString
+    }).toList
   }
 
-  def findStepLoopRestoreOperations: String = {
-    val n = allStepFindingLoopsInStep.valuesIterator.map(_.length).max
-    assert(n <= 1, "More than one step finding loop is not supported yet.")
-    (0 until nConfigs).map(id => {
-      val conf = configurationStep(id)
-      if (allStepFindingLoopsInStep(conf._2).isEmpty) {
-        noOpEncoding
-      } else {
-        allStepFindingLoopsInStep(conf._2).map(j => j.ifRetryNeeded.map(op => encodeOperation(op, conf._1)).mkString(","))
-      }
-    }).mkString("{", "}, {", "}")
-  }
+  def getRetryOperations(stepLoop: StepLoop): List[CosimStepInstruction] = stepLoop.ifRetryNeeded
+
+  def getStepLoopOperations(stepLoop: StepLoop): List[CosimStepInstruction] = stepLoop.iterate
+
+  def length(value: List[CosimStepInstruction], conf: String = ""): String = value.length.toString
+
+  def encode(value: List[CosimStepInstruction], conf: String = ""): String = value.map(encodeOperation(_, conf)).mkString(",")
 
   def initializationOperations: String = model.initialization
     .map(op => encodeOperation(op))
@@ -353,7 +330,6 @@ class ModelEncoding(model: MasterModel) extends Logging {
     }
   }
 
-
   def stepOperations: String = {
     (0 until nConfigs).map(id => {
       val conf = configurationStep(id)
@@ -361,8 +337,7 @@ class ModelEncoding(model: MasterModel) extends Logging {
     }).mkString("{", "}, {", "}")
   }
 
-
-  def encodeOperation(op: CosimStepInstruction, config: String): String = {
+  def encodeOperation(op: CosimStepInstruction, config: String = ""): String = {
     op match {
       case Set(PortRef(fmu, port)) => s"""{${fmu}, set, ${fmuPortName(fmu, port)}, noStep, noFMU, final, noLoop}"""
       case SetTentative(PortRef(fmu, port)) => s"""{${fmu}, set, ${fmuPortName(fmu, port)}, noStep, noFMU, tentative, noLoop}"""
@@ -396,6 +371,4 @@ class ModelEncoding(model: MasterModel) extends Logging {
   def variableArray(n: Int): String = (0 until n)
     .map(_ => "{defined,0}")
     .mkString(",")
-
-
 }
