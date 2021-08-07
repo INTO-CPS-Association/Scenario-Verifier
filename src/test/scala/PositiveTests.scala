@@ -1,9 +1,11 @@
 import java.io.{InputStreamReader, PrintWriter}
 import java.nio.file.Files
+
 import cli.VerifyTA
 import com.typesafe.config.ConfigFactory
 import core.{MasterConfig, ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
+import org.scalatest.Ignore
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import pureconfig.ConfigSource
@@ -38,7 +40,7 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
   it should "work for algebraic_loop_msd" in {
     generateAndVerify("examples/algebraic_loop_msd_gs.conf")
   }
-/*
+
   it should "work for algebraic_loop_msd_fail_converge" in {
     generateAndVerify("examples/algebraic_loop_msd_jac.conf")
   }
@@ -75,9 +77,4 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
     generateAndVerify("examples/loop_within_loop.conf")
   }
 
-  it should "work for loop_within_loop_alt.conf" in {
-    generateAndVerify("examples/loop_within_loop_alt.conf")
-  }
-
- */
 }

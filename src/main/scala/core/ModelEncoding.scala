@@ -188,7 +188,7 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
   def nOperationsPerAlgebraicLoopInInit: String = getAlgebraicLoopInInit(getOperations)
 
   def nConvergencePortsPerAlgebraicLoopInStep: String = getNAlgebraicLoopOperations(getAConvergencePorts)
-  def nOperationsPerAlgebraicLoopInStep: String = getNAlgebraicLoopOperations(getARetryOperations _ andThen nOperations _)
+  def nOperationsPerAlgebraicLoopInStep: String = getNAlgebraicLoopOperations(getALoopOperations _ andThen nOperations _)
   def nRetryOperationsPerAlgebraicLoopInStep: String = getNAlgebraicLoopOperations(getARetryOperations _ andThen nOperations _)
 
   def retryOperationsPerAlgebraicLoopInStep: String = getAlgebraicLoopOp(getARetryOperations, encodeList, maxNRetryOperationsForAlgebraicLoopsInStep)
@@ -201,7 +201,7 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
 
   def getAlgebraicLoopOp(op: AlgebraicLoop => List[CosimStepInstruction], f: (List[CosimStepInstruction], String) => List[String], nOperations: Int): String = {
     (0 until nConfigs).map(id => {
-      val configName = if (isAdaptive) configuration(id)._1 else loopOpsEncoding.keys.head
+      val configName = getConfigName(id)
       val loopConfig = if (isAdaptive) loopOpsEncoding(configuration(id)._2) else loopOpsEncoding.values.head
       (0 until nAlgebraicLoopsInStep).map(idx => {
         val loopsInstructions: AlgebraicLoop = loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil))
@@ -212,8 +212,7 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
 
   def convergencePortsPerAlgebraicLoopInStep: String = {
     (0 until nConfigs).map(id => {
-      val conf = configuration(id)
-      val loopConfig = loopOpsEncoding(conf._2)
+      val loopConfig = if (isAdaptive) loopOpsEncoding(configuration(id)._2) else loopOpsEncoding.values.head
       (0 until nAlgebraicLoopsInStep).map(idx => {
         val loopsInstructions: AlgebraicLoop = loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil))
         val encoded = fillNoPorts(loopsInstructions.untilConverged.map(p => s"""{ ${p.fmu}, ${fmuPortName(p.fmu, p.port)} }"""), maxNConvergeOperationsForAlgebraicLoopsInStep)
@@ -256,11 +255,13 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
 
   def getStepLoop(op: StepLoop => List[CosimStepInstruction], f: (List[CosimStepInstruction], String) => String, defaultValue: String): List[String] = {
     (0 until nConfigs).map(id => {
-      val configName = if (isAdaptive) configuration(id)._1 else ""
+      val configName = getConfigName(id)
       val configurationStepLoop = if (isAdaptive) allStepFindingLoopsInStep(configuration(id)._2) else allStepFindingLoopsInStep.values.head
       if (configurationStepLoop.isEmpty) defaultValue else configurationStepLoop.map(x => f(op(x), configName)).mkString
     }).toList
   }
+
+  private def getConfigName(id: Int) = if (isAdaptive) configuration(id)._1 else loopOpsEncoding.keys.head
 
   def getARetryOperations(algebraicLoop: AlgebraicLoop): List[CosimStepInstruction] = algebraicLoop.ifRetryNeeded
   def getALoopOperations(algebraicLoop: AlgebraicLoop): List[CosimStepInstruction] = algebraicLoop.iterate
