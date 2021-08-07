@@ -4,9 +4,11 @@ import java.nio.file.Files
 import cli.{MaudeRunner, VerifyTA}
 import core.{MaudeModelEncoding, MaudeScenarioGenerator, ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
+import org.scalatest.Ignore
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 
+@Ignore
 class MaudeTests extends AnyFlatSpec with should.Matchers {
 
   def writeToTempFile(content: String) = {

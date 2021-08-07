@@ -83,7 +83,6 @@ object ScenarioLoader extends Logging {
     config match {
       case MasterConfig(name, scenario, initialization, cosimStep) => {
         val scenarioModel = parse(scenario)
-        logger.info(scenarioModel.config)
         val instantiationModel = generateInstantiationInstructions(scenarioModel).toList
         val initializationModel = initialization.map(instruction => parse(instruction, scenarioModel))
         val expandedInitModel = generateEnterInitInstructions(scenarioModel) ++ initializationModel ++ generateExitInitInstructions(scenarioModel)
@@ -281,8 +280,6 @@ object ScenarioLoader extends Logging {
         assert(maxPossibleStepSize > 0, "Max possible step size has to be greater than 0 in scenario configuration.")
         val fmusModel = fmus.map(keyValPair => (keyValPair._1, parse(keyValPair._1, keyValPair._2)))
         val connectionsModel = connections.map((c) => parseConnection(c, fmusModel))
-        logger.info(configuration)
-
         val configurationModel =
           if (configuration.isDefined)
           parseAdaptiveConfig(configuration.get, fmusModel)

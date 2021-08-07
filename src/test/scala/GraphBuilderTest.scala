@@ -59,7 +59,7 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
       case _ => false
     }) == 2)
 
-    assert(nodes.size == scenario.cosimStep.size)
+    assert(nodes.size == scenario.cosimStep.values.head.size)
     assert(nodes.forall(n => n match {
       case GetNode(_, _) => true
       case SetNode(_, _) => true
