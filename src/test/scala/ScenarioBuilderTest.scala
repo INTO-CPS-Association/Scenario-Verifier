@@ -32,7 +32,7 @@ class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
     val model = MasterModel(scenarioName, scenario,
       instantiation = ScenarioLoader.generateInstantiationInstructions(scenario).toList,
       initialization = init.toList,
-      cosimStep = Map("cosim1" -> step),
+      cosimStep = step,
       terminate = ScenarioLoader.generateTerminateInstructions(scenario).toList)
     val encoding = new ModelEncoding(model)
 

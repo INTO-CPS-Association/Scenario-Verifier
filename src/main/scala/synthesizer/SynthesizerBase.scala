@@ -2,7 +2,8 @@ package synthesizer
 
 import core.{AlgebraicLoop, AlgebraicLoopInit, CosimStepInstruction, DefaultStepSize, Get, GetTentative, InitGet, InitSet, InitializationInstruction, PortRef, RestoreState, SaveState, SetTentative, Step, StepLoop}
 import org.apache.logging.log4j.scala.Logging
-import synthesizer.LoopStrategy.LoopStrategy
+import org.graalvm.compiler.graph.Edges
+import synthesizer.LoopStrategy.{LoopStrategy, Value}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -31,16 +32,18 @@ trait SynthesizerBase extends Logging {
 
   def FMUsMayRejectStepped: mutable.HashSet[String]
 
-  def StepEdges: Set[Edge[Node]]
+  def StepEdges: Map[String, Set[Edge[Node]]]
 
   def InitEdge: Set[Edge[Node]]
 
   def strategy: LoopStrategy
 
-  def checkSCC(scc: List[Node]): SCCType = {
+  def isAdaptive : Boolean
+
+  def checkSCC(scc: List[Node], edges: Set[Edge[Node]]): SCCType = {
     if (scc.size == 1)
       SimpleAction(scc)
-    else if (isStepLoop(scc)) {
+    else if (isStepLoop(scc, edges)) {
       StepLoopNodes(scc)
     } else if (scc.count(IsStepNode) > 0)
       ReactiveLoop(scc)
@@ -58,20 +61,18 @@ trait SynthesizerBase extends Logging {
 
 
   @tailrec
-  private final def removeOneEdge(edgesInSCC: List[Edge[Node]], value: Set[Edge[Node]]): Set[Edge[Node]] = {
-    edgesInSCC match {
-      case ::(head, next) => {
-        if (!value.exists(i => i.trgNode.fmuName == head.srcNode.fmuName && i.srcNode.fmuName == head.trgNode.fmuName))
-          removeOneEdge(next, value + head)
-        else
-          removeOneEdge(next, value)
-      }
-      case Nil => value
+  private final def removeOneEdge(edgesInSCC: List[Edge[Node]], value: Set[Edge[Node]]): Set[Edge[Node]] = edgesInSCC match {
+    case ::(head, next) => {
+      if (!value.exists(i => i.trgNode.fmuName == head.srcNode.fmuName && i.srcNode.fmuName == head.trgNode.fmuName))
+        removeOneEdge(next, value + head)
+      else
+        removeOneEdge(next, value)
     }
+    case Nil => value
   }
 
-  def filterEdges(StepEdges: Set[Edge[Node]], scc: List[Node], isReactiveStepLoop: Boolean): Set[Edge[Node]] = {
-    val edgesInSCC = getEdgesInSCC(StepEdges, scc)
+  def filterEdges(edges: Set[Edge[Node]], scc: List[Node], isReactiveStepLoop: Boolean): Set[Edge[Node]] = {
+    val edgesInSCC = getEdgesInSCC(edges, scc)
     if (isReactiveStepLoop)
       edgesInSCC.filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode))
     else {
@@ -80,12 +81,11 @@ trait SynthesizerBase extends Logging {
     }
   }
 
-  def formatStepLoop(scc: List[Node]): List[CosimStepInstruction] = {
+  def formatStepLoop(scc: List[Node], edge: Set[Edge[Node]]): List[CosimStepInstruction] = {
     val FMUs = scc.filter(IsStepNode).map { case DoStepNode(name) => name }.toSet
 
-
     val emptyEdges = scc.map(i => Edge[Node](EmptyNode("Empty"),i)).toSet
-    val edges = getEdgesInSCC(StepEdges, scc).filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode)) ++ emptyEdges
+    val edges = getEdgesInSCC(edge, scc).filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode)) ++ emptyEdges
 
     val tarjanGraph = new TarjanGraph[Node](edges)
 
@@ -102,21 +102,18 @@ trait SynthesizerBase extends Logging {
   def removeMinimumNumberOfEdges(fmus: List[String], edgesInSCC: Set[Edge[Node]]): Set[Edge[Node]] = {
     val edges = edgesInSCC.filterNot(i => i.srcNode.fmuName != i.trgNode.fmuName && i.trgNode.fmuName == fmus.head)
     val tarjanGraph = new TarjanGraph[Node](edges)
-    if (tarjanGraph.hasCycle) {
-      return removeMinimumNumberOfEdges(fmus.tail, edges)
-    }
-    edges
+    if (tarjanGraph.hasCycle) return removeMinimumNumberOfEdges(fmus.tail, edges) else edges
   }
 
 
   @tailrec
-  final def handleSCC(SCCs: List[List[Node]], instructions: List[CosimStepInstruction]): List[CosimStepInstruction] = {
+  final def handleSCC(SCCs: List[List[Node]], edges: Set[Edge[Node]], instructions: List[CosimStepInstruction]): List[CosimStepInstruction] = {
     SCCs match {
-      case ::(scc, next) => checkSCC(scc) match {
-        case FeedthroughLoop(nodes) => handleSCC(next, instructions ++ formatFeedthroughLoop(nodes, StepEdges, false))
-        case ReactiveLoop(nodes) => handleSCC(next, instructions ++ formatReactiveLoop(nodes, StepEdges, false))
-        case StepLoopNodes(nodes) => handleSCC(next, instructions ++ formatStepLoop(nodes))
-        case SimpleAction(node) => handleSCC(next, instructions ++ formatStepInstruction(node.head, false))
+      case ::(scc, next) => checkSCC(scc, edges) match {
+        case FeedthroughLoop(nodes) => handleSCC(next, edges, instructions ++ formatFeedthroughLoop(nodes, edges , false))
+        case ReactiveLoop(nodes) => handleSCC(next, edges, instructions ++ formatReactiveLoop(nodes, edges, false))
+        case StepLoopNodes(nodes) => handleSCC(next, edges, instructions ++ formatStepLoop(nodes, edges))
+        case SimpleAction(node) => handleSCC(next, edges, instructions ++ formatStepInstruction(node.head, false))
         case _ => throw new UnsupportedOperationException("Unknown SCC in Graph")
       }
       case Nil => instructions
@@ -132,10 +129,13 @@ trait SynthesizerBase extends Logging {
     })
   }
 
-  def synthesizeStep(): List[CosimStepInstruction] = {
-    val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](StepEdges)
-    val SCCs = tarjanGraph.topologicalSCC
-    handleSCC(SCCs, List[CosimStepInstruction]())
+  def synthesizeStep(): Map[String, List[CosimStepInstruction]] = {
+    StepEdges.map(keyValue => {
+      val edges = keyValue._2
+      val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edges)
+      val SCCs = tarjanGraph.topologicalSCC
+      (keyValue._1, handleSCC(SCCs, edges, List[CosimStepInstruction]()))
+    })
   }
 
   def formatInitialInstruction(node: Node): List[InitializationInstruction] = {
@@ -175,8 +175,8 @@ trait SynthesizerBase extends Logging {
     FMUs.diff(FMUsSaved).flatMap(o => formatStepInstruction(SaveNode(o))).toList
   }
 
-  def isStepLoop(scc: List[Node]): Boolean = {
-    getEdgesInSCC(StepEdges, scc).count(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode)) > 0
+  def isStepLoop(scc: List[Node], edges: Set[Edge[Node]]): Boolean = {
+    getEdgesInSCC(edges, scc).count(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode)) > 0
   }
 
   protected def IsLoopInstruction(instruction: CosimStepInstruction): Boolean = instruction match {

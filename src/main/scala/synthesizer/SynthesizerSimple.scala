@@ -1,25 +1,45 @@
 package synthesizer
 
-import core.{AlgebraicLoop, AlgebraicLoopInit, CosimStepInstruction, InitializationInstruction, PortRef, ScenarioModel}
+import core.{AlgebraicLoop, AlgebraicLoopInit, CosimStepInstruction, FmuModel, InitializationInstruction, InputPortModel, PortRef, ScenarioModel}
 import synthesizer.LoopStrategy.{LoopStrategy, maximum}
 
 import scala.collection.mutable
 
 
 class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrategy = maximum) extends SynthesizerBase {
-  val graphBuilder: GraphBuilder = new GraphBuilder(scenarioModel)
+  val graphBuilder: GraphBuilder = Configurations.values.head
   val FMUsStepped = new mutable.HashSet[String]()
   val FMUsSaved = new mutable.HashSet[String]()
   val FMUsMayRejectStepped: mutable.HashSet[String] = new mutable.HashSet[String]()
-  val StepEdges = graphBuilder.stepEdges
+  val StepEdges = Configurations.map(i => (i._1, i._2.stepEdges))
   val InitEdge = graphBuilder.initialEdges
   val strategy: LoopStrategy = chosenStrategy
+  val isAdaptive : Boolean = scenarioModel.config.configurableInputs.nonEmpty
 
+
+  def Configurations: Map[String, GraphBuilder] = scenarioModel.config.configurations.map(keyValue => {
+      val affectedInputs = keyValue._2.inputs.groupBy(f => f._1.fmu)
+      val fmus =
+        scenarioModel.fmus.map(fmu => {
+          if(affectedInputs.keySet.contains(fmu._1)) {
+            val fmuModel = fmu._2
+            val fmuInputs = affectedInputs(fmu._1)
+            val inputs : Map[String, InputPortModel] =
+              fmuModel.inputs.filter(input => fmuInputs.keySet.contains(PortRef(fmu._1, input._1)))
+                .map(input => (input._1, fmuInputs(PortRef(fmu._1, input._1))))
+                  .++(fmuModel.inputs.filterNot(input => fmuInputs.keySet.contains(PortRef(fmu._1, input._1))))
+
+            (fmu._1, FmuModel(inputs, fmuModel.outputs, fmuModel.canRejectStep))
+          } else
+            fmu
+        })
+      val scenario = ScenarioModel(fmus, scenarioModel.config, scenarioModel.connections, scenarioModel.maxPossibleStepSize)
+    (keyValue._1, new GraphBuilder(scenarioModel))
+  })
 
   def formatInitLoop(scc: List[Node]): InitializationInstruction = {
     val gets = graphBuilder.GetNodes.values.flatten.filter(o => scc.contains(o)).toList
     val edgesInGraph = getEdgesInSCC(InitEdge, scc)
-
     val reducedEdges = if (strategy == maximum)
     //Remove all connections between FMUs
       edgesInGraph.filter(e => e.srcNode.fmuName == e.trgNode.fmuName)

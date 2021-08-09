@@ -67,7 +67,7 @@ object ScenarioVerifierApp extends App with Logging {
         val initialization = synthesizer.synthesizeInitialization()
         val cosimStep = synthesizer.synthesizeStep()
         //TODO fix adaptive
-        val master = MasterModel(masterModel.name, masterModel.scenario, masterModel.instantiation, initialization, Map("cosimStep1" -> cosimStep), masterModel.terminate)
+        val master = MasterModel(masterModel.name, masterModel.scenario, masterModel.instantiation, initialization, cosimStep, masterModel.terminate)
         FileUtils.deleteQuietly(new File(config.master))
 
         writeFile(config.master, List(ScenarioConfGenerator.generate(master, masterModel.name)))
