@@ -7,6 +7,30 @@ import scala.collection.mutable
 
 
 class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrategy = maximum) extends SynthesizerBase {
+  lazy val Configurations: Map[String, GraphBuilder] = {
+    if (isAdaptive)
+      scenarioModel.config.configurations.map(keyValue => {
+        val affectedInputs = keyValue._2.inputs.groupBy(f => f._1.fmu)
+        val fmus =
+          scenarioModel.fmus.map(fmu => {
+            if (affectedInputs.keySet.contains(fmu._1)) {
+              val fmuModel = fmu._2
+              val fmuInputs = affectedInputs(fmu._1)
+              val inputs: Map[String, InputPortModel] =
+                fmuModel.inputs.filter(input => fmuInputs.keySet.contains(PortRef(fmu._1, input._1)))
+                  .map(input => (input._1, fmuInputs(PortRef(fmu._1, input._1))))
+                  .++(fmuModel.inputs.filterNot(input => fmuInputs.keySet.contains(PortRef(fmu._1, input._1))))
+
+              (fmu._1, FmuModel(inputs, fmuModel.outputs, fmuModel.canRejectStep))
+            } else
+              fmu
+          })
+        val scenario = ScenarioModel(fmus, scenarioModel.config, scenarioModel.connections, scenarioModel.maxPossibleStepSize)
+        (keyValue._1, new GraphBuilder(scenario))
+      })
+    else Map("conf1" -> new GraphBuilder(scenarioModel))
+  }
+
   val graphBuilder: GraphBuilder = Configurations.values.head
   val FMUsStepped = new mutable.HashSet[String]()
   val FMUsSaved = new mutable.HashSet[String]()
@@ -14,28 +38,8 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
   val StepEdges = Configurations.map(i => (i._1, i._2.stepEdges))
   val InitEdge = graphBuilder.initialEdges
   val strategy: LoopStrategy = chosenStrategy
-  val isAdaptive : Boolean = scenarioModel.config.configurableInputs.nonEmpty
+  val isAdaptive: Boolean = scenarioModel.config.configurableInputs.nonEmpty
 
-
-  def Configurations: Map[String, GraphBuilder] = scenarioModel.config.configurations.map(keyValue => {
-      val affectedInputs = keyValue._2.inputs.groupBy(f => f._1.fmu)
-      val fmus =
-        scenarioModel.fmus.map(fmu => {
-          if(affectedInputs.keySet.contains(fmu._1)) {
-            val fmuModel = fmu._2
-            val fmuInputs = affectedInputs(fmu._1)
-            val inputs : Map[String, InputPortModel] =
-              fmuModel.inputs.filter(input => fmuInputs.keySet.contains(PortRef(fmu._1, input._1)))
-                .map(input => (input._1, fmuInputs(PortRef(fmu._1, input._1))))
-                  .++(fmuModel.inputs.filterNot(input => fmuInputs.keySet.contains(PortRef(fmu._1, input._1))))
-
-            (fmu._1, FmuModel(inputs, fmuModel.outputs, fmuModel.canRejectStep))
-          } else
-            fmu
-        })
-      val scenario = ScenarioModel(fmus, scenarioModel.config, scenarioModel.connections, scenarioModel.maxPossibleStepSize)
-    (keyValue._1, new GraphBuilder(scenarioModel))
-  })
 
   def formatInitLoop(scc: List[Node]): InitializationInstruction = {
     val gets = graphBuilder.GetNodes.values.flatten.filter(o => scc.contains(o)).toList
@@ -77,14 +81,14 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](reducedEdges)
     assert(!tarjanGraph.hasCycle, "Graph has after edges have been removed cycles")
     val instructions = tarjanGraph.topologicalSCC.flatten.flatMap(formatStepInstruction(_, false)).filter(IsLoopInstruction)
-    List(AlgebraicLoop(gets.map(i => i.port),instructions, List.empty))
+    List(AlgebraicLoop(gets.map(i => i.port), instructions, List.empty))
   }
 
   def isTentative(action: Node, edges: Predef.Set[Edge[Node]]): Boolean = {
-    if(action.isInstanceOf[GetNode]) return true
-    return if(!action.isInstanceOf[SetNode])
+    if (action.isInstanceOf[GetNode]) return true
+    return if (!action.isInstanceOf[SetNode])
       false
-    else{
+    else {
       edges.exists(e => e.trgNode == action && e.srcNode.isInstanceOf[GetNode])
     }
   }
@@ -110,7 +114,7 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
 
     val instructions = tarjanGraph.topologicalSCC.flatten.flatMap(i => formatStepInstruction(i, isTentative(i, reducedEdges))).filter(IsLoopInstruction)
 
-    val saves = if(isNested) List.empty[CosimStepInstruction] else createSaves(FMUs)
+    val saves = if (isNested) List.empty[CosimStepInstruction] else createSaves(FMUs)
     val restores = createRestores(FMUs)
     saves.:+(AlgebraicLoop(gets.map(_.port), instructions, restores))
   }
