@@ -162,23 +162,27 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
 
   val maxStepOperations = model.cosimStep.valuesIterator.map(_.length).max
 
-  def fillNoOps(value: List[String], max: Int): List[String] = value ++ (0 until (max - value.length)).map(_ => encodeOperation(NoOP, ""))
+  def fillNoOps(value: List[String], max: Int): List[String] = {
+    logger.info(value)
+    logger.info(s" ${max.toString} - ${value.size.toString} = ${(max - value.size).toString}")
+    value.foreach(logger.info(_))
+    value ++ (0 until (max - value.length)).map(_ => encodeOperation(NoOP, ""))
+  }
   def fillNoPorts(value: List[String], max: Int) = value ++ (0 until (max - value.length)).map(_ => "{ noFMU, noPort}")
 
 
   def operationsPerAlgebraicLoopInInit: String = {
     (0 until nAlgebraicLoopsInInit).map(idx => {
       val loopsInstructions: AlgebraicLoopInit = loopOpsEncodingInit.getOrElse(idx, AlgebraicLoopInit(Nil, Nil))
-      val encoded = fillNoOps(loopsInstructions.iterate.map(op => encodeOperation(op)), maxNAlgebraicLoopOperationsInInit)
-      s"""{ ${encoded.mkString(",")} }"""
+      fillNoOps(loopsInstructions.iterate.map(op => encodeOperation(op)), maxNAlgebraicLoopOperationsInInit)
+        .mkString("{", ",", "}")
     }).mkString(",")
   }
 
-  def getAlgebraicLoopInInit(getOperations : AlgebraicLoopInit => Int): String = {
+  def getAlgebraicLoopInInit(getOperations : AlgebraicLoopInit => Int): String =
     (0 until nAlgebraicLoopsInInit).map(idx => {
-      getOperations(loopOpsEncodingInit.getOrElse(idx, AlgebraicLoopInit(Nil, Nil)))
-    }).mkString(",")
-  }
+    getOperations(loopOpsEncodingInit.getOrElse(idx, AlgebraicLoopInit(Nil, Nil)))
+  }).mkString(",")
 
   def getConvergencePorts(algebraicLoopInit: AlgebraicLoopInit): Int = algebraicLoopInit.untilConverged.size
   def getOperations(algebraicLoopInit: AlgebraicLoopInit): Int = algebraicLoopInit.iterate.size
@@ -215,8 +219,8 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
       val loopConfig = if (isAdaptive) loopOpsEncoding(configuration(id)._2) else loopOpsEncoding.values.head
       (0 until nAlgebraicLoopsInStep).map(idx => {
         val loopsInstructions: AlgebraicLoop = loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil))
-        val encoded = fillNoPorts(loopsInstructions.untilConverged.map(p => s"""{ ${p.fmu}, ${fmuPortName(p.fmu, p.port)} }"""), maxNConvergeOperationsForAlgebraicLoopsInStep)
-        s"""{ ${encoded.mkString(",")} }"""
+        fillNoPorts(loopsInstructions.untilConverged.map(p => s"""{ ${p.fmu}, ${fmuPortName(p.fmu, p.port)} }"""), maxNConvergeOperationsForAlgebraicLoopsInStep)
+          .mkString("{", ",", "}")
       }).mkString(",")
     }).mkString("{", "}, {", "}")
   }
@@ -237,7 +241,6 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
     model.cosimStep.map(keyValue =>
     (keyValue._1, ModelQuery.recFilter(keyValue._2, i => i.isInstanceOf[StepLoop]).map(_.asInstanceOf[StepLoop])))
 
-
   val maxFindStepOperations: Int = maxOr1(allStepFindingLoopsInStep.valuesIterator.flatMap(i => i.map(_.iterate.length)).toList)
   val maxFindStepRestoreOperations: Int = maxOr1(allStepFindingLoopsInStep.valuesIterator.flatMap(i => i.map(_.ifRetryNeeded.length)).toList)
 
@@ -249,20 +252,21 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
     allStepFindingLoopsInStep.valuesIterator.map(_.length).max
   }
 
-  def nRestore: String = getStepLoop(getRetryOperations, length, 1.toString).mkString(",")
-  def nFindStepOperations: String = getStepLoop(getLoopOperations, length, 1.toString).mkString(",")
-  def findStepLoopOperations: String = getStepLoop(getLoopOperations, encode, noOpEncoding).mkString("{", "}, {", "}")
-  def findStepLoopRestoreOperations: String = getStepLoop(getRetryOperations, encode, noOpEncoding).mkString("{", "}, {", "}")
+  def nRestore: String = getStepLoop(getRetryOperations, length, (l,_) => l, 1.toString).mkString(",")
+  def nFindStepOperations: String = getStepLoop(getLoopOperations, length, (l,_) => l, 1.toString).mkString(",")
+  def findStepLoopOperations: String = getStepLoop(getLoopOperations, encode, fillNoOps, noOpEncoding, maxFindStepOperations).mkString("{", "}, {", "}")
+  def findStepLoopRestoreOperations: String = getStepLoop(getRetryOperations, encode, fillNoOps, noOpEncoding, maxFindStepRestoreOperations).mkString("{", "}, {", "}")
 
-  def getStepLoop(op: StepLoop => List[CosimStepInstruction], f: (List[CosimStepInstruction], String) => String, defaultValue: String): List[String] = {
+  //TODO fix this
+  def getStepLoop(getOperations: StepLoop => List[CosimStepInstruction], format: (List[CosimStepInstruction], String) => String, fillList: (List[String], Int) => List[String], defaultValue: String, nTimes : Int = 1): List[String] = {
     (0 until nConfigs).map(id => {
       val configName = getConfigName(id)
       val configurationStepLoop = if (isAdaptive) allStepFindingLoopsInStep(configuration(id)._2) else allStepFindingLoopsInStep.values.head
-      if (configurationStepLoop.isEmpty) defaultValue else configurationStepLoop.map(x => f(op(x), configName)).mkString
+      if (configurationStepLoop.isEmpty) defaultValue else configurationStepLoop.map(x => format(getOperations(x), configName)).mkString(",")
     }).toList
   }
 
-  private def getConfigName(id: Int) = if (isAdaptive) configuration(id)._1 else loopOpsEncoding.keys.head
+  private def getConfigName(id: Int) = if (isAdaptive) configuration(id)._2 else loopOpsEncoding.keys.head
 
   def getARetryOperations(algebraicLoop: AlgebraicLoop): List[CosimStepInstruction] = algebraicLoop.ifRetryNeeded
   def getALoopOperations(algebraicLoop: AlgebraicLoop): List[CosimStepInstruction] = algebraicLoop.iterate
@@ -300,9 +304,8 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
   }
 
   def stepOperations: String = {
-    logger.info(loopOpsEncodingInverse)
     (0 until nConfigs).map(id => {
-      val configName = if (isAdaptive) configuration(id)._2 else loopOpsEncoding.keys.head
+      val configName = getConfigName(id)
       val cosimStep = if (isAdaptive) model.cosimStep(configuration(id)._2) else model.cosimStep.values.head
       fillNoOps(cosimStep.map(op => encodeOperation(op, configName)), maxStepOperations).mkString("{", ",", "}")
     }).mkString(",")
