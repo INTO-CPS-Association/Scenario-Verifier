@@ -27,17 +27,11 @@ case class SimpleAction(nodes: List[Node]) extends SCCType
 
 trait SynthesizerBase extends Logging {
   def FMUsStepped: mutable.HashSet[String]
-
   def FMUsSaved: mutable.HashSet[String]
-
   def FMUsMayRejectStepped: mutable.HashSet[String]
-
   def StepEdges: Map[String, Set[Edge[Node]]]
-
   def InitEdge: Set[Edge[Node]]
-
   def strategy: LoopStrategy
-
   def isAdaptive : Boolean
 
   def checkSCC(scc: List[Node], edges: Set[Edge[Node]]): SCCType = {
@@ -89,7 +83,6 @@ trait SynthesizerBase extends Logging {
 
     val tarjanGraph = new TarjanGraph[Node](edges)
 
-    //GraphVisualizer.plotGraph("Test_reduced", edges, tarjanGraph.topologicalSCC)
     val instructions = if (!tarjanGraph.hasCycle)
       tarjanGraph.topologicalSCC.flatMap(o => formatStepInstruction(o.head))
     else formatReactiveLoop(tarjanGraph.topologicalSCC.flatten, edges, true)

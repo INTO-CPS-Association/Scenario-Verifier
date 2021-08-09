@@ -229,19 +229,20 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
     }).mkString(",")
   }
 
-  val maxNRetryOperationsForAlgebraicLoopsInStep = maxOr1(allAlgebraicLoopsInStep.valuesIterator.flatMap(i => i.map(_.ifRetryNeeded.length)).toList)
-  val maxNConvergeOperationsForAlgebraicLoopsInStep = maxOr1(allAlgebraicLoopsInStep.valuesIterator.flatMap(i => i.map(_.untilConverged.length)).toList)
-  val maxNConvergeOperationsForAlgebraicLoopsInInit = maxOr1(allAlgebraicLoopsInInit.map(i => i.untilConverged.length))
+  val maxNRetryOperationsForAlgebraicLoopsInStep: Int = maxOr1(allAlgebraicLoopsInStep.valuesIterator.flatMap(i => i.map(_.ifRetryNeeded.length)).toList)
+  val maxNConvergeOperationsForAlgebraicLoopsInStep: Int = maxOr1(allAlgebraicLoopsInStep.valuesIterator.flatMap(i => i.map(_.untilConverged.length)).toList)
+  val maxNConvergeOperationsForAlgebraicLoopsInInit: Int = maxOr1(allAlgebraicLoopsInInit.map(i => i.untilConverged.length))
 
-  val allStepFindingLoopsInStep: Map[String, List[StepLoop]] = model.cosimStep.map(keyValue =>
+  val allStepFindingLoopsInStep: Map[String, List[StepLoop]] =
+    model.cosimStep.map(keyValue =>
     (keyValue._1, ModelQuery.recFilter(keyValue._2, i => i.isInstanceOf[StepLoop]).map(_.asInstanceOf[StepLoop])))
 
 
-  val maxFindStepOperations = maxOr1(allStepFindingLoopsInStep.valuesIterator.flatMap(i => i.map(_.iterate.length)).toList)
-  val maxFindStepRestoreOperations = maxOr1(allStepFindingLoopsInStep.valuesIterator.flatMap(i => i.map(_.ifRetryNeeded.length)).toList)
+  val maxFindStepOperations: Int = maxOr1(allStepFindingLoopsInStep.valuesIterator.flatMap(i => i.map(_.iterate.length)).toList)
+  val maxFindStepRestoreOperations: Int = maxOr1(allStepFindingLoopsInStep.valuesIterator.flatMap(i => i.map(_.ifRetryNeeded.length)).toList)
 
 
-  val nTerminationOperations = model.terminate.length
+  val nTerminationOperations: Int = model.terminate.length
 
   val nStepFinding: Int = {
     assert(allStepFindingLoopsInStep.valuesIterator.map(_.length).max <= 1, "More than one step finding loop is not supported yet.")
@@ -299,11 +300,12 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
   }
 
   def stepOperations: String = {
+    logger.info(loopOpsEncodingInverse)
     (0 until nConfigs).map(id => {
-      val configName = if (isAdaptive) configuration(id)._1 else loopOpsEncoding.keys.head
+      val configName = if (isAdaptive) configuration(id)._2 else loopOpsEncoding.keys.head
       val cosimStep = if (isAdaptive) model.cosimStep(configuration(id)._2) else model.cosimStep.values.head
-      cosimStep.map(op => encodeOperation(op, configName)).mkString(",")
-    }).mkString("{", "}, {", "}")
+      fillNoOps(cosimStep.map(op => encodeOperation(op, configName)), maxStepOperations).mkString("{", ",", "}")
+    }).mkString(",")
   }
 
   def encodeOperation(op: CosimStepInstruction, config: String = ""): String = {

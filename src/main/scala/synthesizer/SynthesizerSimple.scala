@@ -9,8 +9,8 @@ import scala.collection.mutable
 class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrategy = maximum) extends SynthesizerBase {
   lazy val Configurations: Map[String, GraphBuilder] = {
     if (isAdaptive)
-      scenarioModel.config.configurations.map(keyValue => {
-        val affectedInputs = keyValue._2.inputs.groupBy(f => f._1.fmu)
+      scenarioModel.config.configurations.values.map(configuration => {
+        val affectedInputs = configuration.inputs.groupBy(f => f._1.fmu)
         val fmus =
           scenarioModel.fmus.map(fmu => {
             if (affectedInputs.keySet.contains(fmu._1)) {
@@ -26,8 +26,9 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
               fmu
           })
         val scenario = ScenarioModel(fmus, scenarioModel.config, scenarioModel.connections, scenarioModel.maxPossibleStepSize)
-        (keyValue._1, new GraphBuilder(scenario))
-      })
+
+        (configuration.cosimStep, new GraphBuilder(scenario))
+      }).toMap
     else Map("conf1" -> new GraphBuilder(scenarioModel))
   }
 
@@ -38,7 +39,7 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
   val StepEdges = Configurations.map(i => (i._1, i._2.stepEdges))
   val InitEdge = graphBuilder.initialEdges
   val strategy: LoopStrategy = chosenStrategy
-  val isAdaptive: Boolean = scenarioModel.config.configurableInputs.nonEmpty
+  lazy val isAdaptive: Boolean = scenarioModel.config.configurableInputs.nonEmpty
 
 
   def formatInitLoop(scc: List[Node]): InitializationInstruction = {
@@ -79,18 +80,14 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
     }
 
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](reducedEdges)
-    assert(!tarjanGraph.hasCycle, "Graph has after edges have been removed cycles")
+    assert(!tarjanGraph.hasCycle, "The graph does still contain cycles")
     val instructions = tarjanGraph.topologicalSCC.flatten.flatMap(formatStepInstruction(_, false)).filter(IsLoopInstruction)
     List(AlgebraicLoop(gets.map(i => i.port), instructions, List.empty))
   }
 
   def isTentative(action: Node, edges: Predef.Set[Edge[Node]]): Boolean = {
     if (action.isInstanceOf[GetNode]) return true
-    return if (!action.isInstanceOf[SetNode])
-      false
-    else {
-      edges.exists(e => e.trgNode == action && e.srcNode.isInstanceOf[GetNode])
-    }
+    if (!action.isInstanceOf[SetNode]) false else edges.exists(e => e.trgNode == action && e.srcNode.isInstanceOf[GetNode])
   }
 
   def formatReactiveLoop(scc: List[Node], edges: Predef.Set[Edge[Node]], isNested: Boolean): List[CosimStepInstruction] = {
@@ -110,7 +107,7 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
     }
 
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](reducedEdges)
-    assert(!tarjanGraph.hasCycle, "Graph has after edges have been removed cycles")
+    assert(!tarjanGraph.hasCycle, "The graph does still contain cycles")
 
     val instructions = tarjanGraph.topologicalSCC.flatten.flatMap(i => formatStepInstruction(i, isTentative(i, reducedEdges))).filter(IsLoopInstruction)
 
