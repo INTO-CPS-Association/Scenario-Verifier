@@ -52,4 +52,13 @@ class NegativeTests extends AnyFlatSpec with should.Matchers {
   "ScenarioGenerator" should  "catch problem for loop_within_loop_forgot_one_connection.conf" in {
     generateAndVerifyFail("common_mistakes/loop_within_loop_forgot_one_connection.conf")
   }
+
+  "ScenarioGenerator" should  "catch problem for incubator.conf" in {
+    generateAndVerifyFail("common_mistakes/incubator.conf")
+  }
+
+  "ScenarioGenerator" should  "catch problem in initialization for incubator1.conf" in {
+    generateAndVerifyFail("common_mistakes/incubator1.conf")
+  }
+
 }

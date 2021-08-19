@@ -77,9 +77,10 @@ class ModelEncoding(model: MasterModel) extends Logging {
       ((0 until inputs.size).map(idx =>
         if (inputPortConfig.keys.toList.contains(PortRef(f, inputEnc(idx))))
           inputPortConfig(PortRef(f, inputEnc(idx))).reactivity.toString
-        else
+        else {
           inputs(inputEnc(idx)).reactivity.toString
-      ) ++ (inputs.size until maxNInputs)).map(_ => "noPort").mkString(",")
+        }
+      ) ++ (inputs.size until maxNInputs).map(_ => "noPort")).mkString(",")
     }).mkString("{", "}, {", "}")
   }
 
@@ -163,9 +164,9 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
   val maxStepOperations = model.cosimStep.valuesIterator.map(_.length).max
 
   def fillNoOps(value: List[String], max: Int): List[String] = {
-    logger.info(value)
-    logger.info(s" ${max.toString} - ${value.size.toString} = ${(max - value.size).toString}")
-    value.foreach(logger.info(_))
+    //logger.info(value)
+    //logger.info(s" ${max.toString} - ${value.size.toString} = ${(max - value.size).toString}")
+    //value.foreach(logger.info(_))
     value ++ (0 until (max - value.length)).map(_ => encodeOperation(NoOP, ""))
   }
   def fillNoPorts(value: List[String], max: Int) = value ++ (0 until (max - value.length)).map(_ => "{ noFMU, noPort}")

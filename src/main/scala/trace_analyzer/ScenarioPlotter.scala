@@ -1,5 +1,6 @@
 package trace_analyzer
 
+import java.awt.Dimension
 import java.io.File
 
 import core.Reactivity.reactive
@@ -8,11 +9,13 @@ import guru.nidi.graphviz.attribute.{Color, Label, Shape, Style}
 import guru.nidi.graphviz.engine.{Format, Graphviz}
 import guru.nidi.graphviz.model.Factory.{graph, mutGraph, mutNode}
 import guru.nidi.graphviz.model.{MutableGraph, MutableNode}
+import org.apache.logging.log4j.scala.Logging
 import org.jcodec.api.awt.AWTSequenceEncoder
 
 import scala.collection.mutable.ListBuffer
+import scala.math.{ceil, log10, pow}
 
-object ScenarioPlotter {
+object ScenarioPlotter extends Logging {
 
   def feedthroughConnections(outputPortModel: OutputPortModel, state: ModelState): List[String] =
     if (state.isInitState) outputPortModel.dependenciesInit else outputPortModel.dependenciesInit
@@ -103,7 +106,7 @@ object ScenarioPlotter {
     mutNode(s"Possible Next Actions :")
       .add(Shape.BOX,
         Label.html(
-          f"<b>Possible Next Actions ${if(state.checksDisabled) "(Checks disabled)"}:</b><br/>" +
+          f"<b>Possible Next Actions ${if (state.checksDisabled) "(Checks disabled)"}:</b><br/>" +
             actions.sortBy(i => i.FMU).map(i => i.action()).mkString("<br/>")
         ))
   }
@@ -116,29 +119,38 @@ object ScenarioPlotter {
     val init_movie = new File(s"${outputDirectory}/init_${uppaalTrace.scenarioName}.mp4")
     makeAnimation(init_movie, uppaalTrace.initStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
 
-    val scenario_movie = new File(s"${outputDirectory}/simulation_${uppaalTrace.scenarioName}.mp4")
-    makeAnimation(scenario_movie, uppaalTrace.simulationStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
+    if(uppaalTrace.simulationStates.nonEmpty){
+      val scenario_movie = new File(s"${outputDirectory}/simulation_${uppaalTrace.scenarioName}.mp4")
+      makeAnimation(scenario_movie, uppaalTrace.simulationStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
+    }
+  }
+
+  def getDimensions(state: ModelState, modelEncoding: ModelEncoding, scenarioName: String): dimensions = {
+    val g = createGraphOfState(state, null, List.empty, modelEncoding, scenarioName)
+    val image = Graphviz.fromGraph(g).render(Format.PNG).toImage
+    val log2 = (x: Double) => log10(x) / log10(2.0)
+    dimensions(pow(2, ceil(log2(image.getHeight))).toInt, pow(2, ceil(log2(image.getWidth))).toInt)
   }
 
   def makeAnimation(movie: File, states: Seq[ModelState], modelEncoding: ModelEncoding, scenarioName: String): Unit = {
     val encoder = AWTSequenceEncoder.createSequenceEncoder(movie, 1)
     var currentAction: SUAction = null
     val performedActions = ListBuffer[SUAction]()
+    val dimensions: dimensions = getDimensions(states.head, modelEncoding, scenarioName)
+
     states.indices.foreach(i => {
       val state = states(i)
       val g = createGraphOfState(state, currentAction, state.possibleActions
-        .filterNot(act => if(state.checksDisabled) false else performedActions.exists(per => per.actionNumber == act.actionNumber && per.FMU == act.FMU && act.Port == per.Port)), modelEncoding, scenarioName)
-      val nNodes = g.nodes().size()
-      val height = nNodes * 30
-      val width = nNodes * 30
-
-      encoder.encodeImage(Graphviz.fromGraph(g).height(height).width(width).render(Format.PNG).toImage)
+        .filterNot(act => if (state.checksDisabled) false else performedActions.exists(per => per.actionNumber == act.actionNumber && per.FMU == act.FMU && act.Port == per.Port)), modelEncoding, scenarioName)
+      encoder.encodeImage(Graphviz.fromGraph(g).height(dimensions.height).width(dimensions.width).render(Format.PNG).toImage)
       currentAction = state.action
       performedActions += currentAction
-      if(state == states.last)
+      if (state == states.last)
         Graphviz.fromGraph(g).render(Format.SVG).toFile(new File(String.format("example/%s.svg", scenarioName)))
     })
     encoder.finish()
   }
+
+  case class dimensions(val height: Int, val width: Int)
 
 }

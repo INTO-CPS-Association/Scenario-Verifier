@@ -9,7 +9,7 @@ import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import trace_analyzer.TraceAnalyzer
 
-@Ignore
+//@Ignore
 class TraceTester extends AnyFlatSpec with should.Matchers {
   def writeToTempFile(content: String) = {
     val file = Files.createTempFile("uppaal_", ".xml").toFile
@@ -27,7 +27,6 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
     val result = ScenarioGenerator.generate(encoding)
     val f = writeToTempFile(result)
     val traceFile = Files.createTempFile("trace_", ".log").toFile
-
     val outputFolder = Paths.get("example")
     if (!Files.exists(outputFolder))
       Files.createDirectory(outputFolder)
@@ -69,4 +68,11 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
     generateTrace("examples/loop_within_loop_alt.conf", "Example master that has a loop within a loop")
   }
 
+  it should "work for incubator.conf" in {
+    generateTrace("common_mistakes/incubator.conf", "Incubator video")
+  }
+
+  it should "work for incubator1.conf" in {
+    generateTrace("common_mistakes/incubator1.conf", "Incubator1 video")
+  }
 }

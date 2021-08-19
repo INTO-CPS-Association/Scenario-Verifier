@@ -1,15 +1,12 @@
-import java.io.{InputStreamReader, PrintWriter}
+import java.io.{File, PrintWriter}
 import java.nio.file.Files
 
 import cli.VerifyTA
-import com.typesafe.config.ConfigFactory
-import core.{MasterConfig, ModelEncoding, ScenarioGenerator, ScenarioLoader}
+import core.{MasterModel, ModelEncoding, ScenarioGenerator, ScenarioLoader}
+import io.circe.syntax._
 import org.apache.commons.io.FileUtils
-import org.scalatest.Ignore
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import pureconfig.ConfigSource
-import pureconfig.generic.auto._
 
 class PositiveTests extends AnyFlatSpec with should.Matchers {
 
@@ -19,9 +16,16 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
     file
   }
 
+  def writeToJsonFile(content: String, name: String) = {
+    val file = new File(name)
+    new PrintWriter(file) { write(content); close() }
+    file
+  }
   def generateAndVerify(resourcesFile: String) = {
     val conf = getClass.getResourceAsStream(resourcesFile)
-    val encoding = new ModelEncoding(ScenarioLoader.load(conf))
+    val masterModel = ScenarioLoader.load(conf)
+    //writeToJsonFile(masterModel.asJson.noSpaces, masterModel.name + ".json")
+    val encoding = new ModelEncoding(masterModel)
     val result = ScenarioGenerator.generate(encoding)
     val f = writeToTempFile(result)
     assert(VerifyTA.checkEnvironment())
@@ -77,4 +81,7 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
     generateAndVerify("examples/loop_within_loop.conf")
   }
 
+  it should "work for incubator.conf" in {
+    generateAndVerify("common_mistakes/incubator.conf")
+  }
 }
