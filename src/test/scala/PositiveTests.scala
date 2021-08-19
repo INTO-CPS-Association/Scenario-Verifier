@@ -4,6 +4,7 @@ import java.nio.file.Files
 import cli.VerifyTA
 import core.{MasterModel, ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import io.circe.syntax._
+import io.circe.generic.auto._
 import org.apache.commons.io.FileUtils
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
@@ -24,7 +25,7 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
   def generateAndVerify(resourcesFile: String) = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
-    //writeToJsonFile(masterModel.asJson.noSpaces, masterModel.name + ".json")
+    val jsonFile = writeToJsonFile(masterModel.asJson.noSpaces, masterModel.name + ".json")
     val encoding = new ModelEncoding(masterModel)
     val result = ScenarioGenerator.generate(encoding)
     val f = writeToTempFile(result)
@@ -79,9 +80,5 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
 
   it should "work for loop_within_loop.conf" in {
     generateAndVerify("examples/loop_within_loop.conf")
-  }
-
-  it should "work for incubator.conf" in {
-    generateAndVerify("common_mistakes/incubator.conf")
   }
 }

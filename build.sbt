@@ -16,6 +16,15 @@ developers := List(Developer("SimplisticCode", "SimplisticCode", "sth@ece.au.dk"
 licenses += ("INTO-CPS-LICENSE", url("https://github.com/INTO-CPS-Association/Scenario-Verifier/blob/master/LICENSE"))
 publishMavenStyle := true
 
+
+val circeVersion = "0.14.1"
+
+libraryDependencies ++= Seq(
+  "io.circe" %% "circe-core",
+  "io.circe" %% "circe-generic",
+  "io.circe" %% "circe-parser"
+).map(_ % circeVersion)
+
 // disable publish with scala version, otherwise artifact name will include scala version
 //crossPaths := false
 
