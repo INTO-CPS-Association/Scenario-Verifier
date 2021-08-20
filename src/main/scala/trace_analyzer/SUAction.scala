@@ -1,5 +1,6 @@
 package trace_analyzer
 
+import cats.kernel.Previous
 import core.ModelEncoding
 
 case class SUAction(val FMU: String = "", val actionNumber: Int = -1, Port: String = "", stepSize: Int = -1, relative_step_size: Int = -1, commitment: Int = -1) {
@@ -33,7 +34,8 @@ class ModelState(val checksDisabled: Boolean, val loopActive: Boolean, val timeS
                  val action: SUAction,
                  val possibleActions: List[SUAction],
                  val isInitState: Boolean,
-                 val isSimulation: Boolean) {
+                 val isSimulation: Boolean,
+                 val previous: Option[SUAction] = None) {
 
   def canStep(fmuName: String) = {
     val fmu = FMUs.find(_.name == fmuName).get

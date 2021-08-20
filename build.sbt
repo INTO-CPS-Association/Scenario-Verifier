@@ -25,6 +25,21 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-parser"
 ).map(_ % circeVersion)
 
+
+
+libraryDependencies +=
+  "org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.3"
+
+libraryDependencies ++= {
+  CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((2, major)) if major <= 12 =>
+      Seq()
+    case _ =>
+      Seq("org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.3")
+  }
+}
+
+
 // disable publish with scala version, otherwise artifact name will include scala version
 //crossPaths := false
 

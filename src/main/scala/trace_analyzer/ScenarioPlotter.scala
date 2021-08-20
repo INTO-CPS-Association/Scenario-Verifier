@@ -1,6 +1,5 @@
 package trace_analyzer
 
-import java.awt.Dimension
 import java.io.File
 
 import core.Reactivity.reactive
@@ -11,6 +10,7 @@ import guru.nidi.graphviz.model.Factory.{graph, mutGraph, mutNode}
 import guru.nidi.graphviz.model.{MutableGraph, MutableNode}
 import org.apache.logging.log4j.scala.Logging
 import org.jcodec.api.awt.AWTSequenceEncoder
+import scala.collection.parallel.CollectionConverters._
 
 import scala.collection.mutable.ListBuffer
 import scala.math.{ceil, log10, pow}
@@ -21,10 +21,10 @@ object ScenarioPlotter extends Logging {
     if (state.isInitState) outputPortModel.dependenciesInit else outputPortModel.dependenciesInit
 
 
-  def isCurrent(action: SUAction, fmu: String, port: String): Boolean = action != null && action.FMU == fmu && action.Port == port
+  def isCurrent(action: Option[SUAction], fmu: String, port: String): Boolean = action.isDefined && action.get.FMU == fmu && action.get.Port == port
 
   //Todo Should be merged
-  def createInputNode(fmu: String, portName: String, isReactive: Boolean, action: SUAction, state: ModelState): MutableNode = {
+  def createInputNode(fmu: String, portName: String, isReactive: Boolean, action: Option[SUAction], state: ModelState): MutableNode = {
     val nodeName = fmu + "." + portName
     mutNode(nodeName)
       .add(if (isCurrent(action, fmu, portName)) Color.RED
@@ -36,10 +36,11 @@ object ScenarioPlotter extends Logging {
           if (isReactive) "R" else "D"))
   }
 
-  def createOutputNode(fmu: String, portName: String, action: SUAction, state: ModelState): MutableNode = {
+  def createOutputNode(fmu: String, portName: String, action: Option[SUAction], state: ModelState): MutableNode = {
     val nodeName = fmu + "." + portName
     mutNode(nodeName)
-      .add(if (isCurrent(action, fmu, portName)) Color.RED
+      .add(
+        if (isCurrent(action, fmu, portName)) Color.RED
       else if (state.isDefinedOutputState(fmu, portName)) Color.BLACK else Color.WHITE,
         Shape.BOX,
         Label.lines(nodeName,
@@ -47,7 +48,7 @@ object ScenarioPlotter extends Logging {
   }
 
 
-  def createGraphOfState(state: ModelState, currentAction: SUAction, possibleActions: List[SUAction], modelEncoding: ModelEncoding, name: String): MutableGraph = {
+  def createGraphOfState(state: ModelState, currentAction: Option[SUAction], possibleActions: List[SUAction], modelEncoding: ModelEncoding, name: String): MutableGraph = {
     val g = mutGraph(name).setDirected(true)
     modelEncoding.fmuModels.foreach(fmu => {
       val FMUName = fmu._1
@@ -76,8 +77,6 @@ object ScenarioPlotter extends Logging {
 
     g.add(actionNode(state, currentAction))
     g.add(possibleAction(state, possibleActions))
-
-    //g.add(createLegend())
   }
 
   def createLegend(): MutableNode = {
@@ -91,11 +90,11 @@ object ScenarioPlotter extends Logging {
         ))
   }
 
-  private def actionNode(state: ModelState, currentAction: SUAction): MutableNode = {
+  private def actionNode(state: ModelState, currentAction: Option[SUAction]): MutableNode = {
     mutNode(state.action.action())
       .add(Shape.DIAMOND, Label.lines(
         if (state.isInitState) "Initialization" else "Simulation",
-        if (currentAction != null) f"Current Action: ${currentAction.action()}" else "",
+        if (currentAction.isDefined) f"Current Action: ${currentAction.get.action()}" else "",
         f"Next Action: ${state.action.action()}",
         if (state.isInitState) "" else s"Timestamp: ${state.timeStamp}",
         if (state.loopActive) "Solving Algebraic loop" else ""
@@ -116,17 +115,18 @@ object ScenarioPlotter extends Logging {
   }
 
   def plot(uppaalTrace: UppaalTrace, outputDirectory: String): Unit = {
-    val init_movie = new File(s"${outputDirectory}/init_${uppaalTrace.scenarioName}.mp4")
-    makeAnimation(init_movie, uppaalTrace.initStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
-
     if(uppaalTrace.simulationStates.nonEmpty){
       val scenario_movie = new File(s"${outputDirectory}/simulation_${uppaalTrace.scenarioName}.mp4")
       makeAnimation(scenario_movie, uppaalTrace.simulationStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
+    }else{
+      val init_movie = new File(s"${outputDirectory}/init_${uppaalTrace.scenarioName}.mp4")
+      makeAnimation(init_movie, uppaalTrace.initStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
+
     }
   }
 
   def getDimensions(state: ModelState, modelEncoding: ModelEncoding, scenarioName: String): dimensions = {
-    val g = createGraphOfState(state, null, List.empty, modelEncoding, scenarioName)
+    val g = createGraphOfState(state, None, List.empty, modelEncoding, scenarioName)
     val image = Graphviz.fromGraph(g).render(Format.PNG).toImage
     val log2 = (x: Double) => log10(x) / log10(2.0)
     dimensions(pow(2, ceil(log2(image.getHeight))).toInt, pow(2, ceil(log2(image.getWidth))).toInt)
@@ -134,20 +134,28 @@ object ScenarioPlotter extends Logging {
 
   def makeAnimation(movie: File, states: Seq[ModelState], modelEncoding: ModelEncoding, scenarioName: String): Unit = {
     val encoder = AWTSequenceEncoder.createSequenceEncoder(movie, 1)
-    var currentAction: SUAction = null
-    val performedActions = ListBuffer[SUAction]()
+    var previousAction: Option[SUAction] = None
+    val performedActions = ListBuffer.empty[SUAction]
     val dimensions: dimensions = getDimensions(states.head, modelEncoding, scenarioName)
-
-    states.indices.foreach(i => {
-      val state = states(i)
-      val g = createGraphOfState(state, currentAction, state.possibleActions
-        .filterNot(act => if (state.checksDisabled) false else performedActions.exists(per => per.actionNumber == act.actionNumber && per.FMU == act.FMU && act.Port == per.Port)), modelEncoding, scenarioName)
-      encoder.encodeImage(Graphviz.fromGraph(g).height(dimensions.height).width(dimensions.width).render(Format.PNG).toImage)
-      currentAction = state.action
-      performedActions += currentAction
-      if (state == states.last)
-        Graphviz.fromGraph(g).render(Format.SVG).toFile(new File(String.format("example/%s.svg", scenarioName)))
+    val enrichedStates = ListBuffer.empty[ModelState]
+    states.foreach(state => {
+      val filteredActions = state.possibleActions
+        .filterNot(act => if (state.checksDisabled) false else performedActions.exists(per => per.actionNumber == act.actionNumber && per.FMU == act.FMU && act.Port == per.Port))
+      enrichedStates += new ModelState(state.checksDisabled, state.loopActive, state.timeStamp, state.FMUs, state.action, filteredActions, state.isInitState, state.isSimulation, previousAction)
+      previousAction = Some(state.action)
+      performedActions += previousAction.get
     })
+
+   val slices =  Range(0, enrichedStates.length, 150).map(n => enrichedStates.slice(n, n + 150))
+
+    slices.foreach(slice => {
+      val images = slice.par.map(state => {
+        val g = createGraphOfState(state, state.previous, state.possibleActions, modelEncoding, scenarioName)
+        Graphviz.fromGraph(g).height(dimensions.height).width(dimensions.width).render(Format.PNG).toImage
+      }).toList
+      images.foreach(encoder.encodeImage)
+    })
+
     encoder.finish()
   }
 
