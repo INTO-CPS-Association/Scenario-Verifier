@@ -1,30 +1,13 @@
-import java.io.{File, PrintWriter}
-import java.nio.file.Files
-
-import cli.VerifyTA
-import core.{MasterModel, MasterModelDTO, ModelEncoding, ScenarioGenerator, ScenarioLoader}
-import org.apache.commons.io.FileUtils
+import api.VerificationAPI
+import core.ScenarioLoader
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 
 class PositiveTests extends AnyFlatSpec with should.Matchers {
-
-  def writeToTempFile(content: String) = {
-    val file = Files.createTempFile("uppaal_", ".xml").toFile
-    new PrintWriter(file) { write(content); close() }
-    file
-  }
-
-
   def generateAndVerify(resourcesFile: String) = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
-    val encoding = new ModelEncoding(masterModel)
-    val result = ScenarioGenerator.generate(encoding)
-    val f = writeToTempFile(result)
-    assert(VerifyTA.checkEnvironment())
-    VerifyTA.verify(f) should be (0)
-    FileUtils.deleteQuietly(f)
+    assert(VerificationAPI.verifyAlgorithm(masterModel))
   }
 
   "ScenarioGenerator" should "work for simple_master.conf" in {

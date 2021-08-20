@@ -1,6 +1,7 @@
 import java.io.PrintWriter
 import java.nio.file.{Files, Paths}
 
+import api.VerificationAPI
 import cli.VerifyTA
 import core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
@@ -11,35 +12,12 @@ import trace_analyzer.TraceAnalyzer
 
 //@Ignore
 class TraceTester extends AnyFlatSpec with should.Matchers {
-  def writeToTempFile(content: String) = {
-    val file = Files.createTempFile("uppaal_", ".xml").toFile
-    new PrintWriter(file) {
-      write(content);
-      close()
-    }
-    file
-  }
 
   def generateTrace(scenarioPath: String, scenarioName: String) = {
     val conf = getClass.getResourceAsStream(scenarioPath)
-    val encoding = new ModelEncoding(ScenarioLoader.load(conf))
-
-    val result = ScenarioGenerator.generate(encoding)
-    val f = writeToTempFile(result)
-    val traceFile = Files.createTempFile("trace_", ".log").toFile
-    val outputFolder = Paths.get("example")
-    if (!Files.exists(outputFolder))
-      Files.createDirectory(outputFolder)
-    assert(VerifyTA.checkEnvironment())
-    VerifyTA.saveTraceToFile(f, traceFile)
-    FileUtils.deleteQuietly(f)
-    val source = scala.io.Source.fromFile(traceFile)
-    try {
-      val lines = source.getLines()
-      TraceAnalyzer.AnalyseScenario(scenarioName, lines, encoding, outputFolder.getFileName.toString)
-    }
-    finally source.close()
-    FileUtils.deleteQuietly(traceFile)
+    val masterModel = ScenarioLoader.load(conf)
+    val file = VerificationAPI.generateTraceFromMasterModel(masterModel)
+    assert(file.exists())
   }
 
   "TraceTester" should "work for simple master" in {

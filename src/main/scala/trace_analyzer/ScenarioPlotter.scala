@@ -121,8 +121,16 @@ object ScenarioPlotter extends Logging {
     }else{
       val init_movie = new File(s"${outputDirectory}/init_${uppaalTrace.scenarioName}.mp4")
       makeAnimation(init_movie, uppaalTrace.initStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
-
     }
+  }
+
+  def plot(uppaalTrace: UppaalTrace, file: File): File = {
+    if(uppaalTrace.simulationStates.nonEmpty){
+      makeAnimation(file, uppaalTrace.simulationStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
+    }else{
+      makeAnimation(file, uppaalTrace.initStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
+    }
+    file
   }
 
   def getDimensions(state: ModelState, modelEncoding: ModelEncoding, scenarioName: String): dimensions = {

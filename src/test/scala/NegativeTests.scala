@@ -3,9 +3,10 @@ import core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-
 import java.io.PrintWriter
 import java.nio.file.Files
+
+import api.VerificationAPI
 
 class NegativeTests extends AnyFlatSpec with should.Matchers {
 
@@ -17,12 +18,8 @@ class NegativeTests extends AnyFlatSpec with should.Matchers {
 
   def generateAndVerifyFail(resourcesFile: String) = {
     val conf = getClass.getResourceAsStream(resourcesFile)
-    val encoding = new ModelEncoding(ScenarioLoader.load(conf))
-    val result = ScenarioGenerator.generate(encoding)
-    val f = writeToTempFile(result)
-    assert(VerifyTA.checkEnvironment())
-    VerifyTA.verify(f) should be (1)
-    FileUtils.deleteQuietly(f)
+    val masterModel = ScenarioLoader.load(conf)
+    assert(!VerificationAPI.verifyAlgorithm(masterModel))
   }
 
   "ScenarioGenerator" should "catch problem with simple_master_reactivity.conf" in {
