@@ -21,6 +21,7 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
   "Synthesizer" should "create valid Master Algorithm for Step finding Adaptive Master" in {
     synthesizeAndVerify("examples_no_algorithm/step_finding_loop_adaptive.conf")
   }
+
   /*
   "Synthesizer" should "create valid Master Algorithm for Complex Adaptive Master" in {
     synthesizeAndVerify("examples_no_algorithm/complex_master_adaptive.conf")
@@ -55,31 +56,29 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     }
 
     "Synthesizer" should "create valid Gauss Seidel Step procedure for Algebraic Loop" in {
-      synthesizeAndVerify("examples/algebraic_loop_msd_gs.conf", minimum)
+      synthesizeAndVerify("examples/algebraic_loop_msd_gs.conf")
       //synthesizeOptAndVerify("examples/algebraic_loop_msd_gs.conf", minimum)
     }
 
     "Synthesizer" should "create valid Step Finding procedure for Step Loop" in {
-      synthesizeAndVerify("examples/step_finding_loop_msd_1.conf", minimum)
-      //synthesizeOptAndVerify("examples/step_finding_loop_msd_1.conf", minimum)
+      synthesizeAndVerify("examples/step_finding_loop_msd_1.conf")
     }
 
 
     "Synthesizer" should "create a valid Step Finding And Algebraic procedure for Combined Step and Jac Algebraic" in {
-      synthesizeAndVerify("examples/loop_within_loop.conf", maximum)
-      //synthesizeOptAndVerify("examples/loop_within_loop.conf", maximum)
+      synthesizeAndVerify("examples/loop_within_loop.conf")
     }
 
     "Synthesizer" should "create valid Step Finding procedure for Step Loop only delayed ports" in {
-      synthesizeAndVerify("examples_no_algorithm/step_finding_loop_two_delayed.conf", maximum)
+      synthesizeAndVerify("examples_no_algorithm/step_finding_loop_two_delayed.conf")
     }
 
     "Synthesizer" should "create valid Step Finding procedure for Step Loop three delayed FMUs" in {
-      synthesizeAndVerify("examples_no_algorithm/step_finding_loop_three_delayed.conf", maximum)
+      synthesizeAndVerify("examples_no_algorithm/step_finding_loop_three_delayed.conf")
     }
 
     "Synthesizer" should "create valid Feedthrough Loop" in {
-      synthesizeAndVerify("examples_no_algorithm/algebraic_loop_feedthrough.conf", maximum)
+      synthesizeAndVerify("examples_no_algorithm/algebraic_loop_feedthrough.conf")
     }
 
    */

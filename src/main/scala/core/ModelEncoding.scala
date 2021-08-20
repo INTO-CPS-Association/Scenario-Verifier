@@ -164,9 +164,6 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
   val maxStepOperations = model.cosimStep.valuesIterator.map(_.length).max
 
   def fillNoOps(value: List[String], max: Int): List[String] = {
-    //logger.info(value)
-    //logger.info(s" ${max.toString} - ${value.size.toString} = ${(max - value.size).toString}")
-    //value.foreach(logger.info(_))
     value ++ (0 until (max - value.length)).map(_ => encodeOperation(NoOP, ""))
   }
   def fillNoPorts(value: List[String], max: Int) = value ++ (0 until (max - value.length)).map(_ => "{ noFMU, noPort}")
@@ -253,17 +250,26 @@ val noFeedThrough : String = "{noFMU, noPort, noPort}"
     allStepFindingLoopsInStep.valuesIterator.map(_.length).max
   }
 
-  def nRestore: String = getStepLoop(getRetryOperations, length, (l,_) => l, 1.toString).mkString(",")
-  def nFindStepOperations: String = getStepLoop(getLoopOperations, length, (l,_) => l, 1.toString).mkString(",")
-  def findStepLoopOperations: String = getStepLoop(getLoopOperations, encode, fillNoOps, noOpEncoding, maxFindStepOperations).mkString("{", "}, {", "}")
-  def findStepLoopRestoreOperations: String = getStepLoop(getRetryOperations, encode, fillNoOps, noOpEncoding, maxFindStepRestoreOperations).mkString("{", "}, {", "}")
+  def nRestore: String = getStepLoop(getRetryOperations, length, 1.toString).mkString(",")
+  def nFindStepOperations: String = getStepLoop(getLoopOperations, length, 1.toString).mkString(",")
+  def findStepLoopOperations: String = getStepLoopOperations(getLoopOperations, encodeList, fillNoOps, noOpEncoding, maxFindStepOperations).mkString(",")
+  def findStepLoopRestoreOperations: String = getStepLoopOperations(getRetryOperations, encodeList, fillNoOps, noOpEncoding, maxFindStepRestoreOperations).mkString(",")
 
   //TODO fix this
-  def getStepLoop(getOperations: StepLoop => List[CosimStepInstruction], format: (List[CosimStepInstruction], String) => String, fillList: (List[String], Int) => List[String], defaultValue: String, nTimes : Int = 1): List[String] = {
+  def getStepLoop(getOperations: StepLoop => List[CosimStepInstruction], format: (List[CosimStepInstruction], String) => String, defaultValue: String): List[String] = {
     (0 until nConfigs).map(id => {
       val configName = getConfigName(id)
       val configurationStepLoop = if (isAdaptive) allStepFindingLoopsInStep(configuration(id)._2) else allStepFindingLoopsInStep.values.head
       if (configurationStepLoop.isEmpty) defaultValue else configurationStepLoop.map(x => format(getOperations(x), configName)).mkString(",")
+    }).toList
+  }
+
+  def getStepLoopOperations(getOperations: StepLoop => List[CosimStepInstruction], format: (List[CosimStepInstruction], String) => List[String], fillList: (List[String], Int) => List[String], defaultValue: String, nTimes : Int = 1): List[String] = {
+    (0 until nConfigs).map(id => {
+      val configName = getConfigName(id)
+      val configurationStepLoop = if (isAdaptive) allStepFindingLoopsInStep(configuration(id)._2) else allStepFindingLoopsInStep.values.head
+      val list = if (configurationStepLoop.isEmpty) List(defaultValue) else format(getOperations(configurationStepLoop.head), configName)
+      fillList(list, nTimes).mkString("{", ",", "}")
     }).toList
   }
 
