@@ -9,13 +9,6 @@ import java.nio.file.Files
 import api.VerificationAPI
 
 class NegativeTests extends AnyFlatSpec with should.Matchers {
-
-  def writeToTempFile(content: String) = {
-    val file = Files.createTempFile("uppaal_", ".xml").toFile
-    new PrintWriter(file) { write(content); close() }
-    file
-  }
-
   def generateAndVerifyFail(resourcesFile: String) = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)

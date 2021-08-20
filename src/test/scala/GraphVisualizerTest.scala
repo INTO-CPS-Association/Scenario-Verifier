@@ -3,7 +3,7 @@ import org.scalatest.Ignore
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import synthesizer.{GraphBuilder, GraphVisualizer, Node, TarjanGraph}
-//@Ignore
+@Ignore
 class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
   def testGraph(file: String, name: String): Unit = {
     val conf = getClass.getResourceAsStream(file)

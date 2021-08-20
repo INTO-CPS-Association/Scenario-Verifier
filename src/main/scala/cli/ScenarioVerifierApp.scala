@@ -3,6 +3,7 @@ package cli
 import java.io.{BufferedWriter, File, FileWriter, PrintWriter}
 import java.nio.file.{Files, Paths}
 
+import api.GenerationAPI
 import core.{MasterModel, ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.scala.Logging
@@ -63,15 +64,9 @@ object ScenarioVerifierApp extends App with Logging {
       var masterModel = ScenarioLoader.load(config.master)
 
       if(config.generateAlgorithm){
-        val synthesizer = new SynthesizerSimple(masterModel.scenario)
-        val initialization = synthesizer.synthesizeInitialization()
-        val cosimStep = synthesizer.synthesizeStep()
-        //TODO fix adaptive
-        val master = MasterModel(masterModel.name, masterModel.scenario, masterModel.instantiation, initialization, cosimStep, masterModel.terminate)
+        masterModel = GenerationAPI.generateAlgorithm(masterModel.name, masterModel.scenario)
         FileUtils.deleteQuietly(new File(config.master))
-
-        writeFile(config.master, List(ScenarioConfGenerator.generate(master, masterModel.name)))
-        masterModel = ScenarioLoader.load(config.master)
+        writeFile(config.master, List(ScenarioConfGenerator.generate(masterModel, masterModel.name)))
       }
 
       logger.debug("Loaded model: ")

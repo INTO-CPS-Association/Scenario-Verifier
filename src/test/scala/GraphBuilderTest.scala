@@ -25,7 +25,7 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
     assert(nodes.size == (masterModel.initialization.size - scenario.fmus.size * 2))
 
     //All nodes are either get or set
-    assert(nodes.forall(n => n match {
+    assert(nodes.forall(_ match {
       case GetNode(_, _) => true
       case SetNode(_, _) => true
       case _ => false
@@ -54,13 +54,13 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
 
     val nodes = stepEdges.map(o => o.srcNode) ++ stepEdges.map(o => o.trgNode)
 
-    assert(nodes.count(i => i match {
+    assert(nodes.count(_ match {
       case DoStepNode(_) => true
       case _ => false
     }) == 2)
 
     assert(nodes.size == scenario.cosimStep.values.head.size)
-    assert(nodes.forall(n => n match {
+    assert(nodes.forall(_ match {
       case GetNode(_, _) => true
       case SetNode(_, _) => true
       case DoStepNode(_) => true

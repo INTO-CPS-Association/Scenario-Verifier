@@ -1,1 +1,460 @@
-{"name":"Master algorithm for MSD with algebraic loop across state variables.","scenario":{"fmus":{"msd1":{"inputs":{"fk":{"reactivity":"reactive"}},"outputs":{"x1":{"dependenciesInit":[],"dependencies":[]},"z":{"dependenciesInit":[],"dependencies":[]},"v1":{"dependenciesInit":[],"dependencies":[]}},"canRejectStep":false},"msd2":{"inputs":{"x1":{"reactivity":"reactive"},"v1":{"reactivity":"reactive"},"z":{"reactivity":"delayed"}},"outputs":{"fk":{"dependenciesInit":["x1","v1"],"dependencies":["x1","v1"]}},"canRejectStep":false},"msd3":{"inputs":{"A":{"reactivity":"reactive"}},"outputs":{"B":{"dependenciesInit":[],"dependencies":[]}},"canRejectStep":false},"msd4":{"inputs":{"A":{"reactivity":"reactive"}},"outputs":{"B":{"dependenciesInit":[],"dependencies":[]}},"canRejectStep":false}},"config":{"configurableInputs":[],"configurations":{}},"connections":[{"srcPort":{"fmu":"msd1","port":"x1"},"trgPort":{"fmu":"msd2","port":"x1"}},{"srcPort":{"fmu":"msd1","port":"v1"},"trgPort":{"fmu":"msd2","port":"v1"}},{"srcPort":{"fmu":"msd1","port":"z"},"trgPort":{"fmu":"msd2","port":"z"}},{"srcPort":{"fmu":"msd2","port":"fk"},"trgPort":{"fmu":"msd1","port":"fk"}},{"srcPort":{"fmu":"msd3","port":"B"},"trgPort":{"fmu":"msd4","port":"A"}},{"srcPort":{"fmu":"msd4","port":"B"},"trgPort":{"fmu":"msd3","port":"A"}}],"maxPossibleStepSize":1},"initialization":[{"InitGet":{"port":{"fmu":"msd1","port":"x1"}}},{"InitSet":{"port":{"fmu":"msd2","port":"x1"}}},{"InitGet":{"port":{"fmu":"msd1","port":"v1"}}},{"InitSet":{"port":{"fmu":"msd2","port":"v1"}}},{"InitGet":{"port":{"fmu":"msd2","port":"fk"}}},{"InitSet":{"port":{"fmu":"msd1","port":"fk"}}},{"InitGet":{"port":{"fmu":"msd1","port":"z"}}},{"InitSet":{"port":{"fmu":"msd2","port":"z"}}},{"InitGet":{"port":{"fmu":"msd3","port":"B"}}},{"InitSet":{"port":{"fmu":"msd4","port":"A"}}},{"InitGet":{"port":{"fmu":"msd4","port":"B"}}},{"InitSet":{"port":{"fmu":"msd3","port":"A"}}}],"cosimStep":{"cosim-step1":[{"SaveState":{"fmu":"msd1"}},{"SaveState":{"fmu":"msd2"}},{"AlgebraicLoop":{"untilConverged":[{"fmu":"msd1","port":"x1"},{"fmu":"msd1","port":"v1"},{"fmu":"msd2","port":"fk"}],"iterate":[{"Set":{"port":{"fmu":"msd2","port":"x1"}}},{"Set":{"port":{"fmu":"msd2","port":"v1"}}},{"Step":{"fmu":"msd2","by":{"DefaultStepSize":{}}}},{"GetTentative":{"port":{"fmu":"msd2","port":"fk"}}},{"SetTentative":{"port":{"fmu":"msd1","port":"fk"}}},{"Step":{"fmu":"msd1","by":{"DefaultStepSize":{}}}},{"GetTentative":{"port":{"fmu":"msd1","port":"x1"}}},{"GetTentative":{"port":{"fmu":"msd1","port":"v1"}}}],"ifRetryNeeded":[{"RestoreState":{"fmu":"msd1"}},{"RestoreState":{"fmu":"msd2"}}]}},{"Get":{"port":{"fmu":"msd1","port":"z"}}},{"Set":{"port":{"fmu":"msd2","port":"z"}}},{"SaveState":{"fmu":"msd3"}},{"SaveState":{"fmu":"msd4"}},{"AlgebraicLoop":{"untilConverged":[{"fmu":"msd3","port":"B"},{"fmu":"msd4","port":"B"}],"iterate":[{"Set":{"port":{"fmu":"msd4","port":"A"}}},{"Step":{"fmu":"msd4","by":{"DefaultStepSize":{}}}},{"GetTentative":{"port":{"fmu":"msd4","port":"B"}}},{"SetTentative":{"port":{"fmu":"msd3","port":"A"}}},{"Step":{"fmu":"msd3","by":{"DefaultStepSize":{}}}},{"GetTentative":{"port":{"fmu":"msd3","port":"B"}}}],"ifRetryNeeded":[{"RestoreState":{"fmu":"msd3"}},{"RestoreState":{"fmu":"msd4"}}]}}]}}
+{
+  "name": "Master algorithm for MSD with algebraic loop across state variables.",
+  "scenario": {
+    "fmus": {
+      "msd1": {
+        "inputs": {
+          "fk": {
+            "reactivity": "reactive"
+          }
+        },
+        "outputs": {
+          "x1": {
+            "dependenciesInit": [],
+            "dependencies": []
+          },
+          "z": {
+            "dependenciesInit": [],
+            "dependencies": []
+          },
+          "v1": {
+            "dependenciesInit": [],
+            "dependencies": []
+          }
+        },
+        "canRejectStep": false
+      },
+      "msd2": {
+        "inputs": {
+          "x1": {
+            "reactivity": "reactive"
+          },
+          "v1": {
+            "reactivity": "reactive"
+          },
+          "z": {
+            "reactivity": "delayed"
+          }
+        },
+        "outputs": {
+          "fk": {
+            "dependenciesInit": [
+              "x1",
+              "v1"
+            ],
+            "dependencies": [
+              "x1",
+              "v1"
+            ]
+          }
+        },
+        "canRejectStep": false
+      },
+      "msd3": {
+        "inputs": {
+          "A": {
+            "reactivity": "reactive"
+          }
+        },
+        "outputs": {
+          "B": {
+            "dependenciesInit": [],
+            "dependencies": []
+          }
+        },
+        "canRejectStep": false
+      },
+      "msd4": {
+        "inputs": {
+          "A": {
+            "reactivity": "reactive"
+          }
+        },
+        "outputs": {
+          "B": {
+            "dependenciesInit": [],
+            "dependencies": []
+          }
+        },
+        "canRejectStep": false
+      }
+    },
+    "config": {
+      "configurableInputs": [],
+      "configurations": {}
+    },
+    "connections": [
+      {
+        "srcPort": {
+          "fmu": "msd1",
+          "port": "x1"
+        },
+        "trgPort": {
+          "fmu": "msd2",
+          "port": "x1"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "msd1",
+          "port": "v1"
+        },
+        "trgPort": {
+          "fmu": "msd2",
+          "port": "v1"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "msd1",
+          "port": "z"
+        },
+        "trgPort": {
+          "fmu": "msd2",
+          "port": "z"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "msd2",
+          "port": "fk"
+        },
+        "trgPort": {
+          "fmu": "msd1",
+          "port": "fk"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "msd3",
+          "port": "B"
+        },
+        "trgPort": {
+          "fmu": "msd4",
+          "port": "A"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "msd4",
+          "port": "B"
+        },
+        "trgPort": {
+          "fmu": "msd3",
+          "port": "A"
+        }
+      }
+    ],
+    "maxPossibleStepSize": 1
+  },
+  "initialization": [
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd1",
+          "port": "x1"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd2",
+          "port": "x1"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd1",
+          "port": "v1"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd2",
+          "port": "v1"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd2",
+          "port": "fk"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd1",
+          "port": "fk"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd1",
+          "port": "z"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd2",
+          "port": "z"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd3",
+          "port": "B"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd4",
+          "port": "A"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd4",
+          "port": "B"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd3",
+          "port": "A"
+        }
+      }
+    }
+  ],
+  "cosimStep": {
+    "cosim-step1": [
+      {
+        "SaveState": {
+          "fmu": "msd1"
+        }
+      },
+      {
+        "SaveState": {
+          "fmu": "msd2"
+        }
+      },
+      {
+        "AlgebraicLoop": {
+          "untilConverged": [
+            {
+              "fmu": "msd1",
+              "port": "x1"
+            },
+            {
+              "fmu": "msd1",
+              "port": "v1"
+            },
+            {
+              "fmu": "msd2",
+              "port": "fk"
+            }
+          ],
+          "iterate": [
+            {
+              "Set": {
+                "port": {
+                  "fmu": "msd2",
+                  "port": "x1"
+                }
+              }
+            },
+            {
+              "Set": {
+                "port": {
+                  "fmu": "msd2",
+                  "port": "v1"
+                }
+              }
+            },
+            {
+              "Step": {
+                "fmu": "msd2",
+                "by": {
+                  "DefaultStepSize": {}
+                }
+              }
+            },
+            {
+              "GetTentative": {
+                "port": {
+                  "fmu": "msd2",
+                  "port": "fk"
+                }
+              }
+            },
+            {
+              "SetTentative": {
+                "port": {
+                  "fmu": "msd1",
+                  "port": "fk"
+                }
+              }
+            },
+            {
+              "Step": {
+                "fmu": "msd1",
+                "by": {
+                  "DefaultStepSize": {}
+                }
+              }
+            },
+            {
+              "GetTentative": {
+                "port": {
+                  "fmu": "msd1",
+                  "port": "x1"
+                }
+              }
+            },
+            {
+              "GetTentative": {
+                "port": {
+                  "fmu": "msd1",
+                  "port": "v1"
+                }
+              }
+            }
+          ],
+          "ifRetryNeeded": [
+            {
+              "RestoreState": {
+                "fmu": "msd1"
+              }
+            },
+            {
+              "RestoreState": {
+                "fmu": "msd2"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "Get": {
+          "port": {
+            "fmu": "msd1",
+            "port": "z"
+          }
+        }
+      },
+      {
+        "Set": {
+          "port": {
+            "fmu": "msd2",
+            "port": "z"
+          }
+        }
+      },
+      {
+        "SaveState": {
+          "fmu": "msd3"
+        }
+      },
+      {
+        "SaveState": {
+          "fmu": "msd4"
+        }
+      },
+      {
+        "AlgebraicLoop": {
+          "untilConverged": [
+            {
+              "fmu": "msd3",
+              "port": "B"
+            },
+            {
+              "fmu": "msd4",
+              "port": "B"
+            }
+          ],
+          "iterate": [
+            {
+              "Set": {
+                "port": {
+                  "fmu": "msd4",
+                  "port": "A"
+                }
+              }
+            },
+            {
+              "Step": {
+                "fmu": "msd4",
+                "by": {
+                  "DefaultStepSize": {}
+                }
+              }
+            },
+            {
+              "GetTentative": {
+                "port": {
+                  "fmu": "msd4",
+                  "port": "B"
+                }
+              }
+            },
+            {
+              "SetTentative": {
+                "port": {
+                  "fmu": "msd3",
+                  "port": "A"
+                }
+              }
+            },
+            {
+              "Step": {
+                "fmu": "msd3",
+                "by": {
+                  "DefaultStepSize": {}
+                }
+              }
+            },
+            {
+              "GetTentative": {
+                "port": {
+                  "fmu": "msd3",
+                  "port": "B"
+                }
+              }
+            }
+          ],
+          "ifRetryNeeded": [
+            {
+              "RestoreState": {
+                "fmu": "msd3"
+              }
+            },
+            {
+              "RestoreState": {
+                "fmu": "msd4"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
