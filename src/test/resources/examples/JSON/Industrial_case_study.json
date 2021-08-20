@@ -1,0 +1,481 @@
+{
+  "name": "Industial case study master algorithm",
+  "scenario": {
+    "fmus": {
+      "env": {
+        "inputs": {},
+        "outputs": {
+          "ref": {
+            "dependenciesInit": [],
+            "dependencies": []
+          },
+          "psu": {
+            "dependenciesInit": [],
+            "dependencies": []
+          }
+        },
+        "canRejectStep": false
+      },
+      "load": {
+        "inputs": {
+          "f": {
+            "reactivity": "delayed"
+          }
+        },
+        "outputs": {
+          "v": {
+            "dependenciesInit": [],
+            "dependencies": []
+          },
+          "xaft": {
+            "dependenciesInit": [],
+            "dependencies": []
+          },
+          "x": {
+            "dependenciesInit": [],
+            "dependencies": []
+          }
+        },
+        "canRejectStep": false
+      },
+      "ctrl": {
+        "inputs": {
+          "ref": {
+            "reactivity": "delayed"
+          },
+          "w": {
+            "reactivity": "delayed"
+          },
+          "xaft": {
+            "reactivity": "delayed"
+          }
+        },
+        "outputs": {
+          "o": {
+            "dependenciesInit": [],
+            "dependencies": []
+          }
+        },
+        "canRejectStep": false
+      },
+      "plant": {
+        "inputs": {
+          "x": {
+            "reactivity": "reactive"
+          },
+          "v": {
+            "reactivity": "reactive"
+          },
+          "o": {
+            "reactivity": "delayed"
+          },
+          "psu": {
+            "reactivity": "reactive"
+          }
+        },
+        "outputs": {
+          "w": {
+            "dependenciesInit": [
+              "v"
+            ],
+            "dependencies": [
+              "v"
+            ]
+          },
+          "f": {
+            "dependenciesInit": [
+              "v",
+              "x"
+            ],
+            "dependencies": [
+              "v",
+              "x"
+            ]
+          }
+        },
+        "canRejectStep": false
+      }
+    },
+    "config": {
+      "configurableInputs": [],
+      "configurations": {}
+    },
+    "connections": [
+      {
+        "srcPort": {
+          "fmu": "env",
+          "port": "psu"
+        },
+        "trgPort": {
+          "fmu": "plant",
+          "port": "psu"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "env",
+          "port": "ref"
+        },
+        "trgPort": {
+          "fmu": "ctrl",
+          "port": "ref"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "load",
+          "port": "xaft"
+        },
+        "trgPort": {
+          "fmu": "ctrl",
+          "port": "xaft"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "ctrl",
+          "port": "o"
+        },
+        "trgPort": {
+          "fmu": "plant",
+          "port": "o"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "plant",
+          "port": "w"
+        },
+        "trgPort": {
+          "fmu": "ctrl",
+          "port": "w"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "load",
+          "port": "x"
+        },
+        "trgPort": {
+          "fmu": "plant",
+          "port": "x"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "load",
+          "port": "v"
+        },
+        "trgPort": {
+          "fmu": "plant",
+          "port": "v"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "plant",
+          "port": "f"
+        },
+        "trgPort": {
+          "fmu": "load",
+          "port": "f"
+        }
+      }
+    ],
+    "maxPossibleStepSize": 1
+  },
+  "initialization": [
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "env",
+          "port": "psu"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "plant",
+          "port": "psu"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "env",
+          "port": "ref"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "ctrl",
+          "port": "ref"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "load",
+          "port": "xaft"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "ctrl",
+          "port": "xaft"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "ctrl",
+          "port": "o"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "plant",
+          "port": "o"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "load",
+          "port": "x"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "plant",
+          "port": "x"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "load",
+          "port": "v"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "plant",
+          "port": "v"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "plant",
+          "port": "w"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "ctrl",
+          "port": "w"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "plant",
+          "port": "f"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "load",
+          "port": "f"
+        }
+      }
+    }
+  ],
+  "cosimStep": {
+    "cosim-step1": [
+      {
+        "Get": {
+          "port": {
+            "fmu": "ctrl",
+            "port": "o"
+          }
+        }
+      },
+      {
+        "Step": {
+          "fmu": "load",
+          "by": {
+            "DefaultStepSize": {}
+          }
+        }
+      },
+      {
+        "Step": {
+          "fmu": "env",
+          "by": {
+            "DefaultStepSize": {}
+          }
+        }
+      },
+      {
+        "Step": {
+          "fmu": "ctrl",
+          "by": {
+            "DefaultStepSize": {}
+          }
+        }
+      },
+      {
+        "Get": {
+          "port": {
+            "fmu": "load",
+            "port": "x"
+          }
+        }
+      },
+      {
+        "Get": {
+          "port": {
+            "fmu": "load",
+            "port": "v"
+          }
+        }
+      },
+      {
+        "Get": {
+          "port": {
+            "fmu": "load",
+            "port": "xaft"
+          }
+        }
+      },
+      {
+        "Get": {
+          "port": {
+            "fmu": "env",
+            "port": "ref"
+          }
+        }
+      },
+      {
+        "Get": {
+          "port": {
+            "fmu": "env",
+            "port": "psu"
+          }
+        }
+      },
+      {
+        "Set": {
+          "port": {
+            "fmu": "plant",
+            "port": "v"
+          }
+        }
+      },
+      {
+        "Set": {
+          "port": {
+            "fmu": "plant",
+            "port": "x"
+          }
+        }
+      },
+      {
+        "Set": {
+          "port": {
+            "fmu": "plant",
+            "port": "psu"
+          }
+        }
+      },
+      {
+        "Set": {
+          "port": {
+            "fmu": "plant",
+            "port": "o"
+          }
+        }
+      },
+      {
+        "Step": {
+          "fmu": "plant",
+          "by": {
+            "DefaultStepSize": {}
+          }
+        }
+      },
+      {
+        "Get": {
+          "port": {
+            "fmu": "plant",
+            "port": "w"
+          }
+        }
+      },
+      {
+        "Get": {
+          "port": {
+            "fmu": "plant",
+            "port": "f"
+          }
+        }
+      },
+      {
+        "Set": {
+          "port": {
+            "fmu": "load",
+            "port": "f"
+          }
+        }
+      },
+      {
+        "Set": {
+          "port": {
+            "fmu": "ctrl",
+            "port": "w"
+          }
+        }
+      },
+      {
+        "Set": {
+          "port": {
+            "fmu": "ctrl",
+            "port": "xaft"
+          }
+        }
+      },
+      {
+        "Set": {
+          "port": {
+            "fmu": "ctrl",
+            "port": "ref"
+          }
+        }
+      }
+    ]
+  }
+}

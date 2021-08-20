@@ -2,14 +2,19 @@ package core
 
 import java.io.{File, InputStream, InputStreamReader}
 import java.nio.file.{Files, Paths}
+
 import com.typesafe.config.ConfigFactory
+import io.circe._
+import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
+import io.circe.jawn.decode
 import org.apache.logging.log4j.scala.Logging
+import pretty_print.PPrint
 import pureconfig.ConfigReader.Result
 import pureconfig.ConfigSource
-import pretty_print.PPrint
-import pureconfig.error.{ConfigReaderFailure, ConfigReaderFailures, ConvertFailure, UnknownKey}
+import pureconfig.error.{ConfigReaderFailure, ConvertFailure, UnknownKey}
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
+import io.circe.syntax._
 
 import scala.collection.immutable
 
@@ -26,6 +31,21 @@ object ScenarioLoader extends Logging {
     val masterConfig = extractMasterConfig(parsingResults)
     parse(masterConfig)
   }
+
+
+  def loadJson(is: InputStream): MasterModel = {
+    val string = scala.io.Source.fromInputStream(is).mkString
+    val dto  = decode[MasterModelDTO](string)
+    dto match {
+      case Right(masterModel) =>
+        enrichDTO(masterModel)
+      case Left(error) => {
+        throw new IllegalArgumentException(error.toString + "could not be parsed")
+      }
+    }
+  }
+
+
 
   def load(stream: InputStream): MasterModel = {
     val reader = new InputStreamReader(stream)
@@ -92,6 +112,19 @@ object ScenarioLoader extends Logging {
       }
     }
   }
+
+  def parse(masterModel: MasterModel): MasterModelDTO = {
+    val filteredInitializationActions = masterModel.initialization.filterNot(i => i.isInstanceOf[EnterInitMode] || i.isInstanceOf[ExitInitMode])
+    MasterModelDTO(masterModel.name, masterModel.scenario, filteredInitializationActions, masterModel.cosimStep)
+  }
+
+  def enrichDTO(masterModelDTO: MasterModelDTO): MasterModel = {
+    val instantiationModel = generateInstantiationInstructions(masterModelDTO.scenario).toList
+    val expandedInitModel = (generateEnterInitInstructions(masterModelDTO.scenario) ++ masterModelDTO.initialization ++ generateExitInitInstructions(masterModelDTO.scenario)).toList
+    val terminateModel = generateTerminateInstructions(masterModelDTO.scenario).toList
+    MasterModel(masterModelDTO.name, masterModelDTO.scenario, instantiationModel, expandedInitModel  , masterModelDTO.cosimStep, terminateModel)
+  }
+
 
   def generateEnterInitInstructions(model: ScenarioModel): immutable.Iterable[InitializationInstruction] = model.fmus.map(f => EnterInitMode(f._1))
 

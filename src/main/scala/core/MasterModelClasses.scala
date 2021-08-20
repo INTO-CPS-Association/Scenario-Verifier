@@ -101,6 +101,13 @@ case class MasterModel(
                         terminate: List[TerminationInstruction]
                       )
 
+case class MasterModelDTO(
+                        name: String,
+                        scenario: ScenarioModel,
+                        initialization: List[InitializationInstruction],
+                        cosimStep: Map[String, List[CosimStepInstruction]],
+                      )
+
 
 case class AdaptiveModel(
                           configurableInputs: List[PortRef],
@@ -113,9 +120,9 @@ case class ConfigurationModel(
                              )
 
 
-object MasterModel {
-  implicit val masterModelEncoder : Encoder.AsObject[MasterModel] = deriveEncoder[MasterModel]
-  implicit val masterModelDecoder : Decoder[MasterModel] = deriveDecoder[MasterModel]
+object MasterModelDTO {
+  implicit val masterModelEncoder : Encoder.AsObject[MasterModelDTO] = deriveEncoder[MasterModelDTO]
+  implicit val masterModelDecoder : Decoder[MasterModelDTO] = deriveDecoder[MasterModelDTO]
 
   implicit val portRefKeyEncoder: KeyEncoder[PortRef] = (portRef: PortRef) => portRef.fmu + "." + portRef.port
   implicit val portRefKeyDecoder: KeyDecoder[PortRef] = (portRef: String) => {
@@ -125,6 +132,8 @@ object MasterModel {
 
   implicit val reactiveDecoder: Decoder[Reactivity.Value] = Decoder.decodeEnumeration(Reactivity)
   implicit val reactiveEncoder: Encoder[Reactivity.Value] = Encoder.encodeEnumeration(Reactivity)
+
+
 
 }
 

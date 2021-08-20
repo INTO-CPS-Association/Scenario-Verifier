@@ -2,9 +2,7 @@ import java.io.{File, PrintWriter}
 import java.nio.file.Files
 
 import cli.VerifyTA
-import core.{MasterModel, ModelEncoding, ScenarioGenerator, ScenarioLoader}
-import io.circe.syntax._
-import io.circe.generic.auto._
+import core.{MasterModel, MasterModelDTO, ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
@@ -17,15 +15,10 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
     file
   }
 
-  def writeToJsonFile(content: String, name: String) = {
-    val file = new File(name)
-    new PrintWriter(file) { write(content); close() }
-    file
-  }
+
   def generateAndVerify(resourcesFile: String) = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
-    val jsonFile = writeToJsonFile(masterModel.asJson.noSpaces, masterModel.name + ".json")
     val encoding = new ModelEncoding(masterModel)
     val result = ScenarioGenerator.generate(encoding)
     val f = writeToTempFile(result)
