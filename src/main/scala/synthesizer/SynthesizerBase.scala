@@ -127,7 +127,9 @@ trait SynthesizerBase extends Logging {
       val edges = keyValue._2
       val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edges)
       val SCCs = tarjanGraph.topologicalSCC
-      (keyValue._1, handleSCC(SCCs, edges, List[CosimStepInstruction]()))
+      FMUsSaved.empty
+      FMUsStepped.empty
+      (keyValue._1, handleSCC(SCCs, edges, List.empty[CosimStepInstruction]))
     })
   }
 

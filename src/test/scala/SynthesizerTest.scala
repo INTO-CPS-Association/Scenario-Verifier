@@ -1,6 +1,7 @@
 import java.io.{File, PrintWriter}
 import java.nio.file.Files
 
+import api.VerificationAPI
 import cli.VerifyTA
 import core.{MasterModel, ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
@@ -10,58 +11,23 @@ import synthesizer.LoopStrategy.{LoopStrategy, maximum, minimum}
 import synthesizer._
 
 class SynthesizerTest extends AnyFlatSpec with should.Matchers {
-  def writeToTempFile(content: String) = {
-    val file = Files.createTempFile("uppaal_", ".xml").toFile
-    new PrintWriter(file) {
-      write(content);
-      close()
-    }
-    file
-  }
-
-  /*def synthesizeOptAndVerify(resourcesFile: String, strategy: LoopStrategy = maximum) = {
+  def synthesizeAndVerify(resourcesFile: String) = {
     val conf = getClass.getResourceAsStream(resourcesFile)
-    val scenario = ScenarioLoader.load(conf)
-    val synthesizer = new SynthesizerOpt(scenario.scenario, strategy)
-    val step = synthesizer.synthesizeStep()
-    val init = ScenarioLoader.generateEnterInitInstructions(scenario.scenario) ++ synthesizer.synthesizeInitialization() ++ ScenarioLoader.generateExitInitInstructions(scenario.scenario)
-    val model = MasterModel(scenario.name, scenario.scenario, instantiation = scenario.instantiation, initialization = init.toList, cosimStep = step, terminate = scenario.terminate)
-    val encoding = new ModelEncoding(model)
-    val result = ScenarioGenerator.generate(encoding)
-    val f = writeToTempFile(result)
-    assert(VerifyTA.checkEnvironment())
-    VerifyTA.verify(f) should be(0)
-    FileUtils.deleteQuietly(f)
+    val masterModel = ScenarioLoader.load(conf)
+    assert(VerificationAPI.generateAndVerify(masterModel.name, masterModel.scenario))
   }
 
-   */
 
-  def synthesizeAndVerify(resourcesFile: String, strategy: LoopStrategy = maximum) = {
-    val conf = getClass.getResourceAsStream(resourcesFile)
-    val scenario = ScenarioLoader.load(conf)
-    val synthesizer = new SynthesizerSimple(scenario.scenario, strategy)
-    val step = synthesizer.synthesizeStep()
-
-    val init = ScenarioLoader.generateEnterInitInstructions(scenario.scenario) ++ synthesizer.synthesizeInitialization() ++ ScenarioLoader.generateExitInitInstructions(scenario.scenario)
-    val model = MasterModel(scenario.name, scenario.scenario, instantiation = scenario.instantiation, initialization = init.toList, cosimStep = step, terminate = scenario.terminate)
-    val encoding = new ModelEncoding(model)
-    val result = ScenarioGenerator.generate(encoding)
-    val f = writeToTempFile(result)
-    assert(VerifyTA.checkEnvironment())
-    VerifyTA.verify(f) should be(0)
-    FileUtils.deleteQuietly(f)
+  "Synthesizer" should "create valid Master Algorithm for Step finding Adaptive Master" in {
+    synthesizeAndVerify("examples_no_algorithm/step_finding_loop_adaptive.conf")
   }
-
+  /*
   "Synthesizer" should "create valid Master Algorithm for Complex Adaptive Master" in {
     synthesizeAndVerify("examples_no_algorithm/complex_master_adaptive.conf")
   }
 
   "Synthesizer" should "create valid Master Algorithm for Simple Adaptive Master" in {
     synthesizeAndVerify("examples/simple_master_adaptive.conf")
-  }
-
-  "Synthesizer" should "create valid Master Algorithm for Step finding Adaptive Master" in {
-    synthesizeAndVerify("examples_no_algorithm/step_finding_loop_adaptive.conf")
   }
 
   "Synthesizer" should "create valid Master Algorithm for Algebraic Initialization" in {
@@ -115,4 +81,6 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     "Synthesizer" should "create valid Feedthrough Loop" in {
       synthesizeAndVerify("examples_no_algorithm/algebraic_loop_feedthrough.conf", maximum)
     }
+
+   */
 }

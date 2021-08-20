@@ -7,6 +7,7 @@ import cli.VerifyTA
 import core.ScenarioLoader.{generateEnterInitInstructions, generateExitInitInstructions, generateInstantiationInstructions, generateTerminateInstructions, parse}
 import core.{MasterModel, ModelEncoding, ScenarioGenerator, ScenarioLoader, ScenarioModel}
 import org.apache.commons.io.FileUtils
+import org.apache.logging.log4j.scala.Logging
 import synthesizer.SynthesizerSimple
 import trace_analyzer.TraceAnalyzer
 
@@ -32,8 +33,7 @@ object GenerationAPI {
 }
 
 
-object VerificationAPI {
-
+object VerificationAPI extends Logging {
   def writeToTempFile(content: String) = {
     val file = Files.createTempFile("uppaal_", ".xml").toFile
     new PrintWriter(file) { write(content); close() }
@@ -46,18 +46,19 @@ object VerificationAPI {
     val f = writeToTempFile(result)
     assert(VerifyTA.checkEnvironment(), "UPPAAL v.4.1 is not in PATH - please install it and try again!")
     val verificationResult = VerifyTA.verify(f)
-    FileUtils.deleteQuietly(f)
+    //FileUtils.deleteQuietly(f)
 
     if(verificationResult == 0) true
     else {
       if(verificationResult == 2)
-        throw SyntaxException("The verification in Uppaal failed mostly likely due to a syntax error")
+        throw SyntaxException("The verification in Uppaal failed most likely due to a syntax error in the UPPAAL model.")
       else false
     }
   }
 
   def generateAndVerify(name: String, scenarioModel: ScenarioModel)= {
     val masterModel = GenerationAPI.generateAlgorithm(name, scenarioModel)
+    logger.info(masterModel.cosimStep)
     verifyAlgorithm(masterModel)
   }
 
@@ -68,13 +69,15 @@ object VerificationAPI {
 
   def generateTraceFromMasterModel(masterModel: MasterModel) = {
     val encoding = new ModelEncoding(masterModel)
-    val result = ScenarioGenerator.generate(encoding)
-    val f = writeToTempFile(result)
+    val encodedUppaal = ScenarioGenerator.generate(encoding)
+    val f = writeToTempFile(encodedUppaal)
     val traceFile = Files.createTempFile("trace_", ".log").toFile
     val videoFile = Files.createTempFile("trace_", ".mp4").toFile
 
     assert(VerifyTA.checkEnvironment(), "UPPAAL v.4.1 is not in PATH - please install it and try again!")
-    assert(VerifyTA.verify(f) == 1, "No trace can be generated.")
+    assert(VerifyTA.verify(f) != 0, "No trace can be generated - since the model is valid.")
+    assert(VerifyTA.verify(f) != 2, "No trace can be generated - the verification failed due to a syntax error.")
+
     VerifyTA.saveTraceToFile(f, traceFile)
     FileUtils.deleteQuietly(f)
     val source = scala.io.Source.fromFile(traceFile)
