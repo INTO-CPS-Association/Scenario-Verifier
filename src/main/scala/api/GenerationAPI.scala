@@ -46,7 +46,7 @@ object VerificationAPI extends Logging {
     val f = writeToTempFile(result)
     assert(VerifyTA.checkEnvironment(), "UPPAAL v.4.1 is not in PATH - please install it and try again!")
     val verificationResult = VerifyTA.verify(f)
-    //FileUtils.deleteQuietly(f)
+    FileUtils.deleteQuietly(f)
 
     if(verificationResult == 0) true
     else {
@@ -58,7 +58,6 @@ object VerificationAPI extends Logging {
 
   def generateAndVerify(name: String, scenarioModel: ScenarioModel)= {
     val masterModel = GenerationAPI.generateAlgorithm(name, scenarioModel)
-    logger.info(masterModel.cosimStep)
     verifyAlgorithm(masterModel)
   }
 

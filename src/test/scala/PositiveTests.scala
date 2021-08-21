@@ -14,6 +14,10 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
     generateAndVerify("examples/simple_master.conf")
   }
 
+  "ScenarioGenerator" should "work for feedthrough loops" in {
+    generateAndVerify("examples/algebraic_loop_feedthrough.conf")
+  }
+
   "ScenarioGenerator" should "work for simple_adaptive_master.conf" in {
     generateAndVerify("examples/simple_master_adaptive.conf")
   }

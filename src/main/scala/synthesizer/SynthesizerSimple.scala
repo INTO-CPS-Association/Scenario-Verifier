@@ -62,7 +62,7 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
     scenarioModel.connections.count(i => i.srcPort.fmu == srcFMU && i.trgPort.fmu == trgFMU) == graphBuilder.reactiveConnections.count(i => i.srcPort.fmu == srcFMU && i.trgPort.fmu == trgFMU)
   }
 
-  def formatFeedthroughLoop(sccNodes: List[Node], edges: Set[Edge[Node]], isNested: Boolean): List[CosimStepInstruction] = {
+  def formatFeedthroughLoop(sccNodes: List[Node], edges: Set[Edge[Node]], coSimAlgorithm: CoSimAlgorithm, isNested: Boolean): CoSimAlgorithm = {
     //Remove Artificial edges between DoStep-edges
     val edgesInSCC = getEdgesInSCC(edges, sccNodes)
     val FMUs = sccNodes.distinctBy(i => i.fmuName).map(i => i.fmuName)
@@ -81,8 +81,15 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
 
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](reducedEdges)
     assert(!tarjanGraph.hasCycle, "The graph does still contain cycles")
-    val instructions = tarjanGraph.topologicalSCC.flatten.flatMap(formatStepInstruction(_, false)).filter(IsLoopInstruction)
-    List(AlgebraicLoop(gets.map(i => i.port), instructions, List.empty))
+
+    var algorithm = CoSimAlgorithm(coSimAlgorithm.steppedFMUs, coSimAlgorithm.savedFMUs, List.empty)
+    val nodes =  tarjanGraph.topologicalSCC.flatten
+    nodes.foreach(n => {
+      algorithm = formatStepInstruction(n, algorithm)
+    })
+
+    val instructions = algorithm.intructions.filter(IsLoopInstruction)
+    CoSimAlgorithm(algorithm.steppedFMUs, algorithm.savedFMUs, coSimAlgorithm.intructions.:+(AlgebraicLoop(gets.map(_.port), instructions, List.empty)))
   }
 
   def isTentative(action: Node, edges: Predef.Set[Edge[Node]]): Boolean = {
@@ -90,7 +97,7 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
     if (!action.isInstanceOf[SetNode]) false else edges.exists(e => e.trgNode == action && e.srcNode.isInstanceOf[GetNode])
   }
 
-  def formatReactiveLoop(scc: List[Node], edges: Predef.Set[Edge[Node]], isNested: Boolean): List[CosimStepInstruction] = {
+  def formatReactiveLoop(scc: List[Node], edges: Predef.Set[Edge[Node]], coSimAlgorithm: CoSimAlgorithm, isNested: Boolean): CoSimAlgorithm = {
     val gets = graphBuilder.GetNodes.values.flatten.filter(o => scc.contains(o)).toList
     val edgesInSCC = getEdgesInSCC(edges, scc)
     val FMUs = scc.filter(_.isInstanceOf[DoStepNode]).map(_.fmuName).toSet
@@ -109,11 +116,17 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
     val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](reducedEdges)
     assert(!tarjanGraph.hasCycle, "The graph does still contain cycles")
 
-    val instructions = tarjanGraph.topologicalSCC.flatten.flatMap(i => formatStepInstruction(i, isTentative(i, reducedEdges))).filter(IsLoopInstruction)
+    val defaultAlgorithm = CoSimAlgorithm(coSimAlgorithm.steppedFMUs, coSimAlgorithm.savedFMUs, List.empty)
+    var algorithm = defaultAlgorithm
+    val nodes =  tarjanGraph.topologicalSCC.flatten
+      nodes.foreach(n => {
+        algorithm = formatStepInstruction(n, algorithm, isTentative(n, reducedEdges))
+      })
 
-    val saves = if (isNested) List.empty[CosimStepInstruction] else createSaves(FMUs)
-    val restores = createRestores(FMUs)
-    saves.:+(AlgebraicLoop(gets.map(_.port), instructions, restores))
+    val instructions = algorithm.intructions.filter(IsLoopInstruction)
+    val saves = if (isNested) defaultAlgorithm else createSaves(FMUs, defaultAlgorithm)
+    val restores = createRestores(FMUs,defaultAlgorithm)
+    CoSimAlgorithm(saves.steppedFMUs, saves.savedFMUs, coSimAlgorithm.intructions ++ saves.intructions.:+(AlgebraicLoop(gets.map(_.port), instructions, restores.intructions)))
   }
 
 }
