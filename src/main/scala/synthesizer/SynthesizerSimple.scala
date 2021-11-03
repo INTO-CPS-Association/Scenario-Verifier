@@ -21,11 +21,11 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
                   .map(input => (input._1, fmuInputs(PortRef(fmu._1, input._1))))
                   .++(fmuModel.inputs.filterNot(input => fmuInputs.keySet.contains(PortRef(fmu._1, input._1))))
 
-              (fmu._1, FmuModel(inputs, fmuModel.outputs, fmuModel.canRejectStep))
+              (fmu._1, FmuModel(inputs, fmuModel.outputs, fmuModel.canRejectStep, fmuModel.path))
             } else
               fmu
           })
-        val scenario = ScenarioModel(fmus, scenarioModel.config, scenarioModel.connections, scenarioModel.maxPossibleStepSize)
+        val scenario = ScenarioModel(fmus, scenarioModel.config, configuration.connections, scenarioModel.maxPossibleStepSize)
 
         (configuration.cosimStep, new GraphBuilder(scenario))
       }).toMap

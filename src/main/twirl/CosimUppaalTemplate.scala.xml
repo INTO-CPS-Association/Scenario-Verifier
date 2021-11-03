@@ -272,7 +272,7 @@
         variable connectionVariable[nFMU][MaxNOutputs][2] = { @m.connectionVariable };
 
         //Connections - do not longer contain the type of the input - but it is still a 1:1 mapping
-        const ExternalConnection external[nExternal] = { @m.external };
+        const ExternalConnection external[nConfig][nExternal] = { @m.external };
 
         const InternalConnection feedthroughInStep[nConfig][nInternal] = { @m.feedthroughInStep };
 
@@ -1272,8 +1272,8 @@
     void setValue(int v, int a){
         inputVariables[v].status := defined;
         for(i = 0; i &lt; nExternal; i++){
-            if(external[i].TrgFMU == id &amp;&amp; external[i].input == v){
-                inputVariables[v].time := connectionVariable[external[i].SrcFMU][external[i].output][a].time;
+            if(external[currentConfig][i].TrgFMU == id &amp;&amp; external[currentConfig][i].input == v){
+                inputVariables[v].time := connectionVariable[external[currentConfig][i].SrcFMU][external[currentConfig][i].output][a].time;
             }
         }
     }
@@ -1333,8 +1333,8 @@
             return true;
         }
         //All outputs connected to the input should be defined - no difference between delay and reactive in init. ConnectionVariables an d ExternalConnections are having the same order
-        return forall(x:int[0, nExternal-1]) external[x].TrgFMU == id &amp;&amp; external[x].input == v imply
-            connectionVariable[external[x].SrcFMU][external[x].output][a].status == defined;
+        return forall(x:int[0, nExternal-1]) external[currentConfig][x].TrgFMU == id &amp;&amp; external[currentConfig][x].input == v imply
+            connectionVariable[external[currentConfig][x].SrcFMU][external[currentConfig][x].output][a].status == defined;
 
     }
 
@@ -1354,12 +1354,12 @@
     }
 
     //If the connection is reactive the connected variable needs to have a greater than the time of the FMU and be defined
-    return (forall(x:int[0, nExternal-1]) external[x].TrgFMU == id &amp;&amp; external[x].input == v &amp;&amp;
-    inputType[currentConfig][v] == reactive imply connectionVariable[external[x].SrcFMU][external[x].output][a].status == defined &amp;&amp;
-    connectionVariable[external[x].SrcFMU][external[x].output][a].time &gt; cTime) &amp;&amp;
-    (forall(x:int[0, nExternal-1]) external[x].TrgFMU == id &amp;&amp; external[x].input == v &amp;&amp; inputType[currentConfig][v] == delayed
-    imply connectionVariable[external[x].SrcFMU][external[x].output][a].status == defined &amp;&amp;
-    connectionVariable[external[x].SrcFMU][external[x].output][a].time == cTime);
+    return (forall(x:int[0, nExternal-1]) external[currentConfig][x].TrgFMU == id &amp;&amp; external[currentConfig][x].input == v &amp;&amp;
+    inputType[currentConfig][v] == reactive imply connectionVariable[external[currentConfig][x].SrcFMU][external[currentConfig][x].output][a].status == defined &amp;&amp;
+    connectionVariable[external[currentConfig][x].SrcFMU][external[currentConfig][x].output][a].time &gt; cTime) &amp;&amp;
+    (forall(x:int[0, nExternal-1]) external[currentConfig][x].TrgFMU == id &amp;&amp; external[currentConfig][x].input == v &amp;&amp; inputType[currentConfig][v] == delayed
+    imply connectionVariable[external[currentConfig][x].SrcFMU][external[currentConfig][x].output][a].status == defined &amp;&amp;
+    connectionVariable[external[currentConfig][x].SrcFMU][external[currentConfig][x].output][a].time == cTime);
     }
 
 

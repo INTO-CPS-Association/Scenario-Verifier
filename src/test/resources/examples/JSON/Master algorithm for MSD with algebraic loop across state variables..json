@@ -22,7 +22,8 @@
             "dependencies": []
           }
         },
-        "canRejectStep": false
+        "canRejectStep": false,
+        "path" : "Test"
       },
       "msd2": {
         "inputs": {
@@ -48,7 +49,8 @@
             ]
           }
         },
-        "canRejectStep": false
+        "canRejectStep": false,
+        "path" : "Test"
       },
       "msd3": {
         "inputs": {
@@ -62,7 +64,8 @@
             "dependencies": []
           }
         },
-        "canRejectStep": false
+        "canRejectStep": false,
+        "path" : "Test"
       },
       "msd4": {
         "inputs": {
@@ -76,7 +79,8 @@
             "dependencies": []
           }
         },
-        "canRejectStep": false
+        "canRejectStep": false,
+        "path" : "Test"
       }
     },
     "config": {

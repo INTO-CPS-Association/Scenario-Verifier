@@ -301,8 +301,10 @@ object ScenarioLoader extends Logging {
         val pRef = configurableInputs.filter(_.port == p._1).head
         (pRef, parse(p._2))
       })
-      (keyValues._1, ConfigurationModel(inputs, keyValues._2.cosimStep))
+      val connections = keyValues._2.connections.map((c) => parseConnection(c, fmus))
+      (keyValues._1, ConfigurationModel(inputs, keyValues._2.cosimStep, connections))
     })
+
 
     AdaptiveModel(configurableInputs = configurableInputs, configurations = configurationModels)
   }
@@ -326,10 +328,10 @@ object ScenarioLoader extends Logging {
 
   def parse(fmuId: String, fmu: FmuConfig): FmuModel = {
     fmu match {
-      case FmuConfig(inputs, outputs, canRejectStep) => {
+      case FmuConfig(inputs, outputs, canRejectStep, path) => {
         val inputsModel = inputs.map(keyValPair => (keyValPair._1, parse(keyValPair._2)))
         val outputPortsModel = outputs.map(keyValPair => (keyValPair._1, parse(keyValPair._2, inputsModel, keyValPair._1, fmuId)))
-        FmuModel(inputsModel, outputPortsModel, canRejectStep)
+        FmuModel(inputsModel, outputPortsModel, canRejectStep, path)
       }
     }
   }

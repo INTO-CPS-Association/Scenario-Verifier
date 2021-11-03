@@ -16,7 +16,8 @@ case class OutputPortModel(dependenciesInit: List[String], dependencies: List[St
 case class FmuModel(
                      inputs: Map[String, InputPortModel],
                      outputs: Map[String, OutputPortModel],
-                     canRejectStep: Boolean
+                     canRejectStep: Boolean,
+                     path: String
                    )
 
 case class ConnectionModel(
@@ -116,7 +117,8 @@ case class AdaptiveModel(
 
 case class ConfigurationModel(
                                inputs: Map[PortRef, InputPortModel],
-                               cosimStep: String
+                               cosimStep: String,
+                               connections: List[ConnectionModel]
                              )
 
 

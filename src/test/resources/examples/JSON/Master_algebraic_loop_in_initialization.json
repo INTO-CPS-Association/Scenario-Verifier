@@ -1,1 +1,170 @@
-{"name":"Master algorithm for MSD with algebraic loop in initialization","scenario":{"fmus":{"msd2":{"inputs":{"x1":{"reactivity":"delayed"}},"outputs":{"fk":{"dependenciesInit":["x1"],"dependencies":[]}},"canRejectStep":false},"msd1":{"inputs":{"fk":{"reactivity":"delayed"}},"outputs":{"x1":{"dependenciesInit":["fk"],"dependencies":[]}},"canRejectStep":false}},"config":{"configurableInputs":[],"configurations":{}},"connections":[{"srcPort":{"fmu":"msd1","port":"x1"},"trgPort":{"fmu":"msd2","port":"x1"}},{"srcPort":{"fmu":"msd2","port":"fk"},"trgPort":{"fmu":"msd1","port":"fk"}}],"maxPossibleStepSize":1},"initialization":[{"AlgebraicLoopInit":{"untilConverged":[{"fmu":"msd1","port":"x1"},{"fmu":"msd2","port":"fk"}],"iterate":[{"InitGet":{"port":{"fmu":"msd1","port":"x1"}}},{"InitSet":{"port":{"fmu":"msd2","port":"x1"}}},{"InitGet":{"port":{"fmu":"msd2","port":"fk"}}},{"InitSet":{"port":{"fmu":"msd1","port":"fk"}}}]}}],"cosimStep":{"cosim-step1":[{"Get":{"port":{"fmu":"msd1","port":"x1"}}},{"Set":{"port":{"fmu":"msd2","port":"x1"}}},{"Get":{"port":{"fmu":"msd2","port":"fk"}}},{"Set":{"port":{"fmu":"msd1","port":"fk"}}},{"Step":{"fmu":"msd1","by":{"DefaultStepSize":{}}}},{"Step":{"fmu":"msd2","by":{"DefaultStepSize":{}}}}]}}
+{
+  "name": "Master algorithm for MSD with algebraic loop in initialization",
+  "scenario": {
+    "fmus": {
+      "msd2": {
+        "inputs": {
+          "x1": {
+            "reactivity": "delayed"
+          }
+        },
+        "outputs": {
+          "fk": {
+            "dependenciesInit": [
+              "x1"
+            ],
+            "dependencies": []
+          }
+        },
+        "canRejectStep": false,
+        "path" : "Test"
+      },
+      "msd1": {
+        "inputs": {
+          "fk": {
+            "reactivity": "delayed"
+          }
+        },
+        "outputs": {
+          "x1": {
+            "dependenciesInit": [
+              "fk"
+            ],
+            "dependencies": []
+          }
+        },
+        "canRejectStep": false,
+        "path" : "Test"
+      }
+    },
+    "config": {
+      "configurableInputs": [],
+      "configurations": {}
+    },
+    "connections": [
+      {
+        "srcPort": {
+          "fmu": "msd1",
+          "port": "x1"
+        },
+        "trgPort": {
+          "fmu": "msd2",
+          "port": "x1"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "msd2",
+          "port": "fk"
+        },
+        "trgPort": {
+          "fmu": "msd1",
+          "port": "fk"
+        }
+      }
+    ],
+    "maxPossibleStepSize": 1
+  },
+  "initialization": [
+    {
+      "AlgebraicLoopInit": {
+        "untilConverged": [
+          {
+            "fmu": "msd1",
+            "port": "x1"
+          },
+          {
+            "fmu": "msd2",
+            "port": "fk"
+          }
+        ],
+        "iterate": [
+          {
+            "InitGet": {
+              "port": {
+                "fmu": "msd1",
+                "port": "x1"
+              }
+            }
+          },
+          {
+            "InitSet": {
+              "port": {
+                "fmu": "msd2",
+                "port": "x1"
+              }
+            }
+          },
+          {
+            "InitGet": {
+              "port": {
+                "fmu": "msd2",
+                "port": "fk"
+              }
+            }
+          },
+          {
+            "InitSet": {
+              "port": {
+                "fmu": "msd1",
+                "port": "fk"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "cosimStep": {
+    "cosim-step1": [
+      {
+        "Get": {
+          "port": {
+            "fmu": "msd1",
+            "port": "x1"
+          }
+        }
+      },
+      {
+        "Set": {
+          "port": {
+            "fmu": "msd2",
+            "port": "x1"
+          }
+        }
+      },
+      {
+        "Get": {
+          "port": {
+            "fmu": "msd2",
+            "port": "fk"
+          }
+        }
+      },
+      {
+        "Set": {
+          "port": {
+            "fmu": "msd1",
+            "port": "fk"
+          }
+        }
+      },
+      {
+        "Step": {
+          "fmu": "msd1",
+          "by": {
+            "DefaultStepSize": {}
+          }
+        }
+      },
+      {
+        "Step": {
+          "fmu": "msd2",
+          "by": {
+            "DefaultStepSize": {}
+          }
+        }
+      }
+    ]
+  }
+}

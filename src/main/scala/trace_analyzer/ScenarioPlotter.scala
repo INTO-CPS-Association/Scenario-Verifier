@@ -68,7 +68,7 @@ object ScenarioPlotter extends Logging {
       })
       cluster.addTo(g)
 
-      val connectionsFromFMU = modelEncoding.connections.filter(_.srcPort.fmu == fmu._1)
+      val connectionsFromFMU = modelEncoding.standardConnections.filter(_.srcPort.fmu == fmu._1)
       connectionsFromFMU.foreach(connection =>
         g.add(mutNode(connection.srcPort.fmu + "." + connection.srcPort.port)
           .addLink(mutNode(connection.trgPort.fmu + "." + connection.trgPort.port)))

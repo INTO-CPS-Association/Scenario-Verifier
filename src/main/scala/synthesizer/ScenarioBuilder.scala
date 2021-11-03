@@ -39,7 +39,7 @@ object ScenarioBuilder {
 
       val canReject = if(fmusMayRejectStep) Random.nextBoolean() else false
       //All FMUs can accept a step of arbitrary size
-      (i, FmuModel(inputs, outputs, canReject))
+      (i, FmuModel(inputs, outputs, canReject, ""))
     }).toMap
 
     ScenarioModel(FMUs, buildConfiguration(), connections, if(fmusMayRejectStep) 2 else 1)

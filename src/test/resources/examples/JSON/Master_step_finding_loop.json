@@ -1,1 +1,237 @@
-{"name":"Master algorithm for MSD with step finding loop.","scenario":{"fmus":{"msd1":{"inputs":{"fk":{"reactivity":"delayed"}},"outputs":{"x1":{"dependenciesInit":[],"dependencies":[]},"v1":{"dependenciesInit":[],"dependencies":[]}},"canRejectStep":true},"msd2":{"inputs":{"x1":{"reactivity":"reactive"},"v1":{"reactivity":"reactive"}},"outputs":{"fk":{"dependenciesInit":["x1","v1"],"dependencies":["x1","v1"]}},"canRejectStep":true}},"config":{"configurableInputs":[],"configurations":{}},"connections":[{"srcPort":{"fmu":"msd1","port":"x1"},"trgPort":{"fmu":"msd2","port":"x1"}},{"srcPort":{"fmu":"msd1","port":"v1"},"trgPort":{"fmu":"msd2","port":"v1"}},{"srcPort":{"fmu":"msd2","port":"fk"},"trgPort":{"fmu":"msd1","port":"fk"}}],"maxPossibleStepSize":1},"initialization":[{"InitGet":{"port":{"fmu":"msd1","port":"x1"}}},{"InitSet":{"port":{"fmu":"msd2","port":"x1"}}},{"InitGet":{"port":{"fmu":"msd1","port":"v1"}}},{"InitSet":{"port":{"fmu":"msd2","port":"v1"}}},{"InitGet":{"port":{"fmu":"msd2","port":"fk"}}},{"InitSet":{"port":{"fmu":"msd1","port":"fk"}}}],"cosimStep":{"cosim-step1":[{"SaveState":{"fmu":"msd1"}},{"SaveState":{"fmu":"msd2"}},{"StepLoop":{"untilStepAccept":["msd1","msd2"],"iterate":[{"Step":{"fmu":"msd1","by":{"DefaultStepSize":{}}}},{"Get":{"port":{"fmu":"msd1","port":"x1"}}},{"Set":{"port":{"fmu":"msd2","port":"x1"}}},{"Get":{"port":{"fmu":"msd1","port":"v1"}}},{"Set":{"port":{"fmu":"msd2","port":"v1"}}},{"Step":{"fmu":"msd2","by":{"DefaultStepSize":{}}}},{"Get":{"port":{"fmu":"msd2","port":"fk"}}},{"Set":{"port":{"fmu":"msd1","port":"fk"}}}],"ifRetryNeeded":[{"RestoreState":{"fmu":"msd1"}},{"RestoreState":{"fmu":"msd2"}}]}}]}}
+{
+  "name": "Master algorithm for MSD with step finding loop.",
+  "scenario": {
+    "fmus": {
+      "msd1": {
+        "inputs": {
+          "fk": {
+            "reactivity": "delayed"
+          }
+        },
+        "outputs": {
+          "x1": {
+            "dependenciesInit": [],
+            "dependencies": []
+          },
+          "v1": {
+            "dependenciesInit": [],
+            "dependencies": []
+          }
+        },
+        "canRejectStep": true,
+        "path" : "Test"
+      },
+      "msd2": {
+        "inputs": {
+          "x1": {
+            "reactivity": "reactive"
+          },
+          "v1": {
+            "reactivity": "reactive"
+          }
+        },
+        "outputs": {
+          "fk": {
+            "dependenciesInit": [
+              "x1",
+              "v1"
+            ],
+            "dependencies": [
+              "x1",
+              "v1"
+            ]
+          }
+        },
+        "canRejectStep": true,
+        "path" : "Test"
+      }
+    },
+    "config": {
+      "configurableInputs": [],
+      "configurations": {}
+    },
+    "connections": [
+      {
+        "srcPort": {
+          "fmu": "msd1",
+          "port": "x1"
+        },
+        "trgPort": {
+          "fmu": "msd2",
+          "port": "x1"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "msd1",
+          "port": "v1"
+        },
+        "trgPort": {
+          "fmu": "msd2",
+          "port": "v1"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "msd2",
+          "port": "fk"
+        },
+        "trgPort": {
+          "fmu": "msd1",
+          "port": "fk"
+        }
+      }
+    ],
+    "maxPossibleStepSize": 1
+  },
+  "initialization": [
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd1",
+          "port": "x1"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd2",
+          "port": "x1"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd1",
+          "port": "v1"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd2",
+          "port": "v1"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd2",
+          "port": "fk"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd1",
+          "port": "fk"
+        }
+      }
+    }
+  ],
+  "cosimStep": {
+    "cosim-step1": [
+      {
+        "SaveState": {
+          "fmu": "msd1"
+        }
+      },
+      {
+        "SaveState": {
+          "fmu": "msd2"
+        }
+      },
+      {
+        "StepLoop": {
+          "untilStepAccept": [
+            "msd1",
+            "msd2"
+          ],
+          "iterate": [
+            {
+              "Step": {
+                "fmu": "msd1",
+                "by": {
+                  "DefaultStepSize": {}
+                }
+              }
+            },
+            {
+              "Get": {
+                "port": {
+                  "fmu": "msd1",
+                  "port": "x1"
+                }
+              }
+            },
+            {
+              "Set": {
+                "port": {
+                  "fmu": "msd2",
+                  "port": "x1"
+                }
+              }
+            },
+            {
+              "Get": {
+                "port": {
+                  "fmu": "msd1",
+                  "port": "v1"
+                }
+              }
+            },
+            {
+              "Set": {
+                "port": {
+                  "fmu": "msd2",
+                  "port": "v1"
+                }
+              }
+            },
+            {
+              "Step": {
+                "fmu": "msd2",
+                "by": {
+                  "DefaultStepSize": {}
+                }
+              }
+            },
+            {
+              "Get": {
+                "port": {
+                  "fmu": "msd2",
+                  "port": "fk"
+                }
+              }
+            },
+            {
+              "Set": {
+                "port": {
+                  "fmu": "msd1",
+                  "port": "fk"
+                }
+              }
+            }
+          ],
+          "ifRetryNeeded": [
+            {
+              "RestoreState": {
+                "fmu": "msd1"
+              }
+            },
+            {
+              "RestoreState": {
+                "fmu": "msd2"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

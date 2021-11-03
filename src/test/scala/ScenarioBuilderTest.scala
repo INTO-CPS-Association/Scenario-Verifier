@@ -12,7 +12,7 @@ import synthesizer.LoopStrategy.{LoopStrategy, maximum, minimum}
 import synthesizer._
 
 import scala.collection.immutable.HashSet
-
+@Ignore
 class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
   def generateSynthesisAndVerify(scenarioName: String, nFMU: Int, nConnection: Int, feedthrough: Boolean = true, canRejectStep: Boolean = false) = {
     val scenario = ScenarioBuilder.generateScenario(nFMU, nConnection, feedthrough, canRejectStep)

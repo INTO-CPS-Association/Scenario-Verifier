@@ -1,1 +1,411 @@
-{"name":"Example master that has a loop within a loop","scenario":{"fmus":{"msd3":{"inputs":{"z":{"reactivity":"delayed"}},"outputs":{"G":{"dependenciesInit":["z"],"dependencies":["z"]}},"canRejectStep":true},"msd2":{"inputs":{"v1":{"reactivity":"reactive"},"x1":{"reactivity":"delayed"},"G":{"reactivity":"reactive"}},"outputs":{"fk":{"dependenciesInit":["x1","v1"],"dependencies":["x1","v1"]},"z":{"dependenciesInit":[],"dependencies":[]}},"canRejectStep":true},"msd1":{"inputs":{"fk":{"reactivity":"reactive"}},"outputs":{"x1":{"dependenciesInit":[],"dependencies":[]},"v1":{"dependenciesInit":[],"dependencies":[]}},"canRejectStep":true}},"config":{"configurableInputs":[],"configurations":{}},"connections":[{"srcPort":{"fmu":"msd1","port":"x1"},"trgPort":{"fmu":"msd2","port":"x1"}},{"srcPort":{"fmu":"msd1","port":"v1"},"trgPort":{"fmu":"msd2","port":"v1"}},{"srcPort":{"fmu":"msd2","port":"fk"},"trgPort":{"fmu":"msd1","port":"fk"}},{"srcPort":{"fmu":"msd2","port":"z"},"trgPort":{"fmu":"msd3","port":"z"}},{"srcPort":{"fmu":"msd3","port":"G"},"trgPort":{"fmu":"msd2","port":"G"}}],"maxPossibleStepSize":3},"initialization":[{"InitGet":{"port":{"fmu":"msd1","port":"x1"}}},{"InitSet":{"port":{"fmu":"msd2","port":"x1"}}},{"InitGet":{"port":{"fmu":"msd1","port":"v1"}}},{"InitSet":{"port":{"fmu":"msd2","port":"v1"}}},{"InitGet":{"port":{"fmu":"msd2","port":"fk"}}},{"InitSet":{"port":{"fmu":"msd1","port":"fk"}}},{"InitGet":{"port":{"fmu":"msd2","port":"z"}}},{"InitSet":{"port":{"fmu":"msd3","port":"z"}}},{"InitGet":{"port":{"fmu":"msd3","port":"G"}}},{"InitSet":{"port":{"fmu":"msd2","port":"G"}}}],"cosimStep":{"cosim-step1":[{"SaveState":{"fmu":"msd1"}},{"SaveState":{"fmu":"msd2"}},{"SaveState":{"fmu":"msd3"}},{"StepLoop":{"untilStepAccept":["msd1","msd2","msd3"],"iterate":[{"AlgebraicLoop":{"untilConverged":[{"fmu":"msd1","port":"x1"},{"fmu":"msd1","port":"v1"},{"fmu":"msd2","port":"fk"},{"fmu":"msd2","port":"z"},{"fmu":"msd3","port":"G"}],"iterate":[{"Set":{"port":{"fmu":"msd1","port":"fk"}}},{"Set":{"port":{"fmu":"msd2","port":"v1"}}},{"Set":{"port":{"fmu":"msd2","port":"G"}}},{"Step":{"fmu":"msd1","by":{"DefaultStepSize":{}}}},{"Step":{"fmu":"msd2","by":{"DefaultStepSize":{}}}},{"Step":{"fmu":"msd3","by":{"DefaultStepSize":{}}}},{"GetTentative":{"port":{"fmu":"msd1","port":"v1"}}},{"GetTentative":{"port":{"fmu":"msd1","port":"x1"}}},{"SetTentative":{"port":{"fmu":"msd2","port":"x1"}}},{"GetTentative":{"port":{"fmu":"msd2","port":"fk"}}},{"GetTentative":{"port":{"fmu":"msd2","port":"z"}}},{"SetTentative":{"port":{"fmu":"msd3","port":"z"}}},{"GetTentative":{"port":{"fmu":"msd3","port":"G"}}}],"ifRetryNeeded":[{"RestoreState":{"fmu":"msd1"}},{"RestoreState":{"fmu":"msd2"}},{"RestoreState":{"fmu":"msd3"}}]}}],"ifRetryNeeded":[{"RestoreState":{"fmu":"msd1"}},{"RestoreState":{"fmu":"msd2"}},{"RestoreState":{"fmu":"msd3"}}]}}]}}
+{
+  "name": "Example master that has a loop within a loop",
+  "scenario": {
+    "fmus": {
+      "msd3": {
+        "inputs": {
+          "z": {
+            "reactivity": "delayed"
+          }
+        },
+        "outputs": {
+          "G": {
+            "dependenciesInit": [
+              "z"
+            ],
+            "dependencies": [
+              "z"
+            ]
+          }
+        },
+        "canRejectStep": true,
+        "path" : "Test"
+      },
+      "msd2": {
+        "inputs": {
+          "v1": {
+            "reactivity": "reactive"
+          },
+          "x1": {
+            "reactivity": "delayed"
+          },
+          "G": {
+            "reactivity": "reactive"
+          }
+        },
+        "outputs": {
+          "fk": {
+            "dependenciesInit": [
+              "x1",
+              "v1"
+            ],
+            "dependencies": [
+              "x1",
+              "v1"
+            ]
+          },
+          "z": {
+            "dependenciesInit": [],
+            "dependencies": []
+          }
+        },
+        "canRejectStep": true,
+        "path" : "Test"
+      },
+      "msd1": {
+        "inputs": {
+          "fk": {
+            "reactivity": "reactive"
+          }
+        },
+        "outputs": {
+          "x1": {
+            "dependenciesInit": [],
+            "dependencies": []
+          },
+          "v1": {
+            "dependenciesInit": [],
+            "dependencies": []
+          }
+        },
+        "canRejectStep": true,
+        "path" : "Test"
+      }
+    },
+    "config": {
+      "configurableInputs": [],
+      "configurations": {}
+    },
+    "connections": [
+      {
+        "srcPort": {
+          "fmu": "msd1",
+          "port": "x1"
+        },
+        "trgPort": {
+          "fmu": "msd2",
+          "port": "x1"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "msd1",
+          "port": "v1"
+        },
+        "trgPort": {
+          "fmu": "msd2",
+          "port": "v1"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "msd2",
+          "port": "fk"
+        },
+        "trgPort": {
+          "fmu": "msd1",
+          "port": "fk"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "msd2",
+          "port": "z"
+        },
+        "trgPort": {
+          "fmu": "msd3",
+          "port": "z"
+        }
+      },
+      {
+        "srcPort": {
+          "fmu": "msd3",
+          "port": "G"
+        },
+        "trgPort": {
+          "fmu": "msd2",
+          "port": "G"
+        }
+      }
+    ],
+    "maxPossibleStepSize": 3
+  },
+  "initialization": [
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd1",
+          "port": "x1"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd2",
+          "port": "x1"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd1",
+          "port": "v1"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd2",
+          "port": "v1"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd2",
+          "port": "fk"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd1",
+          "port": "fk"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd2",
+          "port": "z"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd3",
+          "port": "z"
+        }
+      }
+    },
+    {
+      "InitGet": {
+        "port": {
+          "fmu": "msd3",
+          "port": "G"
+        }
+      }
+    },
+    {
+      "InitSet": {
+        "port": {
+          "fmu": "msd2",
+          "port": "G"
+        }
+      }
+    }
+  ],
+  "cosimStep": {
+    "cosim-step1": [
+      {
+        "SaveState": {
+          "fmu": "msd1"
+        }
+      },
+      {
+        "SaveState": {
+          "fmu": "msd2"
+        }
+      },
+      {
+        "SaveState": {
+          "fmu": "msd3"
+        }
+      },
+      {
+        "StepLoop": {
+          "untilStepAccept": [
+            "msd1",
+            "msd2",
+            "msd3"
+          ],
+          "iterate": [
+            {
+              "AlgebraicLoop": {
+                "untilConverged": [
+                  {
+                    "fmu": "msd1",
+                    "port": "x1"
+                  },
+                  {
+                    "fmu": "msd1",
+                    "port": "v1"
+                  },
+                  {
+                    "fmu": "msd2",
+                    "port": "fk"
+                  },
+                  {
+                    "fmu": "msd2",
+                    "port": "z"
+                  },
+                  {
+                    "fmu": "msd3",
+                    "port": "G"
+                  }
+                ],
+                "iterate": [
+                  {
+                    "Set": {
+                      "port": {
+                        "fmu": "msd1",
+                        "port": "fk"
+                      }
+                    }
+                  },
+                  {
+                    "Set": {
+                      "port": {
+                        "fmu": "msd2",
+                        "port": "v1"
+                      }
+                    }
+                  },
+                  {
+                    "Set": {
+                      "port": {
+                        "fmu": "msd2",
+                        "port": "G"
+                      }
+                    }
+                  },
+                  {
+                    "Step": {
+                      "fmu": "msd1",
+                      "by": {
+                        "DefaultStepSize": {}
+                      }
+                    }
+                  },
+                  {
+                    "Step": {
+                      "fmu": "msd2",
+                      "by": {
+                        "DefaultStepSize": {}
+                      }
+                    }
+                  },
+                  {
+                    "Step": {
+                      "fmu": "msd3",
+                      "by": {
+                        "DefaultStepSize": {}
+                      }
+                    }
+                  },
+                  {
+                    "GetTentative": {
+                      "port": {
+                        "fmu": "msd1",
+                        "port": "v1"
+                      }
+                    }
+                  },
+                  {
+                    "GetTentative": {
+                      "port": {
+                        "fmu": "msd1",
+                        "port": "x1"
+                      }
+                    }
+                  },
+                  {
+                    "SetTentative": {
+                      "port": {
+                        "fmu": "msd2",
+                        "port": "x1"
+                      }
+                    }
+                  },
+                  {
+                    "GetTentative": {
+                      "port": {
+                        "fmu": "msd2",
+                        "port": "fk"
+                      }
+                    }
+                  },
+                  {
+                    "GetTentative": {
+                      "port": {
+                        "fmu": "msd2",
+                        "port": "z"
+                      }
+                    }
+                  },
+                  {
+                    "SetTentative": {
+                      "port": {
+                        "fmu": "msd3",
+                        "port": "z"
+                      }
+                    }
+                  },
+                  {
+                    "GetTentative": {
+                      "port": {
+                        "fmu": "msd3",
+                        "port": "G"
+                      }
+                    }
+                  }
+                ],
+                "ifRetryNeeded": [
+                  {
+                    "RestoreState": {
+                      "fmu": "msd1"
+                    }
+                  },
+                  {
+                    "RestoreState": {
+                      "fmu": "msd2"
+                    }
+                  },
+                  {
+                    "RestoreState": {
+                      "fmu": "msd3"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "ifRetryNeeded": [
+            {
+              "RestoreState": {
+                "fmu": "msd1"
+              }
+            },
+            {
+              "RestoreState": {
+                "fmu": "msd2"
+              }
+            },
+            {
+              "RestoreState": {
+                "fmu": "msd3"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

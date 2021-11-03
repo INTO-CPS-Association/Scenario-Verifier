@@ -59,10 +59,10 @@ class ModelEncoding(model: MasterModel) extends Logging {
 
   def fmuPortName(f: String, p: String) = s"""${f}_${p}"""
 
-  def connections = model.scenario.connections
-
-  val connectionEncoding: Map[ConnectionModel, Int] = connections.zipWithIndex.toMap
-  val connectionEncodingInverse: Map[Int, ConnectionModel] = connectionEncoding.map(_.swap)
+  val standardConnections = model.scenario.connections
+  def connections: Map[String, List[ConnectionModel]] = model.scenario.config.configurations.map(keyValue => (keyValue._1, keyValue._2.connections))
+  val connectionEncoding: Map[String, Map[ConnectionModel, Int]] = connections.map(keyValue => (keyValue._1,keyValue._2.zipWithIndex.toMap))
+  val connectionEncodingInverse: Map[String, Map[Int, ConnectionModel]]  = connectionEncoding.map(f => (f._1, f._2.map(_.swap)))
 
   def connectionName(c: ConnectionModel) = s"${c.srcPort.fmu}_${c.srcPort.port}__${c.trgPort.fmu}_${c.trgPort.port}"
 
@@ -91,12 +91,22 @@ class ModelEncoding(model: MasterModel) extends Logging {
         .mkString("{", ",", "}")).mkString(",")
   }
 
-  def external: String = (0 until nExternal)
-    .map(idx => connectionEncodingInverse(idx))
-    .map(c => f"""{${c.srcPort.fmu}, ${fmuPortName(c.srcPort.fmu, c.srcPort.port)}, ${c.trgPort.fmu}, ${fmuPortName(c.trgPort.fmu, c.trgPort.port)}}""")
-    .mkString(",")
+  def external: String = {
+    (0 until nConfigs).map(id => {
+      if(isAdaptive)
+        (0 until nExternal)
+          .map(idx => connectionEncodingInverse(configuration(id)._1)(idx))
+          .map(c => f"""{${c.srcPort.fmu}, ${fmuPortName(c.srcPort.fmu, c.srcPort.port)}, ${c.trgPort.fmu}, ${fmuPortName(c.trgPort.fmu, c.trgPort.port)}}""")
+          .mkString(",")
+      else
+        standardConnections
+          .map(c => f"""{${c.srcPort.fmu}, ${fmuPortName(c.srcPort.fmu, c.srcPort.port)}, ${c.trgPort.fmu}, ${fmuPortName(c.trgPort.fmu, c.trgPort.port)}}""")
+          .mkString(",")
 
-val noFeedThrough : String = "{noFMU, noPort, noPort}"
+    }).mkString("{", "}, {", "}")
+  }
+
+  val noFeedThrough : String = "{noFMU, noPort, noPort}"
 
   def feedthroughInStep: String = {
     (0 until nConfigs).map(_ => {

@@ -5,7 +5,8 @@ case class OutputPortConfig(dependenciesInit: List[String], dependencies: List[S
 case class FmuConfig(
                       inputs: Map[String, InputPortConfig] = Map.empty,
                       outputs: Map[String, OutputPortConfig] = Map.empty,
-                      canRejectStep: Boolean = false
+                      canRejectStep: Boolean = false,
+                      path : String = ""
                     )
 
 case class ScenarioConfig(
@@ -85,9 +86,11 @@ case class MasterConfig(
 case class AdaptiveConfig(
                            configurableInputs : List[String] = Nil,
                            configurations : Map[String, SettingConfig]  = Map.empty
+
                          )
 
 case class SettingConfig(
                           inputs: Map[String, InputPortConfig] = Map.empty,
+                          connections : List[String],
                           cosimStep : String
                         )
