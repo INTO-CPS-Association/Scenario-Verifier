@@ -26,7 +26,7 @@ A co-simulation scenario should be encoded in the conf-format in order for the V
 The scenario includes the FMUs and connections between them.
 
 An example of the encoding in the [conf-format](./Scenario/examples/simple_master.conf) for a scenario:
-![alt text](./Scenario/Images/scenario-generation.jpg "Scenario and Encoding")
+![alt text](./Images/scenario-generation.jpg "Scenario and Encoding")
 
 In the scenario, an initialization procedure and co-simulation step procedure are also included.
 
