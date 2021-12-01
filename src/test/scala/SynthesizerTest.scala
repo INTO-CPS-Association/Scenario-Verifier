@@ -22,6 +22,10 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     synthesizeAndVerify("examples/simple_master.conf")
   }
 
+  "Synthesizer" should "create valid Master Algorithm for Tricky Scenario" in {
+    synthesizeAndVerify("examples/tapas.conf")
+  }
+
 "Synthesizer" should "create valid Master Algorithm for Simple Adaptive Master" in {
   synthesizeAndVerify("examples/simple_master_adaptive.conf")
 }
@@ -38,6 +42,7 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
   synthesizeAndVerify("examples/algebraic_loop_initialization.conf")
   //synthesizeOptAndVerify("examples/algebraic_loop_initialization.conf")
 }
+
 
 
   "Synthesizer" should "create valid Master Algorithm for Industrial case study" in {
@@ -78,8 +83,8 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
   }
 
 
-
   "Synthesizer" should "create valid Feedthrough Loop" in {
     synthesizeAndVerify("examples_no_algorithm/algebraic_loop_feedthrough.conf")
   }
+
 }

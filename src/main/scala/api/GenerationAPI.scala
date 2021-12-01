@@ -5,7 +5,7 @@ import java.nio.file.Files
 
 import cli.VerifyTA
 import core.ScenarioLoader.{generateEnterInitInstructions, generateExitInitInstructions, generateInstantiationInstructions, generateTerminateInstructions, parse}
-import core.{MasterModel, ModelEncoding, ScenarioGenerator, ScenarioLoader, ScenarioModel}
+import core.{AdaptiveModel, AlgebraicLoop, AlgebraicLoopInit, ConfigurationModel, ConnectionModel, CosimStepInstruction, EnterInitMode, ExitInitMode, FmuModel, Get, GetTentative, InitGet, InitSet, InitializationInstruction, MasterModel, ModelEncoding, NoOP, OutputPortModel, PortRef, RestoreState, SaveState, ScenarioGenerator, ScenarioLoader, ScenarioModel, SetTentative, Step, StepLoop}
 import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.scala.Logging
 import synthesizer.SynthesizerSimple
@@ -37,7 +37,8 @@ object VerificationAPI extends Logging {
   private def writeToTempFile(content: String) = {
     val file = Files.createTempFile("uppaal_", ".xml").toFile
     new PrintWriter(file) {
-      write(content); close()
+      write(content);
+      close()
     }
     file
   }
@@ -46,7 +47,7 @@ object VerificationAPI extends Logging {
     val f = generateUppaalFile(masterModel)
     checkUppaalVersion()
     val verificationResult = VerifyTA.verify(f)
-    FileUtils.deleteQuietly(f)
+    //FileUtils.deleteQuietly(f)
 
     checkVerificationResult(verificationResult)
   }
@@ -56,19 +57,88 @@ object VerificationAPI extends Logging {
     verifyAlgorithm(masterModel)
   }
 
-  def generateTrace(name: String, scenarioModel: ScenarioModel):TraceResult = {
+  def generateTrace(name: String, scenarioModel: ScenarioModel): TraceResult = {
     val masterModel = GenerationAPI.generateAlgorithm(name, scenarioModel)
     generateTraceFromMasterModel(masterModel)
   }
 
+  def sanitizePort(port: PortRef): PortRef = {
+    PortRef(port.fmu, port.port.replaceAll("\\W", ""))
+  }
+
+  def sanitizeName(act: InitializationInstruction): InitializationInstruction = {
+    act match {
+      case InitSet(port) => InitSet(sanitizePort(port))
+      case InitGet(port) => InitGet(sanitizePort(port))
+      case EnterInitMode(fmu) => EnterInitMode(fmu)
+      case ExitInitMode(fmu) => ExitInitMode(fmu)
+      case AlgebraicLoopInit(untilConverged, iterate) => AlgebraicLoopInit(untilConverged.map(i => sanitizePort(i)), iterate.map(i => sanitizeName(i)))
+    }
+  }
+
+
+  def sanitizeConnection(c: ConnectionModel): ConnectionModel = ConnectionModel(sanitizePort(c.srcPort), sanitizePort(c.trgPort))
+
+  def sanitizeAction(act: CosimStepInstruction): CosimStepInstruction = {
+    act match {
+      case core.Set(port) => core.Set(sanitizePort(port))
+      case Get(port) => core.Get(sanitizePort(port))
+      case GetTentative(port) => GetTentative(sanitizePort(port))
+      case SetTentative(port) => SetTentative(sanitizePort(port))
+      case AlgebraicLoop(untilConverged, iterate, ifRetryNeeded) => AlgebraicLoop(untilConverged.map(sanitizePort), iterate.map(sanitizeAction), ifRetryNeeded)
+      case StepLoop(untilStepAccept, iterate, ifRetryNeeded) => StepLoop(untilStepAccept, iterate.map(sanitizeAction), ifRetryNeeded)
+      case Step(fmu, by) => Step(fmu, by)
+      case SaveState(fmu) => SaveState(fmu)
+      case RestoreState(fmu) => RestoreState(fmu)
+      case NoOP => NoOP
+    }
+  }
+
   private def generateUppaalFile(masterModel: MasterModel): File = {
-    val encoding = new ModelEncoding(masterModel)
+    val sanitizedModel: MasterModel = sanitizeMasterModel(masterModel)
+    val encoding = new ModelEncoding(sanitizedModel)
     val encodedUppaal = ScenarioGenerator.generate(encoding)
+
     writeToTempFile(encodedUppaal)
   }
 
+  private def sanitizeMasterModel(masterModel: MasterModel) = {
+    val connections = masterModel.scenario.connections.map(sanitizeConnection)
+    val config =
+      AdaptiveModel(
+        masterModel.scenario.config.configurableInputs.map(sanitizePort),
+        masterModel.scenario.config.configurations.map(i => (i._1,
+          ConfigurationModel(
+            i._2.inputs.map(input => (sanitizePort(input._1), input._2)),
+            i._2.cosimStep,
+            i._2.connections.map(sanitizeConnection)
+          )
+        )))
+    val fmus = masterModel.scenario.fmus.map(
+      fmu =>
+        (fmu._1, FmuModel(
+          fmu._2.inputs.map(i => (i._1.replaceAll("\\W", ""), i._2)),
+          fmu._2.outputs.map(i => (i._1.replaceAll("\\W", ""),
+            OutputPortModel(
+              i._2.dependenciesInit.map(o => o.replaceAll("\\W", "")),
+              i._2.dependencies.map(o => o.replaceAll("\\W", ""))
+            )
+          )),
+          fmu._2.canRejectStep,
+          fmu._2.path
+        )))
+
+    val scenario = ScenarioModel(fmus, config, connections, masterModel.scenario.maxPossibleStepSize)
+
+    val initActions = masterModel.initialization.map(sanitizeName)
+    val actions = masterModel.cosimStep.map(act => (act._1, act._2.map(sanitizeAction)))
+
+    val sanitizedModel = MasterModel(masterModel.name, scenario, masterModel.instantiation, initActions, actions, masterModel.terminate)
+    sanitizedModel
+  }
+
   def generateTraceFromMasterModel(masterModel: MasterModel): TraceResult = {
-    if(verifyAlgorithm(masterModel))
+    if (verifyAlgorithm(masterModel))
       return TraceResult(null, false)
 
     val f = generateUppaalFile(masterModel)
