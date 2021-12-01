@@ -5,17 +5,19 @@ import scala.util.parsing.combinator.RegexParsers
 abstract sealed class AnyArgument
 
 case class IdRef(str: String) extends AnyArgument
+case class PortIdRef(str: String) extends AnyArgument
 case class PortRef(fmu: String, port: String) extends AnyArgument
 case class DOT()
 case class ARROW()
 
 trait IdentifierParser extends RegexParsers {
   def identifier: Parser[IdRef]   = "[a-zA-Z_][a-zA-Z0-9_]*".r ^^ { str => IdRef(str) }
+  def portRef : Parser[PortIdRef]   = "[a-zA-Z_][a-zA-Z0-9_\\[\\]]*".r ^^ { str => PortIdRef(str) }
 }
 
 class FMURefParser extends IdentifierParser {
   def dot: Parser[DOT] = "\\.".r ^^ { _ => DOT() }
-  def fmu_port_ref: Parser[PortRef] = identifier ~ dot ~ identifier ^^ { case IdRef(fmu) ~ DOT() ~ IdRef(port) => PortRef(fmu, port) }
+  def fmu_port_ref: Parser[PortRef] = identifier ~ dot ~ portRef ^^ { case IdRef(fmu) ~ DOT() ~ PortIdRef(port) => PortRef(fmu, port) }
 }
 
 class ConnectionParser extends FMURefParser {
