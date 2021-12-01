@@ -46,7 +46,7 @@ object MaudeScenarioGenerator extends Logging {
 
   def generateScenario(scenario: ScenarioModel, name: String): Unit = {
     val builder = new StringBuilder(generateScenario(scenario))
-    val outputFolder = System.getProperty("user.home") + "/Desktop" + "/MaudeScenarios"
+    val outputFolder = "/MaudeScenarios"
     val path = Paths.get(outputFolder)
     if (!Files.exists(path))
       Files.createDirectory(path)
