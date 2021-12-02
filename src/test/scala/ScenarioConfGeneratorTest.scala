@@ -46,6 +46,10 @@ class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
     confGenerationTest("examples/loop_within_loop.conf")
   }
 
+  "ScenarioConfGenerator" should "create valid Procedure for Spanish Example" in {
+    confGenerationTest("examples/tapas.conf")
+  }
+
   "ScenarioConfGenerator" should "create valid Procedure for step finding loop adaptive" in {
     confGenerationTest("examples_no_algorithm/step_finding_loop_adaptive.conf")
   }

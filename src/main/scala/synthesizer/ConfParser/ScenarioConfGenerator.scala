@@ -9,7 +9,9 @@ object ScenarioConfGenerator extends Logging {
     val builder = new StringBuilder(generateScenario(scenario, name))
     builder.append(s"initialization = [${generateInit(model.initialization)}]\n")
     builder.append(s"cosim-step = {${generateCoSimStep(model.cosimStep)}}")
-    builder.toString()
+    val scenarioString = builder.toString()
+    logger.info(scenarioString)
+    scenarioString
   }
 
   def generateCoSimStep(steps: Map[String, List[CosimStepInstruction]]): String = {
@@ -52,7 +54,18 @@ object ScenarioConfGenerator extends Logging {
     }.mkString("\n")
   }
 
-  def generatePort(port: PortRef): String = port.fmu + "." + port.port
+
+  def shouldBeSanitized(port: String): Boolean =
+    port.replaceAll("\\W", "") != port
+
+  def sanitizeString(port: String): String =
+    if (shouldBeSanitized(port))
+      "\"" + port + "\""
+    else
+      port
+
+  def generatePort(port: PortRef): String = sanitizeString(port.fmu + "." + port.port)
+
 
   def generateConnections(connections: List[ConnectionModel]): String = {
     connections.map(o => f"${generatePort(o.srcPort)} -> ${generatePort(o.trgPort)}").mkString("connections = [\n", "\n", "]\n")
@@ -61,8 +74,8 @@ object ScenarioConfGenerator extends Logging {
   def generateFMUs(fmus: Map[String, FmuModel]): String = {
     fmus.map(o => {
       val can_reject_string = if (o._2.canRejectStep) "can-reject-step = true,\n" else ""
-      val inputs = o._2.inputs.map(i => f"${i._1} = {reactivity=${i._2.reactivity.toString}}").mkString("inputs = {\n", "\n", "},\n")
-      val outputs = o._2.outputs.map(e => f"${e._1} = {${e._2.dependenciesInit.mkString("dependencies-init=[", ",", "]")}, ${e._2.dependencies.mkString("dependencies=[", ",", "]")}}").mkString("outputs = {\n", "\n", "}\n")
+      val inputs = o._2.inputs.map(i => f"${sanitizeString(i._1)} = {reactivity=${i._2.reactivity.toString}}").mkString("inputs = {\n", "\n", "},\n")
+      val outputs = o._2.outputs.map(e => f"${sanitizeString(e._1)} = {${e._2.dependenciesInit.mkString("dependencies-init=[", ",", "]")}, ${e._2.dependencies.mkString("dependencies=[", ",", "]")}}").mkString("outputs = {\n", "\n", "}\n")
       f"${o._1} = { \n ${can_reject_string} ${inputs} ${outputs} }"
     }).mkString("fmus = {\n", "\n", "}\n")
   }

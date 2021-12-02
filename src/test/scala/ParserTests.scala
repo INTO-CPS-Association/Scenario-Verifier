@@ -36,6 +36,14 @@ class ParserTests extends AnyFlatSpec with should.Matchers {
   }
 
 
+  "core.ConnectionParser" should "regex test" in {
+    val results = ConnectionParserSingleton.parse(ConnectionParserSingleton.connection, "FMU_QuarterCar_qcar.x[4] -> FMU_Sender_sender.x[4]")
+
+    val connection = results.get
+    connection.srcPort.port should equal ("x[4]")
+    connection.trgPort.port should equal ("x[4]")
+    assert(("x[4]".replaceAll("\\W", "")) == "x4")
+  }
 
   "core.ConnectionParser" should "parse tricky connections" in {
     val results = ConnectionParserSingleton.parse(ConnectionParserSingleton.connection, "FMU_QuarterCar_qcar.x[4] -> FMU_Sender_sender.x[4]")
