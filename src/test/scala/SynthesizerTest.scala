@@ -26,6 +26,10 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     synthesizeAndVerify("examples/tapas.conf")
   }
 
+  "Synthesizer" should "create valid Master Algorithm for Spanish Scenario" in {
+    synthesizeAndVerify("examples/scenario_spaniard.conf")
+  }
+
 "Synthesizer" should "create valid Master Algorithm for Simple Adaptive Master" in {
   synthesizeAndVerify("examples/simple_master_adaptive.conf")
 }
