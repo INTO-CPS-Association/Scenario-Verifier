@@ -8,8 +8,4 @@ class CLITests extends AnyFlatSpec with should.Matchers {
     VerifyTA.checkEnvironment() should be (true)
   }
 
-  "Maude" should "work" in {
-    MaudeRunner.checkEnvironment() should be (true)
-  }
-
 }
