@@ -12,7 +12,7 @@ case class ARROW()
 
 trait IdentifierParser extends RegexParsers {
   def identifier: Parser[IdRef]   = "[a-zA-Z_][a-zA-Z0-9_]*".r ^^ { str => IdRef(str) }
-  def portRef : Parser[PortIdRef]   = "[a-zA-Z_][a-zA-Z0-9_\\[\\]]*".r ^^ { str => PortIdRef(str) }
+  def portRef : Parser[PortIdRef]   = "[a-zA-Z_][a-zA-Z0-9_\\.\\[\\]]*".r ^^ { str => PortIdRef(str) }
 }
 
 class FMURefParser extends IdentifierParser {
