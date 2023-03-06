@@ -3,18 +3,17 @@ package trace_analyzer
 import core.ModelEncoding
 import core.Reactivity.reactive
 import org.apache.logging.log4j.scala.Logging
-
 import scala.collection.immutable
 
 
 class TraceParser(modelEncoding: ModelEncoding) extends Logging {
-  def createPortVariable(portString: String, fmu: String, portName: String, isReactive: Boolean): PortVariableState = {
+  private def createPortVariable(portString: String, fmu: String, portName: String, isReactive: Boolean): PortVariableState = {
     val status = portString.split(",").find(_.contains("status")).get.split("=").last == "1"
     val time = portString.split(",").find(_.contains("time")).get.split("=").last.toInt
     PortVariableState(fmu, portName, time, status, isReactive)
   }
 
-  def createFMUs(FMUStrings: immutable.Iterable[String]): Iterable[FMUState] = {
+  private def createFMUs(FMUStrings: immutable.Iterable[String]): Iterable[FMUState] = {
     modelEncoding.fmuEncoding.map(i => {
       val currentFMUStrings = FMUStrings.filter(_.contains(i._1))
       val isSaved = currentFMUStrings.find(_ contains "isSaved").get.split("=").last == "1"
@@ -31,7 +30,7 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
         createPortVariable(outputVariables.filter(output => variableById(output, o)).mkString(","), i._1, o._2, isReactive = false)
       }).toList
 
-      new FMUState(isSaved, savedTime, timeStamp, i._1, inputPorts, outputPorts)
+      FMUState(isSaved, savedTime, timeStamp, i._1, inputPorts, outputPorts)
     })
   }
 

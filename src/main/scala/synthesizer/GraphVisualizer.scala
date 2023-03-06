@@ -34,10 +34,9 @@ object GraphVisualizer extends Logging{
     })
 
     edges.foreach(o => {
-      val s = mutNode(getName(o.srcNode, SCCs))
-
-      val t = mutNode(getName(o.trgNode, SCCs))
-      g.add(s.addLink(t))
+      val srcNode = mutNode(getName(o.srcNode, SCCs))
+      val targetNode = mutNode(getName(o.trgNode, SCCs))
+      g.add(srcNode.addLink(targetNode))
     })
     Graphviz.fromGraph(g).render(Format.SVG).toFile(new File(String.format("example/%s.svg", name)))
   }

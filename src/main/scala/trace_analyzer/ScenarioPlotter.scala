@@ -15,11 +15,10 @@ import scala.collection.parallel.CollectionConverters._
 import scala.collection.mutable.ListBuffer
 import scala.math.{ceil, log10, pow}
 
-
 object ScenarioPlotter extends Logging {
 
   def feedthroughConnections(outputPortModel: OutputPortModel, state: ModelState): List[String] =
-    if (state.isInitState) outputPortModel.dependenciesInit else outputPortModel.dependenciesInit
+    if (state.isInitState) outputPortModel.dependenciesInit else outputPortModel.dependencies
 
   private def isCurrent(action: Option[UPPAAL_Action], fmu: String, port: String): Boolean =
     action.isDefined && action.get.FMU == fmu && action.get.Port == port
@@ -117,10 +116,10 @@ object ScenarioPlotter extends Logging {
 
   def plot(uppaalTrace: UppaalTrace, outputDirectory: String): String = {
     val movieFile = if (uppaalTrace.simulationStates.nonEmpty) {
-      val scenario_movie = new File(s"${outputDirectory}/simulation_${uppaalTrace.scenarioName}.mp4")
+      val scenario_movie = new File(s"$outputDirectory/simulation_${uppaalTrace.scenarioName}.mp4")
       makeAnimation(scenario_movie, uppaalTrace.simulationStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
     } else {
-      val init_movie = new File(s"${outputDirectory}/init_${uppaalTrace.scenarioName}.mp4")
+      val init_movie = new File(s"$outputDirectory/init_${uppaalTrace.scenarioName}.mp4")
       makeAnimation(init_movie, uppaalTrace.initStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
     }
     movieFile
@@ -142,7 +141,7 @@ object ScenarioPlotter extends Logging {
     states.foreach(state => {
       val filteredActions = state.possibleActions
         .filterNot(act => if (state.checksDisabled) false else performedActions.exists(per => per.actionNumber == act.actionNumber && per.FMU == act.FMU && act.Port == per.Port))
-      enrichedStates += new ModelState(state.checksDisabled, state.loopActive, state.timeStamp, state.FMUs, state.action, filteredActions, state.isInitState, state.isSimulation, previousAction)
+      enrichedStates += ModelState(state.checksDisabled, state.loopActive, state.timeStamp, state.FMUs, state.action, filteredActions, state.isInitState, state.isSimulation, previousAction)
       previousAction = Some(state.action)
       performedActions += previousAction.get
     })
@@ -161,6 +160,6 @@ object ScenarioPlotter extends Logging {
     movie.toPath.toString
   }
 
-  private final case class dimensions(val height: Int, val width: Int)
+  private final case class dimensions(height: Int, width: Int)
 
 }
