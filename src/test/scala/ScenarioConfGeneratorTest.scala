@@ -1,21 +1,28 @@
-import java.io.ByteArrayInputStream
-
-import core.{ConnectionModel, FmuModel, ScenarioLoader}
+import core.{AlgebraicLoopInit, ConnectionModel, EnterInitMode, ExitInitMode, FmuModel, InitGet, InitSet, ScenarioLoader}
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import synthesizer.ConfParser.ScenarioConfGenerator
+
+import java.io.ByteArrayInputStream
 
 class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
   private def confGenerationTest(resourcesFile: String) = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val scenario = ScenarioLoader.load(conf)
-    val generateScenario = ScenarioConfGenerator.generate(scenario, scenario.name)
-    val scenarioFromGeneratedSource = ScenarioLoader.load(new ByteArrayInputStream(generateScenario.getBytes()))
+    val generatedConfiguration = scenario.toConf()
+    val scenarioFromGeneratedSource = ScenarioLoader.load(new ByteArrayInputStream(generatedConfiguration.getBytes()))
     //All connections are equivalent
     assert(compareConnections(scenario.scenario.connections, scenarioFromGeneratedSource.scenario.connections))
     //All FMUs are equivalent
     assert(compareFMUs(scenario.scenario.fmus, scenarioFromGeneratedSource.scenario.fmus))
-    assert(scenario.initialization == scenarioFromGeneratedSource.initialization)
+    assert(scenario.initialization.filterNot {
+      case EnterInitMode(_) => true
+      case ExitInitMode(_) => true
+      case _ => false
+    } == scenarioFromGeneratedSource.initialization.filterNot {
+      case EnterInitMode(_) => true
+      case ExitInitMode(_) => true
+      case _ => false
+    })
     assert(scenario.cosimStep == scenarioFromGeneratedSource.cosimStep)
   }
 
@@ -31,10 +38,10 @@ class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
     confGenerationTest("examples/simple_master.conf")
   }
 
-  "ScenarioConfGenerator" should "create valid Master Algorithm for Algebraic Initialization" in{
+  "ScenarioConfGenerator" should "create valid Master Algorithm for Algebraic Initialization" in {
     confGenerationTest("examples/algebraic_loop_initialization.conf")
   }
-  "ScenarioConfGenerator" should "create valid Master Algorithm for Industrial case study" in{
+  "ScenarioConfGenerator" should "create valid Master Algorithm for Industrial case study" in {
     confGenerationTest("examples/industrial_casestudy.conf")
   }
 

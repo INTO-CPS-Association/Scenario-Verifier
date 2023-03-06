@@ -1,14 +1,7 @@
-import java.io.{File, PrintWriter}
-import java.nio.file.Files
-
 import api.VerificationAPI
-import cli.VerifyTA
-import core.{MasterModel, ModelEncoding, ScenarioGenerator, ScenarioLoader}
-import org.apache.commons.io.FileUtils
 import org.scalatest.Ignore
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import synthesizer.LoopStrategy.{LoopStrategy, maximum, minimum}
 import synthesizer._
 
 import scala.collection.immutable.HashSet
@@ -16,7 +9,7 @@ import scala.collection.immutable.HashSet
 class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
   def generateSynthesisAndVerify(scenarioName: String, nFMU: Int, nConnection: Int, feedthrough: Boolean = true, canRejectStep: Boolean = false) = {
     val scenario = ScenarioBuilder.generateScenario(nFMU, nConnection, feedthrough, canRejectStep)
-    assert(VerificationAPI.generateAndVerify(scenarioName, scenario))
+    assert(VerificationAPI.synthesizeAndVerify(scenarioName, scenario))
   }
 
   "ScenarioBuilderTest" should "create valid Simple example" in {
@@ -28,19 +21,19 @@ class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
   }
 
   "ScenarioBuilderTest" should "create valid Big and Advanced example" in {
-    generateSynthesisAndVerify("Big_Very_Advanced_Example", 5, 10, true, true)
+    generateSynthesisAndVerify("Big_Very_Advanced_Example", 5, 10, canRejectStep = true)
   }
 
   "ScenarioBuilderTest" should "create valid Big and Advanced with Feedthrough example" in {
-    generateSynthesisAndVerify("Big_Very_Advanced_Example", 10, 20, true, true)
+    generateSynthesisAndVerify("Big_Very_Advanced_Example", 10, 20, canRejectStep = true)
   }
 
   "ScenarioBuilderTest" should "create valid Big example with no Feedthrough" ignore  {
-    generateSynthesisAndVerify("Test_Simple_Big_Example", 20, 40, false, true)
+    generateSynthesisAndVerify("Test_Simple_Big_Example", 20, 40, feedthrough = false, canRejectStep = true)
   }
 
   "ScenarioBuilderTest" should "create very big simple example" ignore  {
-    generateSynthesisAndVerify("Big_Simple_Example", 100, 200, false, false)
+    generateSynthesisAndVerify("Big_Simple_Example", 100, 200, feedthrough = false)
   }
 
   "ScenarioBuilderTest" should "create valid Connection example" in {

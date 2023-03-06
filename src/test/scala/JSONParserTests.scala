@@ -1,29 +1,31 @@
-import java.io.{File, PrintWriter}
-import java.nio.file.Files
-
 import cli.VerifyTA
-import core.{MasterModelDTO, ModelEncoding, ScenarioGenerator, ScenarioLoader}
+import core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 
+import java.io.{File, PrintWriter}
+import java.nio.file.Files
+
 class JSONParserTests extends AnyFlatSpec with should.Matchers {
 
-  def writeToTempFile(content: String) = {
+  private def writeToTempFile(content: String): File = {
     val file = Files.createTempFile("uppaal_", ".xml").toFile
-    new PrintWriter(file) { write(content); close() }
+    new PrintWriter(file) {
+      write(content); close()
+    }
     file
   }
 
 
-  def generateAndVerify(resourcesFile: String) = {
+  def generateAndVerify(resourcesFile: String): Boolean = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.loadJson(conf)
     val encoding = new ModelEncoding(masterModel)
     val result = ScenarioGenerator.generate(encoding)
     val f = writeToTempFile(result)
     assert(VerifyTA.checkEnvironment())
-    VerifyTA.verify(f) should be (0)
+    VerifyTA.verify(f) should be(0)
     FileUtils.deleteQuietly(f)
   }
 

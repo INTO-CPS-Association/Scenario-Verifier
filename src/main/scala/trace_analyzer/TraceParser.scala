@@ -28,7 +28,7 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
 
       val outputVariables = currentFMUStrings.filter(_.contains("outputVariables"))
       val outputPorts = modelEncoding.fmuOutputEncodingInverse(i._1).map(o => {
-        createPortVariable(outputVariables.filter(output => variableById(output, o)).mkString(","), i._1, o._2, false)
+        createPortVariable(outputVariables.filter(output => variableById(output, o)).mkString(","), i._1, o._2, isReactive = false)
       }).toList
 
       new FMUState(isSaved, savedTime, timeStamp, i._1, inputPorts, outputPorts)
@@ -39,13 +39,13 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
     in.matches(f".*\\[${o._1}\\].*")
   }
 
-  def createAction(enabledAction: String): SUAction = {
+  def createAction(enabledAction: String): UPPAAL_Action = {
     //The last 4 characters _fmu should be removed
     val fmuName = enabledAction.split("\\.").head.dropRight(4)
     val actionType: Int = getActionType(enabledAction)
 
     val portName = getPortName(fmuName, actionType, getVariable(enabledAction, actionType))
-    SUAction(fmuName, actionType, portName, -1, -1, 0)
+    UPPAAL_Action(fmuName, actionType, portName, -1, -1, 0)
   }
 
 
@@ -55,18 +55,18 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
     else 2
   }
 
-  private def getVariable(enabledAction: String, actionType: Int):Int = {
+  private def getVariable(enabledAction: String, actionType: Int): Int = {
     if (actionType != 2) {
       val index = ("\\[\\d+\\]".r findFirstMatchIn enabledAction).get
       enabledAction.substring(index.start + 1, index.`end` - 1).toInt
-    }else -1
+    } else -1
   }
 
-  def getPossibleActions(transitions: List[String], encoding: ModelEncoding): List[SUAction] = {
+  def getPossibleActions(transitions: List[String], encoding: ModelEncoding): List[UPPAAL_Action] = {
     encoding.fmuNames.flatMap(i => transitions.filter(_.startsWith(i)).map(i => createAction(i))).toList
   }
 
-  def parseState(stateString: String): ModelState = {
+  private def parseState(stateString: String): ModelState = {
     val stateStrings = stateString.split(" ").filterNot(notConstant).toList
     val stepVariables = stateStrings.filter(i => i startsWith "stepVariables")
     val FMUStrings = modelEncoding.fmuEncoding.flatMap(m => stateStrings.filter(i => i startsWith m._1))
@@ -84,16 +84,16 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
 
     val nextAction = getAction(reducedString)
 
-    new ModelState(checksDisabled, loopActive, time, FMUStates.toList, nextAction, possibleActions, isInit, isSimulation)
+    ModelState(checksDisabled, loopActive, time, FMUStates.toList, nextAction, possibleActions, isInit, isSimulation)
   }
 
-  def getPortName(fmuName: String, action: Int, variable: Int): String = {
+  private def getPortName(fmuName: String, action: Int, variable: Int): String = {
     if (action == 0) modelEncoding.fmuOutputEncodingInverse(fmuName)(variable)
     else if (action == 1) modelEncoding.fmuInputEncodingInverse(fmuName)(variable)
     else ""
   }
 
-  private def getAction(reducedString: List[String]): SUAction = {
+  private def getAction(reducedString: List[String]): UPPAAL_Action = {
     val action = reducedString.find(i => i startsWith "action=").get.split("=").last.toInt
     val stepSize = reducedString.find(i => i startsWith "stepsize=").get.split("=").last.toInt
     val relative_step_size = reducedString.find(i => i startsWith "relative_step_size=").get.split("=").last.toInt
@@ -101,15 +101,16 @@ class TraceParser(modelEncoding: ModelEncoding) extends Logging {
     val commitment = reducedString.find(i => i startsWith "commitment=").get.split("=").last.toInt
     val variable = reducedString.find(i => i startsWith "var=").get.split("=").last.toInt
 
-    val fmuName = if(action != 9 && action != 10) modelEncoding.fmuEncodingInverse(activeFMU) else ""
+    val fmuName = if (action != 9 && action != 10) modelEncoding.fmuEncodingInverse(activeFMU) else ""
     val portName = getPortName(fmuName, action, variable)
-    SUAction(fmuName, action, portName, stepSize, relative_step_size, commitment)
+    UPPAAL_Action(fmuName, action, portName, stepSize, relative_step_size, commitment)
   }
 
-  def parseScenarios(trace: Iterator[String]): Seq[ModelState] = {
+  def parseTrace(trace: Iterator[String]): Seq[ModelState] = {
     trace.toList.map(parseState)
   }
 
-  def notConstant(line: String): Boolean = line.startsWith("fmusUnloaded") || line.contains("savedInputVariables") || line.startsWith("connectionVariable") || line.contains("isConsistent=") || line.contains("_pc") || line.contains("isConsistent") || line.contains(".i=") || line.contains(".n=") || line.contains("#depth=")
+  private def notConstant(line: String): Boolean =
+    line.startsWith("fmusUnloaded") || line.contains("savedInputVariables") || line.startsWith("connectionVariable") || line.contains("isConsistent=") || line.contains("_pc") || line.contains("isConsistent") || line.contains(".i=") || line.contains(".n=") || line.contains("#depth=")
 
 }

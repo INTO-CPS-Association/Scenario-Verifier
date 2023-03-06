@@ -1,7 +1,7 @@
-import core.{ConnectionParserSingleton, MasterModel, PortRef, ScenarioLoader, ScenarioModel}
+import core.{PortRef, ScenarioLoader}
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import synthesizer.{DoStepNode, Edge, GetNode, GraphBuilder, Node, SetNode}
+import synthesizer._
 
 class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
   def testInitialGraph(file: String): Unit ={
@@ -21,7 +21,7 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
       })
     })
 
-    val nodes = (initialEdges.map(o => o.srcNode) ++ initialEdges.map(o => o.trgNode))
+    val nodes = initialEdges.map(o => o.srcNode) ++ initialEdges.map(o => o.trgNode)
     assert(nodes.size == (masterModel.initialization.size - scenario.fmus.size * 2))
 
     //All nodes are either get or set

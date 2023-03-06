@@ -1,9 +1,6 @@
 package synthesizer
 
-import scala.+:
-import scala.annotation.tailrec
-import scala.collection.immutable.HashMap
-import scala.collection.{immutable, mutable}
+import scala.collection.mutable
 
 class TarjanGraph[A](edges: Iterable[Edge[A]]) {
   lazy val tarjan: mutable.Buffer[mutable.Buffer[A]] = {

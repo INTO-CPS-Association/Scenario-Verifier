@@ -2,7 +2,7 @@ package synthesizer
 
 
 object GraphUtil {
-  def pathExist[A](src: A, trg: A, edges: Set[Edge[A]]): Boolean = {
+  private def pathExist[A](src: A, trg: A, edges: Set[Edge[A]]): Boolean = {
     var adjacencyList = edges.map(o => (o.srcNode, o.trgNode)).groupMap(_._1)(_._2).map(i => (i._1, i._2.to(LazyList)))
     val nodes = edges.map(_.srcNode) ++ edges.map(_.trgNode)
     adjacencyList ++= nodes.diff(adjacencyList.keys.toSet).map(i => (i, LazyList.empty[A]))
@@ -10,12 +10,12 @@ object GraphUtil {
   }
 
   @annotation.tailrec
-  final def bfs[A](graph: Map[A, LazyList[A]], toVisit: LazyList[A], visited: LazyList[A], accumulator: LazyList[A]): LazyList[A] = {
+  private final def bfs[A](graph: Map[A, LazyList[A]], toVisit: LazyList[A], visited: LazyList[A], accumulator: LazyList[A]): LazyList[A] = {
     if (toVisit.isEmpty) {
       accumulator
     } else {
       val next = toVisit.head
-      val succ = (graph(next) diff visited diff toVisit)
+      val succ = graph(next) diff visited diff toVisit
       bfs(graph, toVisit.tail ++ succ, visited :+ next, accumulator :+ next)
     }
   }

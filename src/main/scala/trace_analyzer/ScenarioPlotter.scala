@@ -15,16 +15,17 @@ import scala.collection.parallel.CollectionConverters._
 import scala.collection.mutable.ListBuffer
 import scala.math.{ceil, log10, pow}
 
+
 object ScenarioPlotter extends Logging {
 
   def feedthroughConnections(outputPortModel: OutputPortModel, state: ModelState): List[String] =
     if (state.isInitState) outputPortModel.dependenciesInit else outputPortModel.dependenciesInit
 
-
-  def isCurrent(action: Option[SUAction], fmu: String, port: String): Boolean = action.isDefined && action.get.FMU == fmu && action.get.Port == port
+  private def isCurrent(action: Option[UPPAAL_Action], fmu: String, port: String): Boolean =
+    action.isDefined && action.get.FMU == fmu && action.get.Port == port
 
   //Todo Should be merged
-  def createInputNode(fmu: String, portName: String, isReactive: Boolean, action: Option[SUAction], state: ModelState): MutableNode = {
+  def createInputNode(fmu: String, portName: String, isReactive: Boolean, action: Option[UPPAAL_Action], state: ModelState): MutableNode = {
     val nodeName = fmu + "." + portName
     mutNode(nodeName)
       .add(if (isCurrent(action, fmu, portName)) Color.RED
@@ -32,23 +33,23 @@ object ScenarioPlotter extends Logging {
       else Color.WHITE,
         Shape.BOX,
         Label.lines(nodeName,
-          state.portTime(fmu, portName, true),
+          state.portTime(fmu, portName, isInput = true),
           if (isReactive) "R" else "D"))
   }
 
-  def createOutputNode(fmu: String, portName: String, action: Option[SUAction], state: ModelState): MutableNode = {
+  def createOutputNode(fmu: String, portName: String, action: Option[UPPAAL_Action], state: ModelState): MutableNode = {
     val nodeName = fmu + "." + portName
     mutNode(nodeName)
       .add(
         if (isCurrent(action, fmu, portName)) Color.RED
-      else if (state.isDefinedOutputState(fmu, portName)) Color.BLACK else Color.WHITE,
+        else if (state.isDefinedOutputState(fmu, portName)) Color.BLACK else Color.WHITE,
         Shape.BOX,
         Label.lines(nodeName,
-          state.portTime(fmu, portName, false)))
+          state.portTime(fmu, portName, isInput = false)))
   }
 
 
-  def createGraphOfState(state: ModelState, currentAction: Option[SUAction], possibleActions: List[SUAction], modelEncoding: ModelEncoding, name: String): MutableGraph = {
+  def createGraphOfState(state: ModelState, currentAction: Option[UPPAAL_Action], possibleActions: List[UPPAAL_Action], modelEncoding: ModelEncoding, name: String): MutableGraph = {
     val g = mutGraph(name).setDirected(true)
     modelEncoding.fmuModels.foreach(fmu => {
       val FMUName = fmu._1
@@ -90,23 +91,23 @@ object ScenarioPlotter extends Logging {
         ))
   }
 
-  private def actionNode(state: ModelState, currentAction: Option[SUAction]): MutableNode = {
-    mutNode(state.action.action())
+  private def actionNode(state: ModelState, currentAction: Option[UPPAAL_Action]): MutableNode = {
+    mutNode(state.action.format())
       .add(Shape.DIAMOND, Label.lines(
         if (state.isInitState) "Initialization" else "Simulation",
-        if (currentAction.isDefined) f"Current Action: ${currentAction.get.action()}" else "",
-        f"Next Action: ${state.action.action()}",
+        if (currentAction.isDefined) f"Current Action: ${currentAction.get.format()}" else "",
+        f"Next Action: ${state.action.format()}",
         if (state.isInitState) "" else s"Timestamp: ${state.timeStamp}",
         if (state.loopActive) "Solving Algebraic loop" else ""
       ))
   }
 
-  private def possibleAction(state: ModelState, actions: List[SUAction]): MutableNode = {
+  private def possibleAction(state: ModelState, actions: List[UPPAAL_Action]): MutableNode = {
     mutNode(s"Possible Next Actions :")
       .add(Shape.BOX,
         Label.html(
           f"<b>Possible Next Actions ${if (state.checksDisabled) "(Checks disabled)"}:</b><br/>" +
-            actions.sortBy(i => i.FMU).map(i => i.action()).mkString("<br/>")
+            actions.sortBy(i => i.FMU).map(i => i.format()).mkString("<br/>")
         ))
   }
 
@@ -114,37 +115,29 @@ object ScenarioPlotter extends Logging {
     state.isInitState && state.isDefinedInitInputState(fmu, port) || state.isSimulation && state.isDefinedInputState(fmu, port)
   }
 
-  def plot(uppaalTrace: UppaalTrace, outputDirectory: String): Unit = {
-    if(uppaalTrace.simulationStates.nonEmpty){
+  def plot(uppaalTrace: UppaalTrace, outputDirectory: String): String = {
+    val movieFile = if (uppaalTrace.simulationStates.nonEmpty) {
       val scenario_movie = new File(s"${outputDirectory}/simulation_${uppaalTrace.scenarioName}.mp4")
       makeAnimation(scenario_movie, uppaalTrace.simulationStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
-    }else{
+    } else {
       val init_movie = new File(s"${outputDirectory}/init_${uppaalTrace.scenarioName}.mp4")
       makeAnimation(init_movie, uppaalTrace.initStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
     }
+    movieFile
   }
 
-  def plot(uppaalTrace: UppaalTrace, file: File): File = {
-    if(uppaalTrace.simulationStates.nonEmpty){
-      makeAnimation(file, uppaalTrace.simulationStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
-    }else{
-      makeAnimation(file, uppaalTrace.initStates, uppaalTrace.modelEncoding, uppaalTrace.scenarioName)
-    }
-    file
-  }
-
-  def getDimensions(state: ModelState, modelEncoding: ModelEncoding, scenarioName: String): dimensions = {
+  private def dimensionsOfScenario(state: ModelState, modelEncoding: ModelEncoding, scenarioName: String): dimensions = {
     val g = createGraphOfState(state, None, List.empty, modelEncoding, scenarioName)
     val image = Graphviz.fromGraph(g).render(Format.PNG).toImage
     val log2 = (x: Double) => log10(x) / log10(2.0)
-    dimensions(pow(2, ceil(log2(image.getHeight))).toInt, pow(2, ceil(log2(image.getWidth))).toInt)
+    dimensions(pow(2, ceil(log2(image.getHeight.toDouble))).toInt, pow(2, ceil(log2(image.getWidth.toDouble))).toInt)
   }
 
-  def makeAnimation(movie: File, states: Seq[ModelState], modelEncoding: ModelEncoding, scenarioName: String): Unit = {
+  def makeAnimation(movie: File, states: Seq[ModelState], modelEncoding: ModelEncoding, scenarioName: String): String = {
     val encoder = AWTSequenceEncoder.createSequenceEncoder(movie, 1)
-    var previousAction: Option[SUAction] = None
-    val performedActions = ListBuffer.empty[SUAction]
-    val dimensions: dimensions = getDimensions(states.head, modelEncoding, scenarioName)
+    var previousAction: Option[UPPAAL_Action] = None
+    val performedActions = ListBuffer.empty[UPPAAL_Action]
+    val dimensions: dimensions = dimensionsOfScenario(states.head, modelEncoding, scenarioName)
     val enrichedStates = ListBuffer.empty[ModelState]
     states.foreach(state => {
       val filteredActions = state.possibleActions
@@ -154,7 +147,7 @@ object ScenarioPlotter extends Logging {
       performedActions += previousAction.get
     })
 
-   val slices =  Range(0, enrichedStates.length, 150).map(n => enrichedStates.slice(n, n + 150))
+    val slices = Range(0, enrichedStates.length, 150).map(n => enrichedStates.slice(n, n + 150))
 
     slices.foreach(slice => {
       val images = slice.par.map(state => {
@@ -165,8 +158,9 @@ object ScenarioPlotter extends Logging {
     })
 
     encoder.finish()
+    movie.toPath.toString
   }
 
-  case class dimensions(val height: Int, val width: Int)
+  private final case class dimensions(val height: Int, val width: Int)
 
 }

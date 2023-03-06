@@ -1,22 +1,20 @@
 package cli
 
-import java.io.{BufferedWriter, File, FileWriter, PrintWriter}
-import java.nio.file.{Files, Paths}
-
 import api.GenerationAPI
-import core.{MasterModel, ModelEncoding, ScenarioGenerator, ScenarioLoader}
+import core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.scala.Logging
 import scopt.OParser
-import synthesizer.ConfParser.ScenarioConfGenerator
-import synthesizer.SynthesizerSimple
 import trace_analyzer.TraceAnalyzer
+
+import java.io.{BufferedWriter, File, FileWriter, PrintWriter}
+import java.nio.file.{Files, Paths}
 
 object ScenarioVerifierApp extends App with Logging {
   logger.info("Logger started.")
   logger.debug("Debug logging enabled.")
 
-  def writeFile(filename: String, lines: Seq[String]): Unit = {
+  private def writeFile(filename: String, lines: Seq[String]): Unit = {
     val file = new File(filename)
     val bw = new BufferedWriter(new FileWriter(file))
     for (line <- lines) {
@@ -64,9 +62,9 @@ object ScenarioVerifierApp extends App with Logging {
       var masterModel = ScenarioLoader.load(config.master)
 
       if(config.generateAlgorithm){
-        masterModel = GenerationAPI.generateAlgorithm(masterModel.name, masterModel.scenario)
+        masterModel = GenerationAPI.synthesizeAlgorithm(masterModel.name, masterModel.scenario)
         FileUtils.deleteQuietly(new File(config.master))
-        writeFile(config.master, List(ScenarioConfGenerator.generate(masterModel, masterModel.name)))
+        writeFile(config.master, masterModel.toConf().split("\n"))
       }
 
       logger.debug("Loaded model: ")
@@ -75,7 +73,7 @@ object ScenarioVerifierApp extends App with Logging {
       val queryModel = new ModelEncoding(masterModel)
       val result = ScenarioGenerator.generate(queryModel)
       new PrintWriter(config.output) {
-        write(result);
+        write(result)
         close()
       }
 
@@ -93,7 +91,7 @@ object ScenarioVerifierApp extends App with Logging {
           val traceFile = Files.createTempFile("trace_", ".log").toFile
           val result = VerifyTA.saveTraceToFile(file, traceFile)
           if (result == 1) {
-            logger.info(s"Started generating the animation of trace ${masterModel.name} in folder: ${outputFolder}.")
+            logger.info(s"Started generating the animation of trace ${masterModel.name} in folder: $outputFolder.")
             val source = scala.io.Source.fromFile(traceFile)
             try {
               val lines = source.getLines()

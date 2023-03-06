@@ -86,7 +86,6 @@ case class MasterConfig(
 case class AdaptiveConfig(
                            configurableInputs : List[String] = Nil,
                            configurations : Map[String, SettingConfig]  = Map.empty
-
                          )
 
 case class SettingConfig(

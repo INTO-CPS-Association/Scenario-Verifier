@@ -1,10 +1,9 @@
 package trace_analyzer
 
-import cats.kernel.Previous
 import core.ModelEncoding
 
-case class SUAction(val FMU: String = "", val actionNumber: Int = -1, Port: String = "", stepSize: Int = -1, relative_step_size: Int = -1, commitment: Int = -1) {
-  def action(): String = {
+final case class UPPAAL_Action(FMU: String = "", actionNumber: Int = -1, Port: String = "", stepSize: Int = -1, relative_step_size: Int = -1, commitment: Int = -1) {
+  def format(): String = {
     actionNumber match {
       case 0 => f"Get ${FMU}.${Port}"
       case 1 => f"Set ${FMU}.${Port}"
@@ -17,25 +16,27 @@ case class SUAction(val FMU: String = "", val actionNumber: Int = -1, Port: Stri
     }
   }
 
-  def formatStep(): String = {
+  private def formatStep(): String = {
     if (stepSize != -1) f"by ${stepSize}"
     else f"as same as ${relative_step_size}"
   }
 }
 
 
-class UppaalTrace(val modelEncoding: ModelEncoding,
-                  val initStates: Seq[ModelState],
-                  val simulationStates: Seq[ModelState],
-                  val scenarioName: String) {}
+case class UppaalTrace(modelEncoding: ModelEncoding,
+                       initStates: Seq[ModelState],
+                       simulationStates: Seq[ModelState],
+                       scenarioName: String) {}
 
-class ModelState(val checksDisabled: Boolean, val loopActive: Boolean, val timeStamp: Int,
-                 val FMUs: List[FMUState],
-                 val action: SUAction,
-                 val possibleActions: List[SUAction],
-                 val isInitState: Boolean,
-                 val isSimulation: Boolean,
-                 val previous: Option[SUAction] = None) {
+case class ModelState(checksDisabled: Boolean,
+                      loopActive: Boolean,
+                      timeStamp: Int,
+                      FMUs: List[FMUState],
+                      action: UPPAAL_Action,
+                      possibleActions: List[UPPAAL_Action],
+                      isInitState: Boolean,
+                      isSimulation: Boolean,
+                      previous: Option[UPPAAL_Action] = None) {
 
   def canStep(fmuName: String) = {
     val fmu = FMUs.find(_.name == fmuName).get
@@ -78,7 +79,7 @@ class ModelState(val checksDisabled: Boolean, val loopActive: Boolean, val timeS
     println(f"Time = ${timeStamp}")
     FMUs.foreach(_.printFMU())
     println("Next Action:")
-    action.action()
+    action.format()
 
   }
 }

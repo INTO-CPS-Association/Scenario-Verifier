@@ -22,7 +22,7 @@ object ScenarioLoader extends Logging {
 
   def load(file: String): MasterModel = {
     if (!Files.exists(Paths.get(file))) {
-      val msg = f"File not found: ${file}. Current working directory is: ${System.getProperty("user.dir")}."
+      val msg = f"File not found: $file. Current working directory is: ${System.getProperty("user.dir")}."
       logger.error(msg)
       throw new IllegalArgumentException(msg)
     }
@@ -39,9 +39,8 @@ object ScenarioLoader extends Logging {
     dto match {
       case Right(masterModel) =>
         enrichDTO(masterModel)
-      case Left(error) => {
+      case Left(error) =>
         throw new IllegalArgumentException(error.toString + "could not be parsed")
-      }
     }
   }
 
@@ -56,11 +55,11 @@ object ScenarioLoader extends Logging {
       // This forces pure config to not tolerate unknown keys in the config file.
       // It gives errors when typos happen.
       // From https://pureconfig.github.io/docs/overriding-behavior-for-case-classes.html
-      implicit val hintNestedStepStatement = ProductHint[NestedStepStatement](allowUnknownKeys = false)
-      implicit val hintRootStepStatement = ProductHint[RootStepStatement](allowUnknownKeys = false)
-      implicit val hintNestedInitStatement = ProductHint[NestedInitStatement](allowUnknownKeys = false)
-      implicit val hintRootInitStatement = ProductHint[RootInitStatement](allowUnknownKeys = false)
-      implicit val hintMasterConfig = ProductHint[MasterConfig](allowUnknownKeys = false)
+      implicit val hintNestedStepStatement: ProductHint[NestedStepStatement] = ProductHint[NestedStepStatement](allowUnknownKeys = false)
+      implicit val hintRootStepStatement: ProductHint[RootStepStatement] = ProductHint[RootStepStatement](allowUnknownKeys = false)
+      implicit val hintNestedInitStatement: ProductHint[NestedInitStatement] = ProductHint[NestedInitStatement](allowUnknownKeys = false)
+      implicit val hintRootInitStatement: ProductHint[RootInitStatement] = ProductHint[RootInitStatement](allowUnknownKeys = false)
+      implicit val hintMasterConfig: ProductHint[MasterConfig] = ProductHint[MasterConfig](allowUnknownKeys = false)
 
       val parsingResults = ConfigSource.fromConfig(conf).load[MasterConfig]
       val masterConfig = extractMasterConfig(parsingResults)
@@ -70,27 +69,23 @@ object ScenarioLoader extends Logging {
     }
   }
 
-  def prettyPrintError(e: ConfigReaderFailure): Unit = {
+  private def prettyPrintError(e: ConfigReaderFailure): Unit = {
     e match {
-      case ConvertFailure(UnknownKey(key), _, path) => {
-        logger.error(f"Unknown key '${key}' in element ${path}.")
-      }
-      case other => {
+      case ConvertFailure(UnknownKey(key), _, path) =>
+        logger.error(f"Unknown key '$key' in element $path.")
+      case other =>
         logger.error(other.description)
-      }
     }
-
   }
 
-  def extractMasterConfig(parsingResults: Result[MasterConfig]): MasterConfig = {
+  private def extractMasterConfig(parsingResults: Result[MasterConfig]): MasterConfig = {
     parsingResults match {
-      case Left(errors) => {
+      case Left(errors) =>
         logger.error("Errors during parsing.")
         for (e <- errors.toList) {
           prettyPrintError(e)
         }
         throw new IllegalArgumentException(errors.toString())
-      }
       case Right(master) => {
         logger.info(f"Successfully parsed master configuration.")
         PPrint.pprint(master, l=logger)
@@ -261,9 +256,9 @@ object ScenarioLoader extends Logging {
   }
 
   def parse(loop: LoopConfig, scenarioModel: ScenarioModel): CosimStepInstruction = {
-    assert((!loop.untilConverged.isEmpty) || (!loop.untilStepAccept.isEmpty), "Loop has to have either until-converged or until-step-accept.")
+    assert(loop.untilConverged.nonEmpty || loop.untilStepAccept.nonEmpty, "Loop has to have either until-converged or until-step-accept.")
     assert(loop.untilConverged.isEmpty || loop.untilStepAccept.isEmpty, "Loop has to have either until-converged or until-step-accept, but not both.")
-    if (! loop.untilConverged.isEmpty){
+    if (loop.untilConverged.nonEmpty){
       val untilConverged = loop.untilConverged.map(p => {
         val pRef = parsePortRef(p, s"instruction $loop", scenarioModel.fmus)
           assert(scenarioModel.fmus(pRef.fmu).outputs.contains(pRef.port), s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
@@ -328,11 +323,10 @@ object ScenarioLoader extends Logging {
 
   def parse(fmuId: String, fmu: FmuConfig): FmuModel = {
     fmu match {
-      case FmuConfig(inputs, outputs, canRejectStep, path) => {
+      case FmuConfig(inputs, outputs, canRejectStep, path) =>
         val inputsModel = inputs.map(keyValPair => (keyValPair._1, parse(keyValPair._2)))
         val outputPortsModel = outputs.map(keyValPair => (keyValPair._1, parse(keyValPair._2, inputsModel, keyValPair._1, fmuId)))
         FmuModel(inputsModel, outputPortsModel, canRejectStep, path)
-      }
     }
   }
 
@@ -355,7 +349,7 @@ object ScenarioLoader extends Logging {
     }
   }
 
-  def parseConnection(connectionConfig: String, fmus: Map[String, FmuModel]): ConnectionModel = {
+  private def parseConnection(connectionConfig: String, fmus: Map[String, FmuModel]): ConnectionModel = {
     val results = ConnectionParserSingleton.parse(ConnectionParserSingleton.connection, connectionConfig)
     assert(results.successful, s"Problem parsing connection string $connectionConfig.")
     val connection = results.get

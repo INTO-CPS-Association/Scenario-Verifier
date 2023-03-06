@@ -1,4 +1,4 @@
-import cli.{MaudeRunner, VerifyTA}
+import cli.VerifyTA
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 

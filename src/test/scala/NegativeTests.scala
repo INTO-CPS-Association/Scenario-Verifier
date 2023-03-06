@@ -1,15 +1,11 @@
-import cli.VerifyTA
-import core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
-import org.apache.commons.io.FileUtils
+import api.VerificationAPI
+import core.ScenarioLoader
+import org.scalatest.Assertion
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import java.io.PrintWriter
-import java.nio.file.Files
-
-import api.VerificationAPI
 
 class NegativeTests extends AnyFlatSpec with should.Matchers {
-  def generateAndVerifyFail(resourcesFile: String) = {
+  def generateAndVerifyFail(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
     assert(!VerificationAPI.verifyAlgorithm(masterModel))
@@ -50,5 +46,4 @@ class NegativeTests extends AnyFlatSpec with should.Matchers {
   "ScenarioGenerator" should  "catch problem in initialization for incubator1.conf" in {
     generateAndVerifyFail("common_mistakes/incubator1.conf")
   }
-
 }

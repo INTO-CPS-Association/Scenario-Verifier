@@ -1,6 +1,6 @@
 package synthesizer
 
-import core.{AlgebraicLoop, AlgebraicLoopInit, CosimStepInstruction, FmuModel, InitializationInstruction, InputPortModel, PortRef, ScenarioModel}
+import core.{AlgebraicLoop, AlgebraicLoopInit, FmuModel, InitializationInstruction, InputPortModel, PortRef, ScenarioModel}
 import synthesizer.LoopStrategy.{LoopStrategy, maximum}
 
 import scala.collection.mutable
@@ -88,8 +88,8 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
       algorithm = formatStepInstruction(n, algorithm)
     })
 
-    val instructions = algorithm.intructions.filter(IsLoopInstruction)
-    CoSimAlgorithm(algorithm.steppedFMUs, algorithm.savedFMUs, coSimAlgorithm.intructions.:+(AlgebraicLoop(gets.map(_.port), instructions, List.empty)))
+    val instructions = algorithm.instructions.filter(IsLoopInstruction)
+    CoSimAlgorithm(algorithm.steppedFMUs, algorithm.savedFMUs, coSimAlgorithm.instructions.:+(AlgebraicLoop(gets.map(_.port), instructions, List.empty)))
   }
 
   def isTentative(action: Node, edges: Predef.Set[Edge[Node]]): Boolean = {
@@ -123,10 +123,10 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, chosenStrategy: LoopStrate
         algorithm = formatStepInstruction(n, algorithm, isTentative(n, reducedEdges))
       })
 
-    val instructions = algorithm.intructions.filter(IsLoopInstruction)
+    val instructions = algorithm.instructions.filter(IsLoopInstruction)
     val saves = if (isNested) defaultAlgorithm else createSaves(FMUs, defaultAlgorithm)
     val restores = createRestores(FMUs,defaultAlgorithm)
-    CoSimAlgorithm(saves.steppedFMUs, saves.savedFMUs, coSimAlgorithm.intructions ++ saves.intructions.:+(AlgebraicLoop(gets.map(_.port), instructions, restores.intructions)))
+    CoSimAlgorithm(saves.steppedFMUs, saves.savedFMUs, coSimAlgorithm.instructions ++ saves.instructions.:+(AlgebraicLoop(gets.map(_.port), instructions, restores.instructions)))
   }
 
 }

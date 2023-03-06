@@ -6,7 +6,7 @@ class MaudeModelEncoding(model: MasterModel) {
 
   val scenario : String = generateScenario(model.scenario)
 
-  def generateInputs(inputs: Map[String, InputPortModel]): String = {
+  private def generateInputs(inputs: Map[String, InputPortModel]): String = {
     if (inputs.isEmpty) "none"
     else inputs.map(input => {
       s"(< ${'"'}${input._1}${'"'} : Input | value : < 0 >, type : integer, time : 0, contract : ${getReactivity(input)}, status : Undef  >)"

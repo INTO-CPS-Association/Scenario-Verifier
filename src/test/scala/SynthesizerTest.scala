@@ -1,22 +1,15 @@
-import java.io.{File, PrintWriter}
-import java.nio.file.Files
-
 import api.VerificationAPI
-import cli.VerifyTA
-import core.{MasterModel, ModelEncoding, ScenarioGenerator, ScenarioLoader}
-import org.apache.commons.io.FileUtils
+import core.ScenarioLoader
+import org.scalatest.Assertion
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import synthesizer.LoopStrategy.{LoopStrategy, maximum, minimum}
-import synthesizer._
 
 class SynthesizerTest extends AnyFlatSpec with should.Matchers {
-  def synthesizeAndVerify(resourcesFile: String) = {
+  private def synthesizeAndVerify(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
-    assert(VerificationAPI.generateAndVerify(masterModel.name, masterModel.scenario))
+    assert(VerificationAPI.synthesizeAndVerify(masterModel.name, masterModel.scenario))
   }
-
 
   "Synthesizer" should "create valid Master Algorithm for Simple Master" in {
     synthesizeAndVerify("examples/simple_master.conf")
@@ -41,6 +34,9 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
   synthesizeAndVerify("examples_no_algorithm/complex_master_adaptive.conf")
 }
 
+  "Synthesizer" should "create valid Master Algorithm for Amesim" in {
+    synthesizeAndVerify("examples/msd_from_amesim.conf")
+  }
 
 "Synthesizer" should "create valid Master Algorithm for Algebraic Initialization" in {
   synthesizeAndVerify("examples/algebraic_loop_initialization.conf")

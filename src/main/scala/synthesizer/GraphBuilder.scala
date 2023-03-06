@@ -1,10 +1,10 @@
 package synthesizer
 
-import core.Reactivity.{delayed, noPort, reactive}
-import core.{ConnectionModel, FmuModel, InputPortConfig, PortRef, ScenarioModel}
+import core.Reactivity.reactive
+import core.{ConnectionModel, PortRef, ScenarioModel}
 import org.apache.logging.log4j.scala.Logging
 
-import scala.collection.immutable.{AbstractSet, HashSet, Queue, SortedSet}
+import scala.collection.immutable.HashSet
 
 sealed abstract class Node(val fmuName:String)
 
@@ -25,7 +25,7 @@ case class SaveNode(override val fmuName: String) extends Node(fmuName)
 case class EmptyNode(override val fmuName: String) extends Node(fmuName)
 
 
-case class Edge[Node](srcNode: Node, trgNode: Node)
+final case class Edge[Node](srcNode: Node, trgNode: Node)
 
 case class EdgeCost(val srcNode: Node, val trgNode: Node, cost: Int)
 
