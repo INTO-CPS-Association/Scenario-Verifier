@@ -61,14 +61,13 @@ object ScenarioVerifierApp extends App with Logging {
       logger.info(f"Master description: ${config.master}")
       var masterModel = ScenarioLoader.load(config.master)
 
-      if(config.generateAlgorithm){
+      if (config.generateAlgorithm) {
         masterModel = GenerationAPI.synthesizeAlgorithm(masterModel.name, masterModel.scenario)
         FileUtils.deleteQuietly(new File(config.master))
         writeFile(config.master, masterModel.toConf().split("\n"))
       }
 
-      logger.debug("Loaded model: ")
-      logger.debug(masterModel)
+      logger.debug(s"Loaded model: $masterModel")
 
       val queryModel = new ModelEncoding(masterModel)
       val result = ScenarioGenerator.generate(queryModel)
@@ -78,15 +77,15 @@ object ScenarioVerifierApp extends App with Logging {
       }
 
       if (config.verify) {
-        logger.info(f"Verifying generated file.")
-        val checkExitCode = VerifyTA.checkEnvironment()
-        if (!checkExitCode) {
+        if (VerifyTA.isInstalled) {
+          logger.info("VerifyTA/UPPAAL is installed.")
           System.exit(1)
         }
+        logger.info(f"Verifying generated file.")
         val file = new File(config.output)
         if (config.trace) {
-          val outputFolder = Paths.get(file.getParentFile.getName,"/video_trace")
-          if(!Files.exists(outputFolder))
+          val outputFolder = Paths.get(file.getParentFile.getName, "/video_trace")
+          if (!Files.exists(outputFolder))
             Files.createDirectory(outputFolder)
           val traceFile = Files.createTempFile("trace_", ".log").toFile
           val result = VerifyTA.saveTraceToFile(file, traceFile)

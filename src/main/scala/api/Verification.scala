@@ -5,6 +5,7 @@ import core._
 import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.scala.Logging
 import trace_analyzer.TraceAnalyzer
+
 import java.io.{File, PrintWriter}
 import java.nio.file.Files
 
@@ -12,25 +13,47 @@ object VerificationAPI extends Logging {
   private def writeToTempFile(content: String) = {
     val file = Files.createTempFile("uppaal_", ".xml").toFile
     new PrintWriter(file) {
-      write(content);
+      write(content)
       close()
     }
     file
   }
 
+  /**
+   * Verifies whether the algorithm is correct with respect to the scenario model.
+   *
+   * @param MasterModel the algorithm and scenario to verify
+   * @return true if the algorithm is correct, false otherwise
+   */
   def verifyAlgorithm(masterModel: MasterModel): Boolean = {
-    val f = generateUppaalFile(masterModel)
-    ensureUppaalInstalled()
-    val verificationResult = VerifyTA.verify(f)
+    require(VerifyTA.isInstalled, "Uppaal is not installed, please install it and add it to your PATH")
+    val uppaalFile = generateUppaalFile(masterModel)
+    val verificationResult = VerifyTA.verify(uppaalFile)
     //FileUtils.deleteQuietly(f)
-
     checkVerificationResult(verificationResult)
   }
 
+  /**
+   * Verifies a partial algorithm with respect to the scenario model.
+   *
+   * @param ScenarioModel the scenario to verify
+   * @return true if the algorithm is correct, false otherwise
+   */
+  def verifyPartial(scenarioModel: ScenarioModel, algorithm : OrchestrationAlgorithm): Boolean = {
+    require(VerifyTA.isInstalled, "Uppaal is not installed, please install it and add it to your PATH")
+  }
+
+  /**
+   * Synthesize an orchestration algorithm and verify it with respect to the scenario model.
+   *
+   * @param ScenarioModel  the algorithm and scenario to verify
+   * @return true if the algorithm is correct, false otherwise
+   */
   def synthesizeAndVerify(name: String, scenarioModel: ScenarioModel): Boolean = {
     val masterModel = GenerationAPI.synthesizeAlgorithm(name, scenarioModel)
     verifyAlgorithm(masterModel)
   }
+
 
   def generateTrace(name: String, scenarioModel: ScenarioModel): TraceResult = {
     val masterModel = GenerationAPI.synthesizeAlgorithm(name, scenarioModel)
@@ -51,10 +74,7 @@ object VerificationAPI extends Logging {
     }
   }
 
-
-  def sanitizeConnection(c: ConnectionModel): ConnectionModel = ConnectionModel(sanitizePort(c.srcPort), sanitizePort(c.trgPort))
-
-  def sanitizeAction(act: CosimStepInstruction): CosimStepInstruction = {
+  private def sanitizeAction(act: CosimStepInstruction): CosimStepInstruction = {
     act match {
       case core.Set(port) => core.Set(sanitizePort(port))
       case Get(port) => core.Get(sanitizePort(port))
@@ -76,8 +96,8 @@ object VerificationAPI extends Logging {
     writeToTempFile(encodedUppaal)
   }
 
+  //Todo - check if this is needed
   private def sanitizeMasterModel(masterModel: MasterModel) = {
-    val connections = masterModel.scenario.connections.map(sanitizeConnection)
     val config =
       AdaptiveModel(
         masterModel.scenario.config.configurableInputs.map(sanitizePort),
@@ -85,7 +105,7 @@ object VerificationAPI extends Logging {
           ConfigurationModel(
             i._2.inputs.map(input => (sanitizePort(input._1), input._2)),
             i._2.cosimStep,
-            i._2.connections.map(sanitizeConnection)
+            i._2.connections
           )
         )))
     val fmus = masterModel.scenario.fmus.map(
@@ -98,7 +118,7 @@ object VerificationAPI extends Logging {
               i._2.dependencies.map(o => o.replaceAll("\\W", ""))
             ))))))
 
-    val scenario = ScenarioModel(fmus, config, connections, masterModel.scenario.maxPossibleStepSize)
+    val scenario = ScenarioModel(fmus, config, masterModel.scenario.connections, masterModel.scenario.maxPossibleStepSize)
 
     val initActions = masterModel.initialization.map(sanitizeName)
     val actions = masterModel.cosimStep.map(act => (act._1, act._2.map(sanitizeAction)))
@@ -112,7 +132,7 @@ object VerificationAPI extends Logging {
 
   def generateTraceFromMasterModel(masterModel: MasterModel): TraceResult = {
     if (verifyAlgorithm(masterModel))
-      return TraceResult(null, false)
+      return TraceResult(null, isGenerated = false)
 
     val f = generateUppaalFile(masterModel)
     val encoding = new ModelEncoding(masterModel)
@@ -130,12 +150,7 @@ object VerificationAPI extends Logging {
     finally source.close()
     FileUtils.deleteQuietly(traceFile)
     val fileVideo = new File(videoFilePath)
-    TraceResult(fileVideo, true)
-  }
-
-  private def ensureUppaalInstalled() = {
-    if (!VerifyTA.checkEnvironment())
-      throw UppaalException("UPPAAL v.4.1 is not in PATH - please install it and try again!")
+    TraceResult(fileVideo, isGenerated = true)
   }
 
   private def checkVerificationResult(verificationResult: Int): Boolean = {

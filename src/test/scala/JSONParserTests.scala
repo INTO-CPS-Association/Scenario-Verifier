@@ -12,7 +12,8 @@ class JSONParserTests extends AnyFlatSpec with should.Matchers {
   private def writeToTempFile(content: String): File = {
     val file = Files.createTempFile("uppaal_", ".xml").toFile
     new PrintWriter(file) {
-      write(content); close()
+      write(content)
+      close()
     }
     file
   }
@@ -24,7 +25,7 @@ class JSONParserTests extends AnyFlatSpec with should.Matchers {
     val encoding = new ModelEncoding(masterModel)
     val result = ScenarioGenerator.generate(encoding)
     val f = writeToTempFile(result)
-    assert(VerifyTA.checkEnvironment())
+    assert(VerifyTA.isInstalled)
     VerifyTA.verify(f) should be(0)
     FileUtils.deleteQuietly(f)
   }

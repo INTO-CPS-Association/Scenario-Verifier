@@ -36,7 +36,7 @@ trait ConfElement {
 }
 
 trait UppaalModel {
-  private def sanitize(s: String): String = s
+  protected def sanitize(s: String): String = s
     .replaceAll("\\W", "")
 
   def fmuPortName(portRef: PortRef) = s"${sanitize(portRef.fmu)}_${sanitize(portRef.port)}"
@@ -79,7 +79,8 @@ final case class ConnectionModel(
                                   srcPort: PortRef,
                                   trgPort: PortRef,
                                 ) extends UppaalModel with ConfElement {
-  override def toUppaal: String = f"""{${srcPort.fmu}, ${fmuPortName(srcPort)}, ${trgPort.fmu}, ${fmuPortName(trgPort)}}"""
+  override def toUppaal: String =
+    f"""{${sanitize(srcPort.fmu)}, ${sanitize(fmuPortName(srcPort))}, ${sanitize(trgPort.fmu)}, ${sanitize(fmuPortName(trgPort))}}"""
 
   override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}${generatePort(srcPort)} -> ${generatePort(trgPort)}"
 
