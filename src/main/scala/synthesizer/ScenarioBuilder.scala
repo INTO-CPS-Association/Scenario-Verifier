@@ -6,19 +6,19 @@ import core.{AdaptiveModel, ConnectionModel, FmuModel, InputPortModel, OutputPor
 import scala.util.Random
 
 object ScenarioBuilder {
-  private var srcFMUs : Set[String] = Set.empty
-  private var trgFMUs : Set[String] = Set.empty
+  private var srcFMUs: Set[String] = Set.empty
+  private var trgFMUs: Set[String] = Set.empty
 
   def isReactive: Reactivity.Value = if (Random.nextBoolean()) delayed else reactive
 
-  private def createFeedthrough(inputNames: List[String], supportFeedthrough:Boolean): List[String] = {
+  private def createFeedthrough(inputNames: List[String], supportFeedthrough: Boolean): List[String] = {
     val dependencies = if (supportFeedthrough) Random.between(0, inputNames.size) else 0
     inputNames.take(dependencies)
   }
 
   private def buildConfiguration(): AdaptiveModel = AdaptiveModel(List.empty, Map.empty)
 
-  def generateScenario(nFMU: Int, nConnection: Int, supportFeedthrough: Boolean, fmusMayRejectStep: Boolean = false): ScenarioModel = {
+  def generateScenario(nFMU: Int, nConnection: Int, supportFeedthrough: Boolean, supportStepRejection: Boolean = false): ScenarioModel = {
     assert(nFMU > 0)
     assert(nFMU <= nConnection, "Scenario should have minimum the same number og edges as FMU")
 
@@ -36,30 +36,30 @@ object ScenarioBuilder {
       val outputs = outputPortsPerFMU(i).map(n => (n.port, OutputPortModel(createFeedthrough(inputNames, supportFeedthrough), createFeedthrough(inputNames, supportFeedthrough)))).toMap
       assert(outputs.nonEmpty)
 
-      val canReject = if(fmusMayRejectStep) Random.nextBoolean() else false
+      val canReject = if (supportStepRejection) Random.nextBoolean() else false
       //All FMUs can accept a step of arbitrary size
       (i, FmuModel(inputs, outputs, canReject, ""))
     }).toMap
 
-    ScenarioModel(FMUs, buildConfiguration(), connections, if(fmusMayRejectStep) 2 else 1)
+    ScenarioModel(FMUs, buildConfiguration(), connections, if (supportStepRejection) 2 else 1)
   }
 
-  def generateConnections(fmuNames:Set[String], nConnection: Int): List[ConnectionModel] =
-    (0 until nConnection).map(_ => CreateConnection(fmuNames, generatePortName(3))).toList
+  def generateConnections(fmuNames: Set[String], nConnection: Int): List[ConnectionModel] =
+    (0 until nConnection).map(_ => CreateConnection(fmuNames, randomName(3))).toList
 
-  private def CreateConnection(FMUs:Set[String], portName: String): ConnectionModel ={
+  private def CreateConnection(FMUs: Set[String], portName: String): ConnectionModel = {
     val srcFMU = random(FMUs, srcFMUs)
     var trgFMU = ""
-    if((trgFMUs + srcFMU).size < FMUs.size)
+    if ((trgFMUs + srcFMU).size < FMUs.size)
       trgFMU = random(FMUs, trgFMUs + srcFMU)
-      else
+    else
       trgFMU = random(FMUs, Set(srcFMU))
 
     updateSets(FMUs.size, srcFMU, trgFMU)
     ConnectionModel(PortRef(srcFMU, portName), PortRef(trgFMU, portName))
   }
 
-  private def updateSets(nFMU: Int, srcFMU: String, trgFMU: String):Unit = {
+  private def updateSets(nFMU: Int, srcFMU: String, trgFMU: String): Unit = {
     srcFMUs += srcFMU
     trgFMUs += trgFMU
     if (srcFMUs.size == nFMU)
@@ -73,8 +73,8 @@ object ScenarioBuilder {
     reduced.iterator.drop(Random.nextInt(reduced.size)).next()
   }
 
-  val alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+  private val alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-  def generatePortName(n: Int): String =
-    (1 to n).map(_ => alpha(Random.nextInt(alpha.length))).mkString
+  private def randomName(nameLength: Int): String =
+    (1 to nameLength).map(_ => alpha(Random.nextInt(alpha.length))).mkString
 }

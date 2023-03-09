@@ -6,9 +6,9 @@ import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.scala.Logging
 import scopt.OParser
 import trace_analyzer.TraceAnalyzer
-
-import java.io.{BufferedWriter, File, FileWriter, PrintWriter}
+import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.{Files, Paths}
+import scala.reflect.io.Directory
 
 object ScenarioVerifierApp extends App with Logging {
   logger.info("Logger started.")
@@ -23,72 +23,84 @@ object ScenarioVerifierApp extends App with Logging {
     bw.close()
   }
 
-  val builder = OParser.builder[CLIConfig]
-  val parser = {
-    import builder._
-    OParser.sequence(
-      programName("scenario_verifier"),
-      head("Scenario Verifier", "0.0.1"),
-      help("help").text("prints this usage text"),
-      opt[String]('m', "master")
-        .required()
-        .action((x, c) => c.copy(master = x))
-        .text("File containing the master configuration"),
-      opt[String]('o', "output")
-        .action((x, c) => c.copy(output = x))
-        .text("Output file containing master algorithm in UPPAAL."),
-      opt[Unit]("trace")
-        .action((_, c) => c.copy(trace = true))
-        .text("Create animation of the trace from the UPPAAL model"),
-      opt[Unit]("verify")
-        .action((_, c) => c.copy(verify = true))
-        .text("Uses verifyta to check the resulting UPPAAL model"),
-      opt[Unit]("generate")
-        .action((_, c) => c.copy(generateAlgorithm = true))
-        .text("Generate the master algorithm for the scenario"),
-    )
+  private val builder = OParser.builder[CLIConfig]
+  val parser: _root_.scopt.OParser[Unit, _root_.cli.CLIConfig] = CLIParer
+
+
+  private def CLIParer: OParser[Unit, CLIConfig] = {
+    val parser = {
+      import builder._
+      OParser.sequence(
+        programName("scenario_verifier"),
+        head("Scenario Verifier", "0.0.2"),
+        help("help").text("prints this usage text"),
+        opt[Unit]("verify")
+          .action((_, c) => c.copy(verify = true))
+          .text("Use verifyta to check the resulting UPPAAL model")
+          .children(
+            opt[String]('m', "modelEncoding")
+              .validate(x =>
+                if (Files.exists(Paths.get(x)) && x.endsWith(".conf")) success
+                else failure("File " + x + " does not exist."))
+              .required()
+              .action((x, c) => c.copy(master = x))
+              .text("modelEncoding is a file containing the master configuration - a scenario model and an algorithm.")
+          ),
+        opt[Unit]("trace")
+          .action((_, c) => c.copy(verify = true))
+          .text("Visualize the trace from the UPPAAL model").children(
+          opt[String]('m', "modelEncoding")
+            .validate(x =>
+              if (Files.exists(Paths.get(x)) && x.endsWith(".conf")) success
+              else failure("File " + x + " does not exist."))
+            .required()
+            .action((x, c) => c.copy(master = x))
+            .text("modelEncoding is a file containing the master configuration - a scenario model and an algorithm.")
+        ),
+        opt[Unit]("generate")
+          .action((_, c) => c.copy(generateAlgorithm = true))
+          .text("Generate the master algorithm for the scenario")
+          .children(opt[String]('m', "modelEncoding")
+            .validate(x =>
+              if (Files.exists(Paths.get(x)) && x.endsWith(".conf")) success
+              else failure("File " + x + " does not exist."))
+            .required()
+            .action((x, c) => c.copy(master = x))
+            .text("modelEncoding is a file containing the master configuration - a scenario model and an algorithm.")
+          )
+      )
+    }
+    parser
   }
 
-  // OParser.parse returns Option[Config]
   OParser.parse(parser, args, CLIConfig(), OParserSetup()) match {
     case Some(config) =>
-      logger.info(f"Output file: ${config.output}.")
-      if (Files.exists(Paths.get(config.output))) {
-        logger.error(s"Output file already exists. Will not be overwritten. Delete it before running this app: ${config.output}")
-        System.exit(1)
-      }
-
+      logger.info("Starting scenario verifier.")
+      require(VerifyTA.isInstalled, "VerifyTA/UPPAAL is not installed - please install it.")
       logger.info(f"Master description: ${config.master}")
       var masterModel = ScenarioLoader.load(config.master)
-
       if (config.generateAlgorithm) {
+        logger.info(f"Generating algorithm for scenario: ${config.master}")
         masterModel = GenerationAPI.synthesizeAlgorithm(masterModel.name, masterModel.scenario)
         FileUtils.deleteQuietly(new File(config.master))
         writeFile(config.master, masterModel.toConf().split("\n"))
       }
-
       logger.debug(s"Loaded model: $masterModel")
-
       val queryModel = new ModelEncoding(masterModel)
-      val result = ScenarioGenerator.generate(queryModel)
-      new PrintWriter(config.output) {
-        write(result)
-        close()
-      }
+      logger.debug(s"Generate UPPAAL model.")
+      val folder = new File("uppaal")
+      println("folder: " + folder.getAbsolutePath)
+      val uppaalFile = ScenarioGenerator.generateUppaalFile(queryModel, new Directory(folder))
+      logger.info(f"Generated uppaal file: ${uppaalFile.getName}")
 
       if (config.verify) {
-        if (VerifyTA.isInstalled) {
-          logger.info("VerifyTA/UPPAAL is installed.")
-          System.exit(1)
-        }
         logger.info(f"Verifying generated file.")
-        val file = new File(config.output)
         if (config.trace) {
-          val outputFolder = Paths.get(file.getParentFile.getName, "/video_trace")
+          val outputFolder = Paths.get(uppaalFile.getParentFile.getName, "/video_trace")
           if (!Files.exists(outputFolder))
             Files.createDirectory(outputFolder)
           val traceFile = Files.createTempFile("trace_", ".log").toFile
-          val result = VerifyTA.saveTraceToFile(file, traceFile)
+          val result = VerifyTA.saveTraceToFile(uppaalFile, traceFile)
           if (result == 1) {
             logger.info(s"Started generating the animation of trace ${masterModel.name} in folder: $outputFolder.")
             val source = scala.io.Source.fromFile(traceFile)
@@ -100,14 +112,17 @@ object ScenarioVerifierApp extends App with Logging {
             FileUtils.deleteQuietly(traceFile)
           }
         } else {
-          logger.info(s"Started verifying ${file.getName} in Uppaal.")
-          VerifyTA.verify(file)
+          logger.info(s"Started verifying ${uppaalFile.getAbsolutePath} in Uppaal.")
+          println(s"Started verifying ${uppaalFile.getAbsolutePath} in Uppaal.")
+          VerifyTA.verify(uppaalFile)
         }
       }
-
     case _ =>
       // arguments are bad, error message will have been displayed
+      println("Error parsing arguments.")
       System.exit(1)
   }
+  logger.info("Finished scenario verifier.")
+  println("Finished scenario verifier - exiting.")
   System.exit(0)
 }

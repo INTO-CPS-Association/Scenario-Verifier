@@ -1,11 +1,5 @@
 package synthesizer
 
-import core._
-import synthesizer.LoopStrategy.{LoopStrategy, maximum}
-
-import scala.collection.immutable.HashSet
-import scala.collection.mutable
-
 /*
 class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) extends SynthesizerBase {
   val graphBuilder: GraphBuilder = new GraphBuilder(scenarioModel, true)

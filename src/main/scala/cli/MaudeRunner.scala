@@ -1,15 +1,10 @@
 package cli
 
-import java.io.{BufferedWriter, File, FileWriter, IOException}
-
-import cli.VerifyTA.{VERIFY, logger}
 import org.apache.logging.log4j.scala.Logging
-
-import scala.sys.process._
 
 object MaudeRunner extends Logging {
   val MaudeCmd = "maude"
-
+/*
   def verify(maudeFile: File, fullMaudePath : String) = {
     /*
     Options:
@@ -24,16 +19,13 @@ object MaudeRunner extends Logging {
     val fPath = maudeFile.getAbsolutePath
 
     val pLog = new VerifyTaProcessLogger()
-    val startupCMD = s"$MaudeCmd ${fullMaudePath}"
-    logger.info(s"Starting Full Maude: ${startupCMD}")
-    logger.info(s"Loading Scenario: ${fPath}")
+    val startupCMD = s"$MaudeCmd $fullMaudePath"
+    logger.info(s"Starting Full Maude: $startupCMD")
+    logger.info(s"Loading Scenario: $fPath")
     val loadCMD = s"load $fPath"
     val cmd = "( frew setup . )"
-    val e = Process(startupCMD).!(pLog)
     val versionOut = pLog.output.toString
     logger.info(versionOut)
-    val exitCode = Process(startupCMD).#&&(Process(loadCMD)).#&&(Process(cmd)).#&&(Process("quit")).!(pLog)
-
   }
 
 
@@ -55,14 +47,14 @@ object MaudeRunner extends Logging {
         versionOut.contains("3.1")
       }
     } catch {
-      case e: IOException => {
+      case e: IOException =>
         logger.error("Problem with Maude binary. Make sure it is in the PATH.")
         logger.info("Current PATH:")
         logger.info(System.getenv("PATH"))
         logger.info("Underlying exception was:")
         logger.info(e)
         false
-      }
     }
   }
+ */
 }

@@ -144,7 +144,7 @@ class ModelEncoding(model: MasterModel) extends Logging {
 
   def nAlgebraicLoopsInInit: Int = math.max(allAlgebraicLoopsInInit.length, 1)
 
-  def maxOr1(l: List[Int]): Int = if (l.isEmpty || l.forall(_ == 0)) 1 else l.max
+  private def maxOr1(l: List[Int]): Int = if (l.isEmpty || l.forall(_ == 0)) 1 else l.max
 
   val loopOpsEncodingInit: Map[Int, AlgebraicLoopInit] = allAlgebraicLoopsInInit.zipWithIndex.map(_.swap).toMap
   val loopOpsEncodingInitInverse: Map[AlgebraicLoopInit, Int] = loopOpsEncodingInit.map(_.swap)

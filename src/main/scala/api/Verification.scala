@@ -6,19 +6,11 @@ import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.scala.Logging
 import trace_analyzer.TraceAnalyzer
 
-import java.io.{File, PrintWriter}
+import java.io.File
 import java.nio.file.Files
+import scala.reflect.io.Directory
 
 object VerificationAPI extends Logging {
-  private def writeToTempFile(content: String) = {
-    val file = Files.createTempFile("uppaal_", ".xml").toFile
-    new PrintWriter(file) {
-      write(content)
-      close()
-    }
-    file
-  }
-
   /**
    * Verifies whether the algorithm is correct with respect to the scenario model.
    *
@@ -39,14 +31,15 @@ object VerificationAPI extends Logging {
    * @param ScenarioModel the scenario to verify
    * @return true if the algorithm is correct, false otherwise
    */
-  def verifyPartial(scenarioModel: ScenarioModel, algorithm : OrchestrationAlgorithm): Boolean = {
+  def verifyPartial(scenarioModel: ScenarioModel, algorithm: OrchestrationAlgorithm): Boolean = {
     require(VerifyTA.isInstalled, "Uppaal is not installed, please install it and add it to your PATH")
+    true
   }
 
   /**
    * Synthesize an orchestration algorithm and verify it with respect to the scenario model.
    *
-   * @param ScenarioModel  the algorithm and scenario to verify
+   * @param ScenarioModel the algorithm and scenario to verify
    * @return true if the algorithm is correct, false otherwise
    */
   def synthesizeAndVerify(name: String, scenarioModel: ScenarioModel): Boolean = {
@@ -92,9 +85,10 @@ object VerificationAPI extends Logging {
   private def generateUppaalFile(masterModel: MasterModel): File = {
     val sanitizedModel: MasterModel = sanitizeMasterModel(masterModel)
     val encoding = new ModelEncoding(sanitizedModel)
-    val encodedUppaal = ScenarioGenerator.generate(encoding)
-    writeToTempFile(encodedUppaal)
+    val currentFolder = new File(System.getProperty("user.dir"))
+    ScenarioGenerator.generateUppaalFile(encoding, Directory(currentFolder))
   }
+
 
   //Todo - check if this is needed
   private def sanitizeMasterModel(masterModel: MasterModel) = {

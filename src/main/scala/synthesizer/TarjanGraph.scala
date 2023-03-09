@@ -80,7 +80,7 @@ class TarjanGraph[A](edges: Iterable[Edge[A]]) {
     var i: Int = 0
     edges.foreach(v =>
       if (!visited.contains(v.srcNode)) {
-        connectedComponents.addOne(i, DFSUtil(v.srcNode, i))
+        connectedComponents.addOne((i, DFSUtil(v.srcNode, i)))
         i += 1
       })
 

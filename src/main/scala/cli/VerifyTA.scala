@@ -8,7 +8,9 @@ import scala.sys.process._
 
 trait CLITool extends Logging {
   def name: String
+
   def command: String
+
   def runCommand(options: List[String], processLogger: VerifyTaProcessLogger = new VerifyTaProcessLogger()): Int = {
     val cmd = s"""$command ${options.mkString(" ")}"""
     logger.info(s"Running command: $cmd")
@@ -16,9 +18,6 @@ trait CLITool extends Logging {
     if (exitCode != 0) {
       logger.error(s"Command returned non zero exit code: $exitCode.")
       logger.error(s"This is probably a syntax error.")
-    } else {
-      val output = processLogger.output.toString
-      logger.info(s"Command output: $output")
     }
     exitCode
   }

@@ -61,7 +61,7 @@ object ScenarioLoader extends Logging {
       implicit val hintRootInitStatement: ProductHint[RootInitStatement] = ProductHint[RootInitStatement](allowUnknownKeys = false)
       implicit val hintMasterConfig: ProductHint[MasterConfig] = ProductHint[MasterConfig](allowUnknownKeys = false)
 
-      val parsingResults = ConfigSource.fromConfig(conf).load[MasterConfig]
+      val parsingResults: Result[MasterConfig] = ConfigSource.fromConfig(conf).load[MasterConfig]
       val masterConfig = extractMasterConfig(parsingResults)
       parse(masterConfig)
     } finally {
@@ -86,17 +86,16 @@ object ScenarioLoader extends Logging {
           prettyPrintError(e)
         }
         throw new IllegalArgumentException(errors.toString())
-      case Right(master) => {
+      case Right(master) =>
         logger.info(f"Successfully parsed master configuration.")
         PPrint.pprint(master, l=logger)
         master
-      }
     }
   }
 
   def parse(config: MasterConfig): MasterModel = {
     config match {
-      case MasterConfig(name, scenario, initialization, cosimStep) => {
+      case MasterConfig(name, scenario, initialization, cosimStep) =>
         val scenarioModel = parse(scenario)
         val instantiationModel = generateInstantiationInstructions(scenarioModel).toList
         val initializationModel = initialization.map(instruction => parse(instruction, scenarioModel))
@@ -104,7 +103,6 @@ object ScenarioLoader extends Logging {
         val cosimStepModel = cosimStep.map(instructions => (instructions._1, instructions._2.map(instruction => parse(instruction, scenarioModel))))
         val terminateModel = generateTerminateInstructions(scenarioModel).toList
         MasterModel(name, scenarioModel, instantiationModel, expandedInitModel.toList, cosimStepModel, terminateModel)
-      }
     }
   }
 
@@ -144,17 +142,15 @@ object ScenarioLoader extends Logging {
   def parse(instruction: InitializationStatement, scenarioModel: ScenarioModel): InitializationInstruction = {
     // Check uniqueness of instruction
     instruction match {
-      case NestedInitStatement(get, set) => {
+      case NestedInitStatement(get, set) =>
         val nOps = List(get, set).count(b => !b.isBlank)
         assert(nOps == 1,
           s"Initialization instruction $instruction must be one of get, set")
-      }
-      case RootInitStatement(get, set, loop) => {
-        val baseOps = List(get, set).count(b => !b.isBlank)
+      case RootInitStatement(get, set, loop) =>
+        val baseOps = List(get, set).count(b => b.nonEmpty && !b.isBlank)
         val nOps = baseOps + (if (loop == NoLoopInit) 0 else 1)
         assert(nOps == 1,
           s"Initialization instruction $instruction must be one of get, set or loop-init.")
-      }
     }
     if (!instruction.get.isBlank) {
       val pRef = parsePortRef(instruction.get, s"instruction $instruction", scenarioModel.fmus)
@@ -167,14 +163,11 @@ object ScenarioLoader extends Logging {
     } else {
       // Check subclasses
       instruction match {
-        case NestedInitStatement(_, _) => {
-          throw new RuntimeException("Invariant violated while parsing instruction $instruction")
-        }
-
-        case RootInitStatement(_, _, loop) => {
+        case NestedInitStatement(_, _) =>
+          throw new RuntimeException(s"Invariant violated while parsing instruction $instruction")
+        case RootInitStatement(_, _, loop) =>
           assert(loop != NoLoopInit, s"Invariant violated while parsing instruction $instruction")
           parse(loop, scenarioModel)
-        }
       }
     }
   }
@@ -216,7 +209,7 @@ object ScenarioLoader extends Logging {
       } else if (!instruction.bySameAs.isBlank) {
         assert(instruction.by < 0, "Only one of by or by-same-as is allowed.")
         val fmuStepRef = instruction.bySameAs
-        assert(scenarioModel.fmus.contains(fmuRef), s"Unable to resolve fmu ${fmuStepRef}.")
+        assert(scenarioModel.fmus.contains(fmuRef), s"Unable to resolve fmu $fmuStepRef.")
         Step(fmuRef, RelativeStepSize(fmuStepRef))
       } else {
         Step(fmuRef, DefaultStepSize())
@@ -285,7 +278,7 @@ object ScenarioLoader extends Logging {
     AlgebraicLoopInit(untilConverged, iterate)
   }
 
-  def parseAdaptiveConfig(configuration: AdaptiveConfig, fmus: Map[String, FmuModel]): AdaptiveModel = {
+  private def parseAdaptiveConfig(configuration: AdaptiveConfig, fmus: Map[String, FmuModel]): AdaptiveModel = {
     val configurableInputs = configuration.configurableInputs.map(p => {
       val pRef = parsePortRef(p, s"instruction ", fmus)
       assert(fmus(pRef.fmu).inputs.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
@@ -296,7 +289,7 @@ object ScenarioLoader extends Logging {
         val pRef = configurableInputs.filter(_.port == p._1).head
         (pRef, parse(p._2))
       })
-      val connections = keyValues._2.connections.map((c) => parseConnection(c, fmus))
+      val connections = keyValues._2.connections.map(c => parseConnection(c, fmus))
       (keyValues._1, ConfigurationModel(inputs, keyValues._2.cosimStep, connections))
     })
 
@@ -306,18 +299,16 @@ object ScenarioLoader extends Logging {
 
   def parse(scenario: ScenarioConfig): ScenarioModel = {
     scenario match {
-      case ScenarioConfig(fmus, configuration, connections, maxPossibleStepSize) => {
+      case ScenarioConfig(fmus, configuration, connections, maxPossibleStepSize) =>
         assert(maxPossibleStepSize > 0, "Max possible step size has to be greater than 0 in scenario configuration.")
         val fmusModel = fmus.map(keyValPair => (keyValPair._1, parse(keyValPair._1, keyValPair._2)))
-        val connectionsModel = connections.map((c) => parseConnection(c, fmusModel))
+        val connectionsModel = connections.map(c => parseConnection(c, fmusModel))
         val configurationModel =
           if (configuration.isDefined)
           parseAdaptiveConfig(configuration.get, fmusModel)
           else
             parseAdaptiveConfig(AdaptiveConfig(Nil, Map.empty), fmusModel)
-
         core.ScenarioModel(fmusModel, configurationModel, connectionsModel, maxPossibleStepSize)
-      }
     }
   }
 
@@ -338,14 +329,12 @@ object ScenarioLoader extends Logging {
 
   def parse(config: OutputPortConfig, inputsModel: Map[String, InputPortModel], outputPortId: String, fmuId: String): OutputPortModel = {
     config match {
-      case OutputPortConfig(dependenciesInit, dependencies) => {
+      case OutputPortConfig(dependenciesInit, dependencies) =>
         val errorCheck = (inputPortRef: String) => assert(inputsModel.contains(inputPortRef),
           f"Unable to resolve input port reference $inputPortRef in the output port $outputPortId FMU $fmuId.")
         dependenciesInit.foreach(errorCheck)
         dependencies.foreach(errorCheck)
-
         OutputPortModel(dependenciesInit, dependencies)
-      }
     }
   }
 
@@ -364,12 +353,5 @@ object ScenarioLoader extends Logging {
     assert(trgFmu.inputs.contains(connection.trgPort.port),
       s"Unable to resolve source port ${connection.trgPort.port} of fmu ${connection.trgPort.fmu} in connection $connectionConfig.")
     connection
-  }
-
-  def assert(condition: Boolean, msg: String) = {
-    if (!condition) {
-      logger.error(msg)
-      throw new IllegalArgumentException(msg)
-    }
   }
 }

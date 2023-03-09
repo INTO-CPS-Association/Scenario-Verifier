@@ -7,22 +7,22 @@ import guru.nidi.graphviz.engine.{Format, Graphviz}
 import guru.nidi.graphviz.model.Factory.{graph, mutGraph, mutNode}
 import org.apache.logging.log4j.scala.Logging
 
-object GraphVisualizer extends Logging{
-  def getName(node: Node, SCCs: List[List[Node]]): String = {
+object GraphVisualizer extends Logging {
+  def getName[A <: Node](node: A, SCCs: List[List[A]]): String = {
     val scc = SCCs.find(_.contains(node)).get
     val index = SCCs.indexOf(scc)
     node match {
       case DoStepNode(name) => f"$index:DoStep_$name"
       case GetNode(_, port) => f"$index:Get_${port.fmu}_${port.port}"
-      case SetOptimizedNode(fmu, ports) => f"$index:Set_${fmu}_[${ports.map(_.port).mkString(", ")}]}"
-      case GetOptimizedNode(fmu, ports) => f"$index:Get_${fmu}_[${ports.map(_.port).mkString(", ")}]}"
       case SetNode(_, port) => f"$index:Set_${port.fmu}_${port.port}"
+      case SetTentativeNode(_, port) => f"$index:Set_${port.fmu}_${port.port}"
       case RestoreNode(name) => f"$index:Restore_$name"
       case SaveNode(name) => f"$index:Save_$name"
+      case EmptyNode() => throw new Exception("Empty node should not be in SCC")
     }
   }
 
-  def plotGraph(name: String, edges: Set[Edge[Node]], SCCs: List[List[Node]]): Unit = {
+  def plotGraph[A <: Node](name: String, edges: Set[Edge[A]], SCCs: List[List[A]]): File = {
     val nonTrivialSCCs = SCCs.filter(_.size > 1).flatten
     val g = mutGraph(name).setDirected(true)
     val nodes = (edges.map(_.trgNode) ++ edges.map(_.srcNode)).groupBy(_.fmuName).filterNot(i => i._1 == "Empty")

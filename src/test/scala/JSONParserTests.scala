@@ -3,31 +3,20 @@ import core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-
-import java.io.{File, PrintWriter}
 import java.nio.file.Files
+import scala.reflect.io.Directory
 
 class JSONParserTests extends AnyFlatSpec with should.Matchers {
-
-  private def writeToTempFile(content: String): File = {
-    val file = Files.createTempFile("uppaal_", ".xml").toFile
-    new PrintWriter(file) {
-      write(content)
-      close()
-    }
-    file
-  }
-
-
   def generateAndVerify(resourcesFile: String): Boolean = {
+    require(VerifyTA.isInstalled, "Uppaal is not installed, please install it and add it to your PATH")
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.loadJson(conf)
     val encoding = new ModelEncoding(masterModel)
-    val result = ScenarioGenerator.generate(encoding)
-    val f = writeToTempFile(result)
-    assert(VerifyTA.isInstalled)
+    val folder = Files.createTempDirectory("uppaal_").toFile
+    val f = ScenarioGenerator.generateUppaalFile(encoding, Directory(folder))
     VerifyTA.verify(f) should be(0)
     FileUtils.deleteQuietly(f)
+    FileUtils.deleteQuietly(folder)
   }
 
   "JSONParserTests" should "work for simple_master.json" in {

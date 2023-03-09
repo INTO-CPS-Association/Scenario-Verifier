@@ -4,7 +4,7 @@ import org.scalatest.matchers._
 import synthesizer._
 
 class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
-  def testInitialGraph(file: String): Unit ={
+  def testInitialGraph(file: String): Unit = {
     val conf = getClass.getResourceAsStream(file)
     val masterModel = ScenarioLoader.load(conf)
     val scenario = masterModel.scenario
@@ -12,12 +12,17 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
     val initialEdges = graph.initialEdges
 
     //There is an edge for all connections in the scenario
-    assert(scenario.connections.forall(c => initialEdges.contains(Edge[Node](GetNode(c.srcPort.fmu, c.srcPort), SetNode(c.trgPort.fmu, c.trgPort)))))
+    assert(scenario.connections.size == initialEdges.count(o => o.srcNode.isInstanceOf[GetNode] && (o.trgNode.isInstanceOf[SetNode] || o.trgNode.isInstanceOf[SetTentativeNode])))
 
     //There is an edge for all initial feedthrough in the scenario
     scenario.fmus.foreach(fmu => {
       fmu._2.outputs.foreach(o => {
-        assert(o._2.dependenciesInit.forall(i => initialEdges.contains(Edge[Node](SetNode(fmu._1, PortRef(fmu._1, i)), GetNode(fmu._1, PortRef(fmu._1, o._1))))))
+        assert(o._2.dependenciesInit.forall(i =>
+          initialEdges.contains(Edge[InitializationInstructionNode]
+            (SetNode(fmu._1, PortRef(fmu._1, i)), GetNode(fmu._1, PortRef(fmu._1, o._1)))) ||
+            initialEdges.contains(Edge[InitializationInstructionNode]
+              (SetTentativeNode(fmu._1, PortRef(fmu._1, i)), GetNode(fmu._1, PortRef(fmu._1, o._1))))
+        ))
       })
     })
 
@@ -25,18 +30,14 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
     assert(nodes.size == (masterModel.initialization.size - scenario.fmus.size * 2))
 
     //All nodes are either get or set
-    assert(nodes.forall(_ match {
-      case GetNode(_, _) => true
-      case SetNode(_, _) => true
-      case _ => false
-    }))
+    assert(nodes.forall(_.isInstanceOf[InitializationInstructionNode]))
   }
 
   "GraphBuilder" should "should build an initial graph for Simple Master" in {
     testInitialGraph("examples/simple_master.conf")
   }
 
-  "GraphBuilder" should "should build an initial graph for Industrial case study" in{
+  "GraphBuilder" should "should build an initial graph for Industrial case study" in {
     testInitialGraph("examples/industrial_casestudy.conf")
   }
 
@@ -53,19 +54,9 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
     val stepEdges = graph.stepEdges
 
     val nodes = stepEdges.map(o => o.srcNode) ++ stepEdges.map(o => o.trgNode)
-
-    assert(nodes.count(_ match {
-      case DoStepNode(_) => true
-      case _ => false
-    }) == 2)
-
+    assert(nodes.count(_.isInstanceOf[DoStepNode]) == 2)
     assert(nodes.size == scenario.cosimStep.values.head.size)
-    assert(nodes.forall(_ match {
-      case GetNode(_, _) => true
-      case SetNode(_, _) => true
-      case DoStepNode(_) => true
-      case _ => false
-    }))
+    assert(nodes.forall(_.isInstanceOf[StepInstructionNode]))
   }
 
 

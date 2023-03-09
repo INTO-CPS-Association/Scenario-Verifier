@@ -17,7 +17,7 @@ object PPrint {
 
     obj match {
       case seq: Iterable[Any] =>
-        seq.foreach(pprint(_, depth + 1, l=l))
+        seq.foreach(i => pprint(i, depth + 1, l = l))
       case obj: Product =>
         (obj.productIterator zip obj.productElementNames)
           .foreach { case (subObj, paramName) => pprint(subObj, depth + 1, Some(paramName), l) }

@@ -222,6 +222,23 @@ testOnly PositiveTests -- -z "work for simple_master"
 
 where `PositiveTests` denotes the suite, and `work for simple_master` is the text identifying the specific test function to call.
 
+## Running the app using Docker
+
+The app can be run using Docker - the image can be built using the following command:
+
+```bash
+  sbt docker:publishLocal
+```
+
+Now the app can be run using the following command:
+
+```bash
+  docker run -it --rm -v ${PWD}:/app -w /app scenario_verifier:$VERSION
+```
+
+where `$VERSION` is the version of the app (see [build.sbt](build.sbt)).
+
+
 ## Todo
 
 @SimplisticCode will implement the following:

@@ -4,6 +4,10 @@ import core._
 import synthesizer.SynthesizerSimple
 
 object GenerationAPI {
+  /*
+    * Synthesize an orchestration algorithm with respect to the scenario model.
+    *
+   */
   def synthesizeAlgorithm(name: String, scenarioModel: ScenarioModel): MasterModel = {
     val synthesizer = new SynthesizerSimple(scenarioModel)
     val instantiationModel = ScenarioLoader.generateInstantiationInstructions(scenarioModel).toList

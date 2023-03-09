@@ -1,6 +1,6 @@
 package synthesizer
 
-import core.{CosimStepInstruction, DefaultStepSize, Get, GetTentative, InitGet, InitSet, InitializationInstruction, RestoreState, SaveState, SetTentative, Step}
+import core.{CosimStepInstruction, GetTentative, InitializationInstruction, PortRef, RestoreState, SaveState, SetTentative}
 import org.apache.logging.log4j.scala.Logging
 import synthesizer.LoopStrategy.LoopStrategy
 
@@ -16,104 +16,84 @@ trait SCCType {
   def nodes: List[Node]
 }
 
-case class ReactiveLoop(nodes: List[Node]) extends SCCType
+final case class ReactiveLoop(nodes: List[StepInstructionNode]) extends SCCType
 
-case class FeedthroughLoop(nodes: List[Node]) extends SCCType
+final case class FeedthroughLoop(nodes: List[StepInstructionNode]) extends SCCType
 
-case class StepLoopNodes(nodes: List[Node]) extends SCCType
+final case class StepLoopNodes(nodes: List[StepInstructionNode]) extends SCCType
 
-case class SimpleAction(nodes: List[Node]) extends SCCType
+final case class SimpleAction(nodes: List[StepInstructionNode]) extends SCCType
 
-case class CoSimAlgorithm(steppedFMUs: Set[String], savedFMUs: Set[String], instructions: List[CosimStepInstruction])
+final case class CoSimAlgorithm(steppedFMUs: Set[String], savedFMUs: Set[String], instructions: List[CosimStepInstruction])
 
 trait SynthesizerBase extends Logging {
   def FMUsMayRejectStepped: mutable.HashSet[String]
 
-  def StepEdges: Map[String, Set[Edge[Node]]]
+  def StepEdges: Map[String, Set[Edge[StepInstructionNode]]]
 
-  def InitEdge: Set[Edge[Node]]
+  def InitEdge: Set[Edge[InitializationInstructionNode]]
 
   def strategy: LoopStrategy
 
   def isAdaptive: Boolean
 
-  def checkSCC(scc: List[Node], edges: Set[Edge[Node]]): SCCType = {
-    if (scc.size == 1)
-      SimpleAction(scc)
-    else if (isStepLoop(scc, edges)) {
-      StepLoopNodes(scc)
-    } else if (scc.count(IsStepNode) > 0)
-      ReactiveLoop(scc)
-    else
-      FeedthroughLoop(scc)
+  private def sccType(scc: List[StepInstructionNode], edges: Set[Edge[StepInstructionNode]]): SCCType = {
+    if (scc.size == 1) SimpleAction(scc)
+    else if (isStepLoop(scc, edges)) StepLoopNodes(scc)
+    else if (scc.count(_.isInstanceOf[DoStepNode]) > 0) ReactiveLoop(scc)
+    else FeedthroughLoop(scc)
   }
 
-  def formatReactiveLoop(nodes: List[Node], edges: Set[Edge[Node]], coSimAlgorithm: CoSimAlgorithm, isNested: Boolean = false): CoSimAlgorithm
+  def formatReactiveLoop(nodes: List[StepInstructionNode], edges: Set[Edge[StepInstructionNode]], coSimAlgorithm: CoSimAlgorithm, isNested: Boolean = false): CoSimAlgorithm
 
-  def formatInitLoop(nodes: List[Node]): InitializationInstruction
+  def formatInitLoop(nodes: List[InitializationInstructionNode]): InitializationInstruction
 
   def onlyReactiveConnections(srcFMU: String, trgFMU: String): Boolean
 
-  def formatFeedthroughLoop(sccNodes: List[Node], edges: Set[Edge[Node]], coSimAlgorithm: CoSimAlgorithm, isNested: Boolean = false): CoSimAlgorithm
+  def formatFeedthroughLoop(sccNodes: List[StepInstructionNode], edges: Set[Edge[StepInstructionNode]], coSimAlgorithm: CoSimAlgorithm, isNested: Boolean = false): CoSimAlgorithm
 
 
   @tailrec
   private final def removeOneEdge(edgesInSCC: List[Edge[Node]], value: Set[Edge[Node]]): Set[Edge[Node]] = edgesInSCC match {
-    case ::(head, next) => {
+    case ::(head, next) =>
       if (!value.exists(i => i.trgNode.fmuName == head.srcNode.fmuName && i.srcNode.fmuName == head.trgNode.fmuName))
         removeOneEdge(next, value + head)
       else
         removeOneEdge(next, value)
-    }
     case Nil => value
   }
 
-  def filterEdges(edges: Set[Edge[Node]], scc: List[Node], isReactiveStepLoop: Boolean): Set[Edge[Node]] = {
-    val edgesInSCC = getEdgesInSCC(edges, scc)
-    if (isReactiveStepLoop)
-      edgesInSCC.filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode))
-    else {
-      //There is two edges between all doStepNodes - one of them should be preserved
-      removeOneEdge(edgesInSCC.toList, Set.empty[Edge[Node]])
-    }
-  }
+  private def formatStepLoop(scc: List[StepInstructionNode],
+                             edge: Set[Edge[StepInstructionNode]],
+                             coSimAlgorithm: CoSimAlgorithm): CoSimAlgorithm = {
+    val FMUs = scc.map(_.fmuName).toSet
+    val emptyEdges = scc.map(i => Edge[StepInstructionNode](EmptyNode(), i)).toSet
+    val edges = edgesInSCC(edge, scc).filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode)) ++ emptyEdges
 
-  def formatStepLoop(scc: List[Node], edge: Set[Edge[Node]], coSimAlgorithm: CoSimAlgorithm): CoSimAlgorithm = {
-    val FMUs = scc.filter(IsStepNode).map {
-      case DoStepNode(name) => name
-      case _ => throw new UnsupportedOperationException("Unknown node type")
-    }.toSet
-
-    val emptyEdges = scc.map(i => Edge[Node](EmptyNode("Empty"), i)).toSet
-    val edges = getEdgesInSCC(edge, scc).filterNot(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode)) ++ emptyEdges
-
-    val tarjanGraph = new TarjanGraph[Node](edges)
-    var algorithm = coSimAlgorithm
-
-    val instructions = if (!tarjanGraph.hasCycle) {
-      val nodes = tarjanGraph.topologicalSCC.flatten
-      nodes.foreach(i => {
-        algorithm = formatStepInstruction(i, algorithm)
-      })
-      algorithm
+    val tarjanGraph = new TarjanGraph[StepInstructionNode](edges)
+    val algorithm = if (!tarjanGraph.hasCycle) {
+      tarjanGraph.topologicalSCC.flatten.foldLeft(coSimAlgorithm)((acc, node) => formatStepInstruction(node, acc))
     } else formatReactiveLoop(tarjanGraph.topologicalSCC.flatten, edges, coSimAlgorithm, isNested = true)
 
-    val savesAlgorithm = createSaves(FMUs, CoSimAlgorithm(algorithm.steppedFMUs, algorithm.savedFMUs, List.empty))
-    val restoresAlgorithm = createRestores(FMUs, CoSimAlgorithm(savesAlgorithm.steppedFMUs, savesAlgorithm.savedFMUs, List.empty))
-    CoSimAlgorithm(algorithm.steppedFMUs, savesAlgorithm.savedFMUs, savesAlgorithm.instructions.:+(core.StepLoop(FMUs.toList, instructions.instructions, restoresAlgorithm.instructions)))
+    val savesAlgorithm = createSaves(FMUs, algorithm.copy(instructions = List.empty))
+    val restoresAlgorithm = createRestores(FMUs, savesAlgorithm.copy(instructions = List.empty))
+    val stepLoop = core.StepLoop(FMUs.toList, algorithm.instructions, restoresAlgorithm.instructions)
+    val algo = savesAlgorithm.copy(instructions = savesAlgorithm.instructions.:+(stepLoop))
+    algo
   }
 
-  def removeMinimumNumberOfEdges(fmus: List[String], edgesInSCC: Set[Edge[Node]]): Set[Edge[Node]] = {
+  def removeMinimumNumberOfEdges[A <: Node](fmus: List[String], edgesInSCC: Set[Edge[A]]): Set[Edge[A]] = {
     val edges = edgesInSCC.filterNot(i => i.srcNode.fmuName != i.trgNode.fmuName && i.trgNode.fmuName == fmus.head)
-    val tarjanGraph = new TarjanGraph[Node](edges)
-    if (tarjanGraph.hasCycle) return removeMinimumNumberOfEdges(fmus.tail, edges) else edges
+    val tarjanGraph = new TarjanGraph[A](edges)
+    if (tarjanGraph.hasCycle) removeMinimumNumberOfEdges(fmus.tail, edges) else edges
   }
 
 
   @tailrec
-  final def handleSCC(SCCs: List[List[Node]], edges: Set[Edge[Node]], coSimAlgorithm: CoSimAlgorithm): CoSimAlgorithm = {
+  private final def handleSCC(SCCs: List[List[StepInstructionNode]],
+                              edges: Set[Edge[StepInstructionNode]], coSimAlgorithm: CoSimAlgorithm): CoSimAlgorithm = {
     SCCs match {
-      case ::(scc, next) => checkSCC(scc, edges) match {
+      case ::(scc, next) => sccType(scc, edges) match {
         case FeedthroughLoop(nodes) => handleSCC(next, edges, formatFeedthroughLoop(nodes, edges, coSimAlgorithm))
         case ReactiveLoop(nodes) => handleSCC(next, edges, formatReactiveLoop(nodes, edges, coSimAlgorithm))
         case StepLoopNodes(nodes) => handleSCC(next, edges, formatStepLoop(nodes, edges, coSimAlgorithm))
@@ -125,10 +105,9 @@ trait SynthesizerBase extends Logging {
   }
 
   def synthesizeInitialization(): List[InitializationInstruction] = {
-    val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](InitEdge)
-    val SCCs = tarjanGraph.topologicalSCC
-    SCCs.flatMap(scc => {
-      if (scc.size == 1) formatInitialInstruction(scc.head)
+    val tarjanGraph: TarjanGraph[InitializationInstructionNode] = new TarjanGraph[InitializationInstructionNode](InitEdge)
+    tarjanGraph.topologicalSCC.flatMap(scc => {
+      if (scc.size == 1) List(scc.head.formatInitInstruction)
       else List(formatInitLoop(scc))
     })
   }
@@ -136,51 +115,51 @@ trait SynthesizerBase extends Logging {
   def synthesizeStep(): Map[String, List[CosimStepInstruction]] = {
     StepEdges.map(keyValue => {
       val edges = keyValue._2
-      val tarjanGraph: TarjanGraph[Node] = new TarjanGraph[Node](edges)
+      val tarjanGraph: TarjanGraph[StepInstructionNode] = new TarjanGraph[StepInstructionNode](edges)
       val SCCs = tarjanGraph.topologicalSCC
       (keyValue._1, handleSCC(SCCs, edges, CoSimAlgorithm(Set.empty, Set.empty, List.empty[CosimStepInstruction])).instructions)
     })
   }
 
-  def formatInitialInstruction(node: Node): List[InitializationInstruction] = {
+  def formatStepInstruction(node: StepInstructionNode, coSimAlgorithm: CoSimAlgorithm, isTentative: Boolean = false): CoSimAlgorithm = {
     node match {
-      case GetNode(_, port) => List(InitGet(port))
-      case SetNode(_, port) => List(InitSet(port))
-      case GetOptimizedNode(fmu, ports) => ports.flatMap(o => formatInitialInstruction(GetNode(fmu, o))).toList
-      case SetOptimizedNode(fmu, ports) => ports.flatMap(o => formatInitialInstruction(SetNode(fmu, o))).toList
-      case _ => throw new UnsupportedOperationException()
+      case DoStepNode(name) =>
+        coSimAlgorithm.copy(steppedFMUs = coSimAlgorithm.steppedFMUs + name, instructions = coSimAlgorithm.instructions.:+(node.formatStepInstruction))
+      case GetNode(_, _) =>
+        createPortInstruction(node.asInstanceOf[PortNode], coSimAlgorithm, isTentative, GetTentative, core.Get)
+      case SetNode(_, _) =>
+        createPortInstruction(node.asInstanceOf[PortNode], coSimAlgorithm, isTentative = false, SetTentative, core.Set)
+      case SetTentativeNode(_, _) =>
+        createPortInstruction(node.asInstanceOf[PortNode], coSimAlgorithm, isTentative, SetTentative, core.Set)
+      case RestoreNode(_) =>
+        require(coSimAlgorithm.savedFMUs.contains(node.fmuName), s"FMU ${node.fmuName} has not been saved before restoring")
+        coSimAlgorithm.copy(instructions = coSimAlgorithm.instructions.:+(node.formatStepInstruction))
+      case SaveNode(name) =>
+        coSimAlgorithm.copy(savedFMUs = coSimAlgorithm.savedFMUs + name, instructions = coSimAlgorithm.instructions.:+(node.formatStepInstruction))
+      case EmptyNode() => coSimAlgorithm
     }
   }
 
-  def formatStepInstruction(node: Node, coSimAlgorithm: CoSimAlgorithm, isTentative: Boolean = false): CoSimAlgorithm = {
-    node match {
-      case DoStepNode(name) =>
-        CoSimAlgorithm(coSimAlgorithm.steppedFMUs + name, coSimAlgorithm.savedFMUs, coSimAlgorithm.instructions.:+(Step(name, DefaultStepSize())))
-      case GetNode(_, port) => {
-        val instruction = if (coSimAlgorithm.steppedFMUs.contains(port.fmu) && isTentative) GetTentative(port) else Get(port)
-        CoSimAlgorithm(coSimAlgorithm.steppedFMUs, coSimAlgorithm.savedFMUs, coSimAlgorithm.instructions.:+(instruction))
-      }
-      case SetNode(_, port) => {
-        val instruction = if (coSimAlgorithm.steppedFMUs.contains(port.fmu) && isTentative) SetTentative(port) else core.Set(port)
-        CoSimAlgorithm(coSimAlgorithm.steppedFMUs, coSimAlgorithm.savedFMUs, coSimAlgorithm.instructions.:+(instruction))
-      }
-      case GetOptimizedNode(fmu, ports) => ports.toList.map(o => formatStepInstruction(GetNode(fmu, o), coSimAlgorithm, isTentative)).last
-      case SetOptimizedNode(fmu, ports) => ports.toList.map(o => formatStepInstruction(SetNode(fmu, o), coSimAlgorithm, isTentative)).last
-      case RestoreNode(name) =>
-        CoSimAlgorithm(coSimAlgorithm.steppedFMUs, coSimAlgorithm.savedFMUs, coSimAlgorithm.instructions.:+(RestoreState(name)))
-      case SaveNode(name) =>
-        CoSimAlgorithm(coSimAlgorithm.steppedFMUs, coSimAlgorithm.savedFMUs + name, coSimAlgorithm.instructions.:+(SaveState(name)))
-      case EmptyNode(_) => coSimAlgorithm
-    }
+  private def createPortInstruction(port: PortNode,
+                                    coSimAlgorithm: CoSimAlgorithm,
+                                    isTentative: Boolean,
+                                    tentativeAction: PortRef => CosimStepInstruction,
+                                    action: PortRef => CosimStepInstruction): CoSimAlgorithm = {
+    val instruction = if (coSimAlgorithm.steppedFMUs.contains(port.fmuName) && isTentative) tentativeAction(port.port)
+    else action(port.port)
+    coSimAlgorithm.copy(instructions = coSimAlgorithm.instructions.:+(instruction))
+  }
+
+
+  protected def createFMUActions(FMUs: Set[String], coSimAlgorithm: CoSimAlgorithm, actionCreator: String => CosimStepInstruction): CoSimAlgorithm = {
+    FMUs.foldLeft(coSimAlgorithm)((a, fmu) => a.copy(instructions = a.instructions.:+(actionCreator(fmu))))
   }
 
   protected def createRestores(FMUs: Set[String], coSimAlgorithm: CoSimAlgorithm): CoSimAlgorithm = {
-    var algorithm = coSimAlgorithm
-    FMUs.foreach(o => algorithm = formatStepInstruction(RestoreNode(o), algorithm))
-    algorithm
+    FMUs.foldLeft(coSimAlgorithm)((a, fmu) => a.copy(instructions = a.instructions.:+(RestoreNode(fmu).formatStepInstruction)))
   }
 
-  protected def createSaves(FMUs: Predef.Set[String], coSimAlgorithm: CoSimAlgorithm): CoSimAlgorithm = {
+  protected def createSaves(FMUs: Set[String], coSimAlgorithm: CoSimAlgorithm): CoSimAlgorithm = {
     var algorithm = coSimAlgorithm
     FMUs.diff(coSimAlgorithm.savedFMUs).foreach(o => {
       algorithm = formatStepInstruction(SaveNode(o), algorithm)
@@ -188,8 +167,8 @@ trait SynthesizerBase extends Logging {
     algorithm
   }
 
-  def isStepLoop(scc: List[Node], edges: Set[Edge[Node]]): Boolean = {
-    getEdgesInSCC(edges, scc).count(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode)) > 0
+  private def isStepLoop(scc: List[StepInstructionNode], edges: Set[Edge[StepInstructionNode]]): Boolean = {
+    edgesInSCC(edges, scc).count(o => IsStepNode(o.srcNode) && IsStepNode(o.trgNode)) > 0
   }
 
   protected def IsLoopInstruction(instruction: CosimStepInstruction): Boolean = instruction match {
@@ -204,20 +183,13 @@ trait SynthesizerBase extends Logging {
     SCCs.map(o => if (o.size == 1) 1 else Math.pow(o.size.toDouble, 2)).sum
   }
 
-  protected def IsStepNode(node: Node): Boolean = node match {
+  private def IsStepNode(node: StepInstructionNode): Boolean = node match {
     case DoStepNode(_) => true
     case _ => false
   }
 
-  protected def isGetNode(node: Node): Boolean = node match {
-    case GetOptimizedNode(_, _) => true
-    case GetNode(_, _) => true
-    case _ => false
-  }
 
-  protected def getEdgesInSCC(edges: Set[Edge[Node]], scc: List[Node]): Set[Edge[Node]] = {
+  protected def edgesInSCC[A <: Node](edges: Set[Edge[A]], scc: List[A]): Set[Edge[A]] = {
     edges.filter(e => scc.contains(e.srcNode) && scc.contains(e.trgNode))
   }
-
-
 }

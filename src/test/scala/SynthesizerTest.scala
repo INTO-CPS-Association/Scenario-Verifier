@@ -82,9 +82,7 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     synthesizeAndVerify("examples_no_algorithm/step_finding_loop_three_delayed.conf")
   }
 
-
   "Synthesizer" should "create valid Feedthrough Loop" in {
     synthesizeAndVerify("examples_no_algorithm/algebraic_loop_feedthrough.conf")
   }
-
 }
