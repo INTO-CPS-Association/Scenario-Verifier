@@ -9,7 +9,7 @@ publishTo := Some("Artifactory Realm" at "https://overture.au.dk/artifactory/int
 credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
 
 // groupId, SCM, license information
-organization := "INTO-CPS-Association"
+organization := "into-cps"
 homepage := Some(url("https://github.com/INTO-CPS-Association/Scenario-Verifier"))
 scmInfo := Some(ScmInfo(url("https://github.com/INTO-CPS-Association/Scenario-Verifier"), "git@github.com:INTO-CPS-Association/Scenario-Verifier.git"))
 developers := List(Developer("SimplisticCode", "SimplisticCode", "sth@ece.au.dk", url("https://github.com/INTO-CPS-Association")))
@@ -23,7 +23,7 @@ lazy val root = (project in file("."))
     version := version.value,
     maintainer := "STH",
     scalaVersion := scalaVersion.value,
-    organization := "INTO-CPS-Association",
+    organization := organization.value.toLowerCase(),
     homepage := homepage.value,
     scmInfo := scmInfo.value,
     Compile / scalacOptions += "-Xlint",
@@ -124,17 +124,16 @@ docker / dockerfile := {
 
 docker / imageNames := Seq(
   // Sets the latest tag
-  ImageName(s"${name.value}:latest"),
+  ImageName(s"${organization.value}/${name.value}:latest"),
   // Sets a name with a tag that contains the project version
-  /*
+
   ImageName(
     namespace = Some(organization.value),
     repository = name.value,
     tag = Some("v" + version.value)
   )
-   */
+
 )
 
 
-resolvers +=
-  "Artifactory" at "https://overture.au.dk/artifactory/into-cps/"
+resolvers += "Artifactory" at "https://overture.au.dk/artifactory/into-cps/"

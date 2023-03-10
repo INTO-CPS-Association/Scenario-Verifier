@@ -111,7 +111,7 @@ object ScenarioLoader extends Logging {
     MasterModelDTO(masterModel.name, masterModel.scenario, filteredInitializationActions, masterModel.cosimStep)
   }
 
-  def enrichDTO(masterModelDTO: MasterModelDTO): MasterModel = {
+  private def enrichDTO(masterModelDTO: MasterModelDTO): MasterModel = {
     val instantiationModel = generateInstantiationInstructions(masterModelDTO.scenario).toList
     val expandedInitModel = (generateEnterInitInstructions(masterModelDTO.scenario) ++ masterModelDTO.initialization ++ generateExitInitInstructions(masterModelDTO.scenario)).toList
     val terminateModel = generateTerminateInstructions(masterModelDTO.scenario).toList
@@ -132,7 +132,7 @@ object ScenarioLoader extends Logging {
       model.fmus.map(f => Unload(f._1))
 
 
-  def parsePortRef(str: String, context: String, fmus: Map[String, FmuModel]): PortRef = {
+  private def parsePortRef(str: String, context: String, fmus: Map[String, FmuModel]): PortRef = {
     val pRes = FMURefParserSingleton.parse(FMURefParserSingleton.fmu_port_ref, str)
     assert(pRes.successful, s"Problem parsing fmu port reference $str in $context.")
     assert(fmus.contains(pRes.get.fmu), s"Unable to resolve fmu ${pRes.get.fmu} in $context.")

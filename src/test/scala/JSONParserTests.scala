@@ -13,7 +13,7 @@ class JSONParserTests extends AnyFlatSpec with should.Matchers {
     val masterModel = ScenarioLoader.loadJson(conf)
     val encoding = new ModelEncoding(masterModel)
     val folder = Files.createTempDirectory("uppaal_").toFile
-    val f = ScenarioGenerator.generateUppaalFile(encoding, Directory(folder))
+    val f = ScenarioGenerator.generateUppaalFile(masterModel.name, encoding, Directory(folder))
     VerifyTA.verify(f) should be(0)
     FileUtils.deleteQuietly(f)
     FileUtils.deleteQuietly(folder)

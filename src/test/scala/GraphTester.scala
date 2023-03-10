@@ -1,9 +1,3 @@
-import java.io.PrintWriter
-import java.nio.file.Files
-
-import cli.VerifyTA
-import core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
-import org.apache.commons.io.FileUtils
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import synthesizer.{Edge, TarjanGraph}

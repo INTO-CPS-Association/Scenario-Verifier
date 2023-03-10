@@ -19,21 +19,22 @@ object VerificationAPI extends Logging {
    */
   def verifyAlgorithm(masterModel: MasterModel): Boolean = {
     require(VerifyTA.isInstalled, "Uppaal is not installed, please install it and add it to your PATH")
-    val uppaalFile = generateUppaalFile(masterModel)
+    val uppaalFile = generateUppaalFile(masterModel, ScenarioGenerator.generateUppaalFile)
     val verificationResult = VerifyTA.verify(uppaalFile)
-    //FileUtils.deleteQuietly(f)
     checkVerificationResult(verificationResult)
   }
 
-  /**
-   * Verifies a partial algorithm with respect to the scenario model.
-   *
-   * @param ScenarioModel the scenario to verify
-   * @return true if the algorithm is correct, false otherwise
-   */
-  def verifyPartial(scenarioModel: ScenarioModel, algorithm: OrchestrationAlgorithm): Boolean = {
+
+  def dynamicVerification(scenarioModel: ScenarioModel, previous_actions: List[CosimStepInstruction], next_action: CosimStepInstruction): Verdict = {
     require(VerifyTA.isInstalled, "Uppaal is not installed, please install it and add it to your PATH")
-    true
+    val masterModel = GenerationAPI.synthesizeAlgorithm("dynamic_verification", scenarioModel).copy(
+      cosimStep = Map("conf1" -> (previous_actions ++ List(next_action)))
+    )
+    val uppaalFile = generateUppaalFile(masterModel, ScenarioGenerator.generateDynamicUppaalFile)
+    val verificationResult = VerifyTA.verify(uppaalFile)
+    val verdict = checkVerificationResult(verificationResult)
+
+    Verdict(verdict, Predef.Set.empty)
   }
 
   /**
@@ -82,11 +83,11 @@ object VerificationAPI extends Logging {
     }
   }
 
-  private def generateUppaalFile(masterModel: MasterModel): File = {
+  private def generateUppaalFile(masterModel: MasterModel, uppaalFileType: (String, ModelEncoding, Directory) => File): File = {
     val sanitizedModel: MasterModel = sanitizeMasterModel(masterModel)
     val encoding = new ModelEncoding(sanitizedModel)
     val currentFolder = new File(System.getProperty("user.dir"))
-    ScenarioGenerator.generateUppaalFile(encoding, Directory(currentFolder))
+    uppaalFileType(sanitizedModel.name, encoding, Directory(currentFolder))
   }
 
 
@@ -128,7 +129,7 @@ object VerificationAPI extends Logging {
     if (verifyAlgorithm(masterModel))
       return TraceResult(null, isGenerated = false)
 
-    val f = generateUppaalFile(masterModel)
+    val f = generateUppaalFile(masterModel, ScenarioGenerator.generateUppaalFile)
     val encoding = new ModelEncoding(masterModel)
     val traceFile = Files.createTempFile("trace_", ".log").toFile
     val videoFile = Files.createTempFile("trace_", ".mp4").toFile

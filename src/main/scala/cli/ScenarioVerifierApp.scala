@@ -90,7 +90,7 @@ object ScenarioVerifierApp extends App with Logging {
       logger.debug(s"Generate UPPAAL model.")
       val folder = new File("uppaal")
       println("folder: " + folder.getAbsolutePath)
-      val uppaalFile = ScenarioGenerator.generateUppaalFile(queryModel, new Directory(folder))
+      val uppaalFile = ScenarioGenerator.generateUppaalFile(scenarioName = masterModel.name, queryModel, new Directory(folder))
       logger.info(f"Generated uppaal file: ${uppaalFile.getName}")
 
       if (config.verify) {

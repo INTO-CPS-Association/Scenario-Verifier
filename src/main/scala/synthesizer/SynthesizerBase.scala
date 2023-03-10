@@ -137,6 +137,7 @@ trait SynthesizerBase extends Logging {
       case SaveNode(name) =>
         coSimAlgorithm.copy(savedFMUs = coSimAlgorithm.savedFMUs + name, instructions = coSimAlgorithm.instructions.:+(node.formatStepInstruction))
       case EmptyNode() => coSimAlgorithm
+      case _ => throw new UnsupportedOperationException("Unknown Step Instruction")
     }
   }
 

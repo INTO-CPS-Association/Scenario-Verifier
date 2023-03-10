@@ -20,8 +20,13 @@ object ScenarioGenerator extends Logging {
     file
   }
 
-  def generateUppaalFile(model: ModelEncoding, directory: Directory): File = {
+  def generateUppaalFile(scenarioName: String, model: ModelEncoding, directory: Directory): File = {
     val uppaalModel = xml.CosimUppaalTemplate.render(model).toString().trim
-    writeToFile(uppaalModel, directory, "uppaal")
+    writeToFile(uppaalModel, directory, scenarioName)
+  }
+
+  def generateDynamicUppaalFile(scenarioName: String, model: ModelEncoding, directory: Directory): File = {
+    val uppaalModel = xml.DynamicCosimUppaalTemplate.render(model).toString().trim
+    writeToFile(uppaalModel, directory, scenarioName)
   }
 }
