@@ -301,14 +301,14 @@ object ScenarioLoader extends Logging {
     scenario match {
       case ScenarioConfig(fmus, configuration, connections, maxPossibleStepSize) =>
         assert(maxPossibleStepSize > 0, "Max possible step size has to be greater than 0 in scenario configuration.")
-        val fmusModel = fmus.map(keyValPair => (keyValPair._1, parse(keyValPair._1, keyValPair._2)))
-        val connectionsModel = connections.map(c => parseConnection(c, fmusModel))
+        val fmusModels = fmus.map(keyValPair => (keyValPair._1, parse(keyValPair._1, keyValPair._2)))
+        val connectionsModel = connections.map(c => parseConnection(c, fmusModels))
         val configurationModel =
           if (configuration.isDefined)
-          parseAdaptiveConfig(configuration.get, fmusModel)
+          parseAdaptiveConfig(configuration.get, fmusModels)
           else
-            parseAdaptiveConfig(AdaptiveConfig(Nil, Map.empty), fmusModel)
-        core.ScenarioModel(fmusModel, configurationModel, connectionsModel, maxPossibleStepSize)
+            parseAdaptiveConfig(AdaptiveConfig(Nil, Map.empty), fmusModels)
+        core.ScenarioModel(fmusModels, configurationModel, connectionsModel, maxPossibleStepSize).enrich()
     }
   }
 
@@ -345,13 +345,15 @@ object ScenarioLoader extends Logging {
     assert(fmus.contains(connection.srcPort.fmu), s"Unable to resolve source fmu ${connection.srcPort.fmu} in connection $connectionConfig.")
     assert(fmus.contains(connection.trgPort.fmu), s"Unable to resolve source fmu ${connection.trgPort.fmu} in connection $connectionConfig.")
 
-    val srcFmu = fmus(connection.srcPort.fmu)
-    val trgFmu = fmus(connection.trgPort.fmu)
+    //val srcFmu = fmus(connection.srcPort.fmu)
+    //val trgFmu = fmus(connection.trgPort.fmu)
 
+    /*
     assert(srcFmu.outputs.contains(connection.srcPort.port),
       s"Unable to resolve source port ${connection.srcPort.port} of fmu ${connection.srcPort.fmu} in connection $connectionConfig.")
     assert(trgFmu.inputs.contains(connection.trgPort.port),
       s"Unable to resolve source port ${connection.trgPort.port} of fmu ${connection.trgPort.fmu} in connection $connectionConfig.")
+     */
     connection
   }
 }

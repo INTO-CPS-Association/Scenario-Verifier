@@ -30,7 +30,6 @@ lazy val root = (project in file("."))
     Compile / scalacOptions += "-Xlint:-byname-implicit",
     Compile / scalacOptions += "-deprecation",
     Compile / console / scalacOptions --= Seq("-Ywarn-unused", "-Ywarn-unused-import"),
-    Compile / javaOptions += "-Dlog4j.configurationFile=release/log4j2.xml",
     // Set display options for scalatest
     Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-o")
   ).enablePlugins(SbtTwirl)

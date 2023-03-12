@@ -60,7 +60,7 @@ final case class FmuModel(
                            canRejectStep: Boolean,
                            path: String
                          ) extends ConfElement {
-  require(inputs.keySet.intersect(outputs.keySet).isEmpty, "FMU inputs and outputs must be disjoint")
+  require(inputs.keySet.intersect(outputs.keySet).isEmpty, s"FMU inputs (${inputs.keySet.mkString(", ")}) and outputs (${outputs.keySet.mkString(", ")}) must be disjoint.")
 
   override def toConf(indentationLevel: Int): String = {
     s"""
@@ -101,35 +101,22 @@ final case class ScenarioModel(
   require(maxPossibleStepSize > 0, "maxPossibleStepSize must be greater than 0")
 
   def enrich(): ScenarioModel = {
-    val enrichedFmus = fmus.map { case (fmu, fmuModel) =>
-      connections.filter(_.srcPort.fmu == fmu |).map(
-        con =>
-        if(!fmuModel.inputs.contains(con.srcPort.port)) fmuModel.inputs + (con.srcPort.port -> InputPortModel(Reactivity.delayed))
-      )
-      connections.filter().map(
-        con =>
-        if(!fmuModel.outputs.contains(con.trgPort.port)) fmuModel.outputs + (con.trgPort.port -> OutputPortModel(List(), List()))
-
-
-
-        .foreach(c => require(fmuModel.outputs.contains(c.srcPort.port), s"FMU $fmu does not have output port ${c.srcPort.port}"))
-      connections.filter(_.trgPort.fmu == fmu).foreach(c => require(fmuModel.inputs.contains(c.trgPort.port), s"FMU $fmu does not have input port ${c.trgPort.port}"))
-
-      val enrichedInputs = fmuModel.inputs.map { case (port, inputPortModel) =>
-        val dependenciesInit = connections.filter(_.trgPort.fmu == fmu && connections.exists(_.srcPort.fmu == fmu && _.srcPort.port == port)).map(_.srcPort.port)
-        val dependencies = connections.filter(_.trgPort.fmu == fmu && connections.exists(_.srcPort.fmu == fmu && _.srcPort.port == port)).map(_.srcPort.port)
-        port -> inputPortModel.copy(dependenciesInit = dependenciesInit, dependencies = dependencies)
-      }
-      val enrichedOutputs = fmuModel.outputs.map { case (port, outputPortModel) =>
-        val dependenciesInit = connections.filter(_.srcPort.fmu == fmu && connections.exists(_.trgPort.fmu == fmu && _.trgPort.port == port)).map(_.trgPort.port)
-        val dependencies = connections.filter(_.srcPort.fmu == fmu && connections.exists(_.trgPort.fmu == fmu && _.trgPort.port == port)).map(_.trgPort.port)
-        port -> outputPortModel.copy(dependenciesInit = dependenciesInit, dependencies = dependencies)
-      }
-      fmu -> fmuModel.copy(inputs = enrichedInputs, outputs = enrichedOutputs)
+    val enrichedFmus = fmus.map {
+      fmu =>
+        connections.filter(c => c.srcPort.fmu.equalsIgnoreCase(fmu._1) || c.trgPort.fmu.equalsIgnoreCase(fmu._1))
+          .foldLeft(fmu)(
+            (fmuModel, c) => {
+              val model = if (c.trgPort.fmu.equalsIgnoreCase(fmu._1) && !fmuModel._2.inputs.contains(c.trgPort.port))
+                fmuModel._2.copy(inputs = fmuModel._2.inputs + (c.trgPort.port -> InputPortModel(Reactivity.delayed)))
+              else if (c.srcPort.fmu.equalsIgnoreCase(fmu._1) && !fmuModel._2.outputs.contains(c.srcPort.port))
+                fmuModel._2.copy(outputs = fmuModel._2.outputs + (c.srcPort.port -> OutputPortModel(List.empty, List.empty)))
+              else fmuModel._2
+              (fmuModel._1, model)
+            }
+          )
     }
     this.copy(fmus = enrichedFmus)
   }
-
 
 
   override def toConf(indentationLevel: Int): String = {

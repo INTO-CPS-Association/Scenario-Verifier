@@ -12,7 +12,7 @@ object ScenarioGenerator extends Logging {
     if (!directory.exists) directory.createDirectory()
     // Create file
     val file = new File(s"${directory.path}/$fileName.xml")
-    file.createNewFile();
+    file.createNewFile()
     new PrintWriter(file) {
       write(content)
       close()
