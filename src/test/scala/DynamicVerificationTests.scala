@@ -15,11 +15,11 @@ class DynamicVerificationTests extends AnyFlatSpec with should.Matchers {
     })
   }
 
-  "DynamicVerifier" should "work for simple_master.conf" in {
+  it should "work for simple_master.conf" in {
     generateAndVerify("examples/simple_master.conf")
   }
 
-  "DynamicVerifier" should "work for feedthrough loops" in {
+  it should "work for feedthrough loops" in {
     generateAndVerify("examples/algebraic_loop_feedthrough.conf")
   }
 

@@ -60,6 +60,8 @@ final case class FmuModel(
                            canRejectStep: Boolean,
                            path: String
                          ) extends ConfElement {
+  require(inputs.keySet.intersect(outputs.keySet).isEmpty, "FMU inputs and outputs must be disjoint")
+
   override def toConf(indentationLevel: Int): String = {
     s"""
        |${indentBy(indentationLevel)}{
@@ -79,6 +81,8 @@ final case class ConnectionModel(
                                   srcPort: PortRef,
                                   trgPort: PortRef,
                                 ) extends UppaalModel with ConfElement {
+  require(srcPort.fmu != trgPort.fmu, "srcPort and trgPort must not be in the same FMU")
+
   override def toUppaal: String =
     f"""{${sanitize(srcPort.fmu)}, ${sanitize(fmuPortName(srcPort))}, ${sanitize(trgPort.fmu)}, ${sanitize(fmuPortName(trgPort))}}"""
 
@@ -92,6 +96,42 @@ final case class ScenarioModel(
                                 connections: List[ConnectionModel],
                                 maxPossibleStepSize: Int
                               ) extends ConfElement {
+
+  require(fmus.nonEmpty, "fmus must not be empty")
+  require(maxPossibleStepSize > 0, "maxPossibleStepSize must be greater than 0")
+
+  def enrich(): ScenarioModel = {
+    val enrichedFmus = fmus.map { case (fmu, fmuModel) =>
+      connections.filter(_.srcPort.fmu == fmu |).map(
+        con =>
+        if(!fmuModel.inputs.contains(con.srcPort.port)) fmuModel.inputs + (con.srcPort.port -> InputPortModel(Reactivity.delayed))
+      )
+      connections.filter().map(
+        con =>
+        if(!fmuModel.outputs.contains(con.trgPort.port)) fmuModel.outputs + (con.trgPort.port -> OutputPortModel(List(), List()))
+
+
+
+        .foreach(c => require(fmuModel.outputs.contains(c.srcPort.port), s"FMU $fmu does not have output port ${c.srcPort.port}"))
+      connections.filter(_.trgPort.fmu == fmu).foreach(c => require(fmuModel.inputs.contains(c.trgPort.port), s"FMU $fmu does not have input port ${c.trgPort.port}"))
+
+      val enrichedInputs = fmuModel.inputs.map { case (port, inputPortModel) =>
+        val dependenciesInit = connections.filter(_.trgPort.fmu == fmu && connections.exists(_.srcPort.fmu == fmu && _.srcPort.port == port)).map(_.srcPort.port)
+        val dependencies = connections.filter(_.trgPort.fmu == fmu && connections.exists(_.srcPort.fmu == fmu && _.srcPort.port == port)).map(_.srcPort.port)
+        port -> inputPortModel.copy(dependenciesInit = dependenciesInit, dependencies = dependencies)
+      }
+      val enrichedOutputs = fmuModel.outputs.map { case (port, outputPortModel) =>
+        val dependenciesInit = connections.filter(_.srcPort.fmu == fmu && connections.exists(_.trgPort.fmu == fmu && _.trgPort.port == port)).map(_.trgPort.port)
+        val dependencies = connections.filter(_.srcPort.fmu == fmu && connections.exists(_.trgPort.fmu == fmu && _.trgPort.port == port)).map(_.trgPort.port)
+        port -> outputPortModel.copy(dependenciesInit = dependenciesInit, dependencies = dependencies)
+      }
+      fmu -> fmuModel.copy(inputs = enrichedInputs, outputs = enrichedOutputs)
+    }
+    this.copy(fmus = enrichedFmus)
+  }
+
+
+
   override def toConf(indentationLevel: Int): String = {
     s"""
        |${indentBy(indentationLevel)}fmus = {
@@ -105,6 +145,8 @@ final case class ScenarioModel(
 
 trait SimulationInstruction extends UppaalModel with ConfElement {
   def fmu: String
+
+  require(fmu.nonEmpty, "fmu must not be empty")
 
   override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}"
 }
@@ -285,6 +327,8 @@ case object NoOP extends CosimStepInstruction {
 sealed abstract class TerminationInstruction extends SimulationInstruction {
   def actionName: String
 
+  require(actionName.nonEmpty, "Termination instruction name cannot be empty")
+
   override def toUppaal: String = s"{ $fmu,  $actionName, noPort, noStep, noFMU, noCommitment, noLoop}"
 }
 
@@ -300,14 +344,16 @@ case class Unload(fmu: String) extends TerminationInstruction {
   override def actionName: String = "unload"
 }
 
-case class MasterModel(
-                        name: String,
-                        scenario: ScenarioModel,
-                        instantiation: List[InstantiationInstruction],
-                        initialization: List[InitializationInstruction],
-                        cosimStep: Map[String, List[CosimStepInstruction]],
-                        terminate: List[TerminationInstruction]
-                      ) extends ConfElement {
+final case class MasterModel(
+                              name: String,
+                              scenario: ScenarioModel,
+                              instantiation: List[InstantiationInstruction] = List.empty,
+                              initialization: List[InitializationInstruction] = List.empty,
+                              cosimStep: Map[String, List[CosimStepInstruction]] = Map.empty,
+                              terminate: List[TerminationInstruction] = List.empty
+                            ) extends ConfElement {
+  require(name.nonEmpty, "Master model name cannot be empty")
+
   override def toConf(indentationLevel: Int = 0): String = {
     val init = toArray(initialization.map(_.toConf(indentationLevel + 1)), "\n")
     val step = cosimStep.map { case (stepName, stepInstructions) =>

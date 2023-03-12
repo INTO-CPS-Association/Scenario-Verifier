@@ -26,6 +26,16 @@ class ParserTests extends AnyFlatSpec with should.Matchers {
     print(results)
   }
 
+  it should "load scenario without ports" in {
+    val conf = getClass.getResourceAsStream("examples_no_algorithm/eduard.conf")
+    val results = ScenarioLoader.load(conf)
+    //Simple Test
+    assert(results.scenario.connections.size == 2)
+    assert(results.scenario.fmus.size == 2)
+    print(results)
+  }
+
+
   it should "load configurations with FMUs exported from Amesim" in {
     val conf = getClass.getResourceAsStream("examples/msd_from_amesim.conf")
     val results = ScenarioLoader.load(conf)
