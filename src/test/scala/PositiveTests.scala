@@ -1,24 +1,25 @@
 import api.VerificationAPI
-import core.ScenarioLoader
+import core.{ScenarioGenerator, ScenarioLoader}
+import org.scalatest.Assertion
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 
 class PositiveTests extends AnyFlatSpec with should.Matchers {
-  def generateAndVerify(resourcesFile: String) = {
+  def generateAndVerify(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
-    assert(VerificationAPI.verifyAlgorithm(masterModel))
+    assert(VerificationAPI.verifyAlgorithm(masterModel, ScenarioGenerator.generateUppaalFile))
   }
 
-  "ScenarioGenerator" should "work for simple_master.conf" in {
+  it should "work for simple_master.conf" in {
     generateAndVerify("examples/simple_master.conf")
   }
 
-  "ScenarioGenerator" should "work for feedthrough loops" in {
+  it should "work for feedthrough loops" in {
     generateAndVerify("examples/algebraic_loop_feedthrough.conf")
   }
 
-  "ScenarioGenerator" should "work for simple_adaptive_master.conf" in {
+  it should "work for simple_adaptive_master.conf" in {
     generateAndVerify("examples/simple_master_adaptive.conf")
   }
 

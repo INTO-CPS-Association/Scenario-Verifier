@@ -4,7 +4,7 @@ import org.scalatest.matchers._
 
 class ParserTests extends AnyFlatSpec with should.Matchers {
 
-  "ScenarioParser" should "load simple master configuration" in {
+  it should "load simple master configuration" in {
     val conf = getClass.getResourceAsStream("examples/simple_master.conf")
     val results = ScenarioLoader.load(conf)
     //Simple Test
@@ -64,7 +64,7 @@ class ParserTests extends AnyFlatSpec with should.Matchers {
     val connection = results.get
     connection.srcPort.port should equal ("x[4]")
     connection.trgPort.port should equal ("x[4]")
-    assert(("x[4]".replaceAll("\\W", "")) == "x4")
+    assert("x[4]".replaceAll("\\W", "") == "x4")
   }
 
   it should "parse tricky connections" in {

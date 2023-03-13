@@ -1,12 +1,10 @@
 package core
 
-import java.io.{File, InputStream, InputStreamReader}
-import java.nio.file.{Files, Paths}
-
 import com.typesafe.config.ConfigFactory
 import io.circe._
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import io.circe.jawn.decode
+import io.circe.syntax._
 import org.apache.logging.log4j.scala.Logging
 import pretty_print.PPrint
 import pureconfig.ConfigReader.Result
@@ -14,8 +12,9 @@ import pureconfig.ConfigSource
 import pureconfig.error.{ConfigReaderFailure, ConvertFailure, UnknownKey}
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
-import io.circe.syntax._
 
+import java.io.{File, InputStream, InputStreamReader}
+import java.nio.file.{Files, Paths}
 import scala.collection.immutable
 
 object ScenarioLoader extends Logging {
@@ -35,7 +34,7 @@ object ScenarioLoader extends Logging {
 
   def loadJson(is: InputStream): MasterModel = {
     val string = scala.io.Source.fromInputStream(is).mkString
-    val dto  = decode[MasterModelDTO](string)
+    val dto = decode[MasterModelDTO](string)
     dto match {
       case Right(masterModel) =>
         enrichDTO(masterModel)
@@ -43,7 +42,6 @@ object ScenarioLoader extends Logging {
         throw new IllegalArgumentException(error.toString + "could not be parsed")
     }
   }
-
 
 
   def load(stream: InputStream): MasterModel = {
@@ -88,7 +86,7 @@ object ScenarioLoader extends Logging {
         throw new IllegalArgumentException(errors.toString())
       case Right(master) =>
         logger.info(f"Successfully parsed master configuration.")
-        PPrint.pprint(master, l=logger)
+        PPrint.pprint(master, l = logger)
         master
     }
   }
@@ -115,7 +113,7 @@ object ScenarioLoader extends Logging {
     val instantiationModel = generateInstantiationInstructions(masterModelDTO.scenario).toList
     val expandedInitModel = (generateEnterInitInstructions(masterModelDTO.scenario) ++ masterModelDTO.initialization ++ generateExitInitInstructions(masterModelDTO.scenario)).toList
     val terminateModel = generateTerminateInstructions(masterModelDTO.scenario).toList
-    MasterModel(masterModelDTO.name, masterModelDTO.scenario, instantiationModel, expandedInitModel  , masterModelDTO.cosimStep, terminateModel)
+    MasterModel(masterModelDTO.name, masterModelDTO.scenario, instantiationModel, expandedInitModel, masterModelDTO.cosimStep, terminateModel)
   }
 
 
@@ -173,21 +171,19 @@ object ScenarioLoader extends Logging {
   }
 
 
-    def parse(instruction: StepStatement, scenarioModel: ScenarioModel): CosimStepInstruction = {
+  def parse(instruction: StepStatement, scenarioModel: ScenarioModel): CosimStepInstruction = {
     // Check uniqueness of instruction
     instruction match {
-      case NestedStepStatement(get, set, step, saveState, restoreState, loop, getTentative, setTentative, by, bySameAs) => {
+      case NestedStepStatement(get, set, step, saveState, restoreState, loop, getTentative, setTentative, _, _) =>
         val baseOps = List(get, set, step, saveState, restoreState, getTentative, setTentative).count(b => !b.isBlank)
         val nOps = baseOps + (if (loop == NoLoop) 0 else 1)
         assert(nOps == 1,
           s"Cosim step instruction $instruction must be one of get, set, step, save-state, restore-state, loop, or get-tentative.")
-      }
-      case RootStepStatement(get, set, step, saveState, restoreState, loop, by, bySameAs) => {
+      case RootStepStatement(get, set, step, saveState, restoreState, loop, _, _) =>
         val baseOps = List(get, set, step, saveState, restoreState).count(b => !b.isBlank)
         val nOps = baseOps + (if (loop == NoLoop) 0 else 1)
         assert(nOps == 1,
           s"Cosim step instruction $instruction must be one of get, set, step, save-state, restore-state, or loop.")
-      }
     }
 
     if (!instruction.get.isBlank) {
@@ -200,7 +196,7 @@ object ScenarioLoader extends Logging {
       Set(pRef)
     } else if (!instruction.step.isBlank) {
       val fmuRef = instruction.step
-      assert(scenarioModel.fmus.contains(fmuRef), s"Unable to resolve fmu ${fmuRef}.")
+      assert(scenarioModel.fmus.contains(fmuRef), s"Unable to resolve fmu $fmuRef.")
       if (instruction.by >= 0) {
         assert(instruction.bySameAs.isBlank, "Only one of by or by-same-as is allowed.")
         assert(instruction.by <= scenarioModel.maxPossibleStepSize,
@@ -216,16 +212,16 @@ object ScenarioLoader extends Logging {
       }
     } else if (!instruction.saveState.isBlank) {
       val fmuRef = instruction.saveState
-      assert(scenarioModel.fmus.contains(fmuRef), s"Unable to resolve fmu ${fmuRef}.")
+      assert(scenarioModel.fmus.contains(fmuRef), s"Unable to resolve fmu $fmuRef.")
       SaveState(fmuRef)
     } else if (!instruction.restoreState.isBlank) {
       val fmuRef = instruction.restoreState
-      assert(scenarioModel.fmus.contains(fmuRef), s"Unable to resolve fmu ${fmuRef}.")
+      assert(scenarioModel.fmus.contains(fmuRef), s"Unable to resolve fmu $fmuRef.")
       RestoreState(fmuRef)
     } else {
       // Check subclasses
       instruction match {
-        case NestedStepStatement(_, _, _, _, _, loop, getTentative, setTentative, by, bySameAs) => {
+        case NestedStepStatement(_, _, _, _, _, loop, getTentative, setTentative, _, _) =>
           if (!getTentative.isBlank) {
             val pRef = parsePortRef(getTentative, s"instruction $instruction", scenarioModel.fmus)
             assert(scenarioModel.fmus(pRef.fmu).outputs.contains(pRef.port), s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
@@ -239,36 +235,32 @@ object ScenarioLoader extends Logging {
           } else {
             throw new RuntimeException(f"Invariant violated while parsing instruction $instruction")
           }
-        }
-        case RootStepStatement(_, _, _, _, _, loop, by, bySameAs) => {
+        case RootStepStatement(_, _, _, _, _, loop, _, _) =>
           assert(loop != NoLoop, s"Invariant violated while parsing instruction $instruction")
           parse(loop, scenarioModel)
-        }
       }
     }
   }
 
-  def parse(loop: LoopConfig, scenarioModel: ScenarioModel): CosimStepInstruction = {
+  def parse(loop: LoopConfigStep, scenarioModel: ScenarioModel): CosimStepInstruction = {
     assert(loop.untilConverged.nonEmpty || loop.untilStepAccept.nonEmpty, "Loop has to have either until-converged or until-step-accept.")
     assert(loop.untilConverged.isEmpty || loop.untilStepAccept.isEmpty, "Loop has to have either until-converged or until-step-accept, but not both.")
-    if (loop.untilConverged.nonEmpty){
+    val iterate = loop.iterate.map(s => parse(s, scenarioModel))
+    val ifRetryNeeded = loop.ifRetryNeeded.map(s => parse(s, scenarioModel))
+    if (loop.untilConverged.nonEmpty) {
       val untilConverged = loop.untilConverged.map(p => {
         val pRef = parsePortRef(p, s"instruction $loop", scenarioModel.fmus)
-          assert(scenarioModel.fmus(pRef.fmu).outputs.contains(pRef.port), s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
-          pRef
-        })
-      val iterate = loop.iterate.map(s => parse(s, scenarioModel))
-      val ifRetryNeeded = loop.ifRetryNeeded.map(s => parse(s, scenarioModel))
+        assert(scenarioModel.fmus(pRef.fmu).outputs.contains(pRef.port), s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
+        pRef
+      })
       AlgebraicLoop(untilConverged, iterate, ifRetryNeeded)
     } else {
       val untilStepAccept = loop.untilStepAccept
-      val iterate = loop.iterate.map(s => parse(s, scenarioModel))
-      val ifRetryNeeded = loop.ifRetryNeeded.map(s => parse(s, scenarioModel))
       StepLoop(untilStepAccept, iterate, ifRetryNeeded)
     }
   }
 
-  def parse(loop: LoopInitConfig, scenarioModel: ScenarioModel): InitializationInstruction = {
+  def parse(loop: LoopConfigInit, scenarioModel: ScenarioModel): InitializationInstruction = {
     val untilConverged = loop.untilConverged.map(p => {
       val pRef = parsePortRef(p, s"instruction $loop", scenarioModel.fmus)
       assert(scenarioModel.fmus(pRef.fmu).outputs.contains(pRef.port), s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
@@ -305,7 +297,7 @@ object ScenarioLoader extends Logging {
         val connectionsModel = connections.map(c => parseConnection(c, fmusModels))
         val configurationModel =
           if (configuration.isDefined)
-          parseAdaptiveConfig(configuration.get, fmusModels)
+            parseAdaptiveConfig(configuration.get, fmusModels)
           else
             parseAdaptiveConfig(AdaptiveConfig(Nil, Map.empty), fmusModels)
         core.ScenarioModel(fmusModels, configurationModel, connectionsModel, maxPossibleStepSize).enrich()

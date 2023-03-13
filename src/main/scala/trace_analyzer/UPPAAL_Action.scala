@@ -1,6 +1,6 @@
 package trace_analyzer
 
-import core.ModelEncoding
+import core.{AbsoluteStepSize, CosimStepInstruction, ModelEncoding, PortRef, StepSize}
 
 final case class UPPAAL_Action(FMU: String = "", actionNumber: Int = -1, Port: String = "", stepSize: Int = -1, relative_step_size: Int = -1, commitment: Int = -1) {
   def format(): String = {
@@ -16,6 +16,19 @@ final case class UPPAAL_Action(FMU: String = "", actionNumber: Int = -1, Port: S
     }
   }
 
+  def toCosimStepInstruction: CosimStepInstruction = {
+    actionNumber match {
+      case 0 => core.Get(PortRef(FMU, Port))
+      case 1 => core.Set(PortRef(FMU, Port))
+      case 2 => core.Step(FMU, AbsoluteStepSize(1))
+      case 3 => core.SaveState(FMU)
+      case 4 => core.RestoreState(FMU)
+      case 9 => core.AlgebraicLoop(List.empty, List.empty, List.empty)
+      case 10 => core.StepLoop(List.empty, List.empty, List.empty)
+      case _ => throw new Exception("Invalid action number")
+    }
+  }
+
   private def formatStep(): String = {
     if (stepSize != -1) f"by $stepSize"
     else f"as same as $relative_step_size"
@@ -26,7 +39,13 @@ final case class UPPAAL_Action(FMU: String = "", actionNumber: Int = -1, Port: S
 final case class UppaalTrace(modelEncoding: ModelEncoding,
                              initStates: Seq[ModelState],
                              simulationStates: Seq[ModelState],
-                             scenarioName: String)
+                             scenarioName: String) {
+  def getLastEnabledActions: Set[CosimStepInstruction] = {
+    val lastState = simulationStates.last
+    val lastEnabledActions = lastState.possibleActions
+    lastEnabledActions.map(_.toCosimStepInstruction).toSet
+  }
+}
 
 final case class ModelState(checksDisabled: Boolean,
                             loopActive: Boolean,

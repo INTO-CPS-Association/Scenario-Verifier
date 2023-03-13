@@ -207,6 +207,8 @@ final case class RelativeStepSize(fmu: String) extends StepSize {
 }
 
 final case class AbsoluteStepSize(H: Int) extends StepSize {
+  require(H > 0, "H must be greater than 0")
+
   override def toConf(indentationLevel: Int): String = s", by: $H"
 }
 

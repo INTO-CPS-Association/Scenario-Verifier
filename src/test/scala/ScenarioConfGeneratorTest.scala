@@ -1,11 +1,12 @@
-import core.{AlgebraicLoopInit, ConnectionModel, EnterInitMode, ExitInitMode, FmuModel, InitGet, InitSet, ScenarioLoader}
+import core._
+import org.scalatest.Assertion
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 
 import java.io.ByteArrayInputStream
 
 class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
-  private def confGenerationTest(resourcesFile: String) = {
+  private def confGenerationTest(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val scenario = ScenarioLoader.load(conf)
     val generatedConfiguration = scenario.toConf()
@@ -34,30 +35,30 @@ class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
     FMUsOriginal.forall(fmu => FMUsGenerated.exists(i => i == fmu))
   }
 
-  "ScenarioConfGenerator" should "create valid Master Algorithm for Simple Master" in {
+  it should "create valid Master Algorithm for Simple Master" in {
     confGenerationTest("examples/simple_master.conf")
   }
 
-  "ScenarioConfGenerator" should "create valid Master Algorithm for Algebraic Initialization" in {
+  it should "create valid Master Algorithm for Algebraic Initialization" in {
     confGenerationTest("examples/algebraic_loop_initialization.conf")
   }
-  "ScenarioConfGenerator" should "create valid Master Algorithm for Industrial case study" in {
+  it should "create valid Master Algorithm for Industrial case study" in {
     confGenerationTest("examples/industrial_casestudy.conf")
   }
 
-  "ScenarioConfGenerator" should "create valid Step procedure for Two Algebraic Loops" in {
+  it should "create valid Step procedure for Two Algebraic Loops" in {
     confGenerationTest("examples/two_algebraic_loops.conf")
   }
 
-  "ScenarioConfGenerator" should "create valid Procedure for loop within loop" in {
+  it should "create valid Procedure for loop within loop" in {
     confGenerationTest("examples/loop_within_loop.conf")
   }
 
-  "ScenarioConfGenerator" should "create valid Procedure for Spanish Example" in {
+  it should "create valid Procedure for Spanish Example" in {
     confGenerationTest("examples/tapas.conf")
   }
 
-  "ScenarioConfGenerator" should "create valid Procedure for step finding loop adaptive" in {
+  it should "create valid Procedure for step finding loop adaptive" in {
     confGenerationTest("examples_no_algorithm/step_finding_loop_adaptive.conf")
   }
 }

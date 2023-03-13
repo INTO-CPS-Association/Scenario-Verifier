@@ -6,11 +6,10 @@ import org.scalatest.{Assertion, Ignore}
 
 @Ignore
 class TraceTester extends AnyFlatSpec with should.Matchers {
-
-  def generateTrace(scenarioPath: String): TraceResult = {
+  private def generateTrace(scenarioPath: String): TraceResult = {
     val conf = getClass.getResourceAsStream(scenarioPath)
     val masterModel = ScenarioLoader.load(conf)
-    VerificationAPI.generateTraceFromMasterModel(masterModel)
+    VerificationAPI.generateTraceVideo(masterModel)
   }
 
   def generateTraceExist(scenarioPath: String): Assertion = {
@@ -24,29 +23,29 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
     assert(!isGenerated)
   }
 
-  "TraceTester" should "work for simple master" in {
+  it should "work for simple master" in {
     generateTraceExist("common_mistakes/simple_master_forget_connection.conf")
   }
-  "TraceTester" should "work for step finding" in {
+  it should "work for step finding" in {
     generateTraceExist("common_mistakes/step_finding_loop_msd_forget_connection.conf")
   }
 
-  "TraceTester" should "work for simple" in {
+  it should "work for simple" in {
     generateTraceExist("common_mistakes/simple_master_can_reject_step.conf")
   }
-  "TraceTester" should "work for industrial" in {
+  it should "work for industrial" in {
     generateTraceExist("common_mistakes/industrial_missing_step.conf")
   }
 
-  "TraceTester" should "work for loop" in {
+  it should "work for loop" in {
     generateTraceExist("common_mistakes/algebraic_loop_msd_gs_forget_restore.conf")
   }
 
-  "TraceTester" should "work for nested loop" in {
+  it should "work for nested loop" in {
     generateTraceExist("common_mistakes/loop_within_loop_forgot_one_connection.conf")
   }
 
-  "TraceTester" should "work for nested loop alt" in {
+  it should "work for nested loop alt" in {
     generateTraceExist("examples/loop_within_loop_alt.conf")
   }
 

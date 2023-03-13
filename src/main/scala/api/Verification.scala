@@ -4,7 +4,7 @@ import cli.VerifyTA
 import core._
 import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.scala.Logging
-import trace_analyzer.TraceAnalyzer
+import trace_analyzer.{ScenarioPlotter, TraceAnalyzer, UppaalTrace}
 
 import java.io.File
 import java.nio.file.Files
@@ -17,9 +17,9 @@ object VerificationAPI extends Logging {
    * @param MasterModel the algorithm and scenario to verify
    * @return true if the algorithm is correct, false otherwise
    */
-  def verifyAlgorithm(masterModel: MasterModel): Boolean = {
+  def verifyAlgorithm(masterModel: MasterModel, uppaalFileType: (String, ModelEncoding, Directory) => File): Boolean = {
     require(VerifyTA.isInstalled, "Uppaal is not installed, please install it and add it to your PATH")
-    val uppaalFile = generateUppaalFile(masterModel, ScenarioGenerator.generateUppaalFile)
+    val uppaalFile = generateUppaalFile(masterModel, uppaalFileType)
     val verificationResult = VerifyTA.verify(uppaalFile)
     checkVerificationResult(verificationResult)
   }
@@ -30,11 +30,15 @@ object VerificationAPI extends Logging {
     val masterModel = GenerationAPI.synthesizeAlgorithm("dynamic_verification", scenarioModel).copy(
       cosimStep = Map("conf1" -> (previous_actions ++ List(next_action)))
     )
-    val uppaalFile = generateUppaalFile(masterModel, ScenarioGenerator.generateDynamicUppaalFile)
-    val verificationResult = VerifyTA.verify(uppaalFile)
-    val verdict = checkVerificationResult(verificationResult)
-
-    Verdict(verdict, Predef.Set.empty)
+    val trace = generateTraceFromMasterModel(masterModel, ScenarioGenerator.generateDynamicUppaalFile)
+    // Trace could not be generated because the algorithm is correct
+    trace match {
+      case None => Verdict(correct = true, Predef.Set.empty)
+      case Some(t) =>
+        logger.info("Trace generated")
+        val enabledActions = t.getLastEnabledActions
+        Verdict(correct = false, enabledActions)
+    }
   }
 
   /**
@@ -45,13 +49,13 @@ object VerificationAPI extends Logging {
    */
   def synthesizeAndVerify(name: String, scenarioModel: ScenarioModel): Boolean = {
     val masterModel = GenerationAPI.synthesizeAlgorithm(name, scenarioModel)
-    verifyAlgorithm(masterModel)
+    verifyAlgorithm(masterModel, ScenarioGenerator.generateUppaalFile)
   }
 
 
   def generateTrace(name: String, scenarioModel: ScenarioModel): TraceResult = {
     val masterModel = GenerationAPI.synthesizeAlgorithm(name, scenarioModel)
-    generateTraceFromMasterModel(masterModel)
+    generateTraceVideo(masterModel)
   }
 
   private def sanitizePort(port: PortRef): PortRef = {
@@ -125,27 +129,44 @@ object VerificationAPI extends Logging {
     )
   }
 
-  def generateTraceFromMasterModel(masterModel: MasterModel): TraceResult = {
-    if (verifyAlgorithm(masterModel))
-      return TraceResult(null, isGenerated = false)
+  private def generateTraceFromMasterModel(masterModel: MasterModel, uppaalFileType: (String, ModelEncoding, Directory) => File): Option[UppaalTrace] = {
+    if (verifyAlgorithm(masterModel, uppaalFileType)) {
+      // If the algorithm is correct, we don't need to generate a trace
+      return None
+    }
 
-    val f = generateUppaalFile(masterModel, ScenarioGenerator.generateUppaalFile)
+    val f = generateUppaalFile(masterModel, uppaalFileType)
     val encoding = new ModelEncoding(masterModel)
     val traceFile = Files.createTempFile("trace_", ".log").toFile
-    val videoFile = Files.createTempFile("trace_", ".mp4").toFile
-
     VerifyTA.saveTraceToFile(f, traceFile)
     FileUtils.deleteQuietly(f)
-    val source = scala.io.Source.fromFile(traceFile)
 
-    val videoFilePath = try {
+    val source = scala.io.Source.fromFile(traceFile)
+    val trace = try {
       val lines = source.getLines()
-      TraceAnalyzer.AnalyseScenario(masterModel.name, lines, encoding, videoFile.toString)
-    }
-    finally source.close()
+      TraceAnalyzer.createUppaalTrace(masterModel.name, lines, encoding)
+    } finally source.close()
+
     FileUtils.deleteQuietly(traceFile)
-    val fileVideo = new File(videoFilePath)
-    TraceResult(fileVideo, isGenerated = true)
+    Some(trace)
+  }
+
+  def generateTraceVideo(masterModel: MasterModel): TraceResult = {
+    val uppaalTrace = generateTraceFromMasterModel(masterModel, ScenarioGenerator.generateUppaalFile)
+    if (uppaalTrace.isEmpty)
+      return TraceResult(null, isGenerated = false)
+
+    val traceResult = try {
+      val outputDirectory = new File(System.getProperty("user.dir"))
+      val videoFilePath = ScenarioPlotter.plot(uppaalTrace.get, outputDirectory.getPath)
+      TraceResult(new File(videoFilePath), isGenerated = true)
+    }
+    catch {
+      case e: Exception =>
+        println("Failed to generate video trace")
+        TraceResult(null, isGenerated = false)
+    }
+    traceResult
   }
 
   private def checkVerificationResult(verificationResult: Int): Boolean = {
@@ -160,9 +181,5 @@ object VerificationAPI extends Logging {
 final case class TraceResult(file: File, isGenerated: Boolean)
 
 final case class SyntaxException(private val message: String = "",
-                                 private val cause: Throwable = None.orNull)
-  extends Exception(message, cause)
-
-final case class UppaalException(private val message: String = "",
                                  private val cause: Throwable = None.orNull)
   extends Exception(message, cause)

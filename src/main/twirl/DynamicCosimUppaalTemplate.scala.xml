@@ -407,15 +407,6 @@
         <label kind="guard" x="1181" y="-136">n == nFMU</label>
     </transition>
     <transition>
-        <source ref="id8"/>
-        <target ref="id1"/>
-        <label kind="select" x="1232" y="76">global_h:int[1,H_max], config:int[0,nConfig-1]</label>
-        <label kind="guard" x="1079" y="34">cosimstep_pc == nStepOperations[currentConfig] + 1
-            &amp;&amp; time &lt; end</label>
-        <label kind="assignment" x="1190" y="136">takeStep(global_h,config), isSimulation= 0</label>
-        <nail x="1351" y="34"/>
-    </transition>
-    <transition>
         <source ref="id2"/>
         <target ref="id1"/>
     </transition>
