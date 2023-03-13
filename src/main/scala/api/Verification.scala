@@ -14,17 +14,27 @@ object VerificationAPI extends Logging {
   /**
    * Verifies whether the algorithm is correct with respect to the scenario model.
    *
-   * @param MasterModel the algorithm and scenario to verify
+   * @param masterModel    the algorithm and scenario to verify
+   * @param uppaalFileType the type of Uppaal file to generate - either a normal Uppaal file or a dynamic Uppaal file
    * @return true if the algorithm is correct, false otherwise
    */
   def verifyAlgorithm(masterModel: MasterModel, uppaalFileType: (String, ModelEncoding, Directory) => File): Boolean = {
     require(VerifyTA.isInstalled, "Uppaal is not installed, please install it and add it to your PATH")
     val uppaalFile = generateUppaalFile(masterModel, uppaalFileType)
     val verificationResult = VerifyTA.verify(uppaalFile)
+    FileUtils.deleteQuietly(uppaalFile)
     checkVerificationResult(verificationResult)
   }
 
-
+  /**
+   * Verifies whether the next intended action is correct with respect to the scenario model and the previous actions.
+   * This method is used for dynamic verification as it return a verdict with the enabled actions.
+   *
+   * @param scenarioModel    the scenario
+   * @param previous_actions the previous actions
+   * @param next_action      the next action
+   * @return true if the algorithm is correct, false otherwise and the enabled actions
+   */
   def dynamicVerification(scenarioModel: ScenarioModel, previous_actions: List[CosimStepInstruction], next_action: CosimStepInstruction): Verdict = {
     require(VerifyTA.isInstalled, "Uppaal is not installed, please install it and add it to your PATH")
     val masterModel = GenerationAPI.synthesizeAlgorithm("dynamic_verification", scenarioModel).copy(
@@ -44,7 +54,8 @@ object VerificationAPI extends Logging {
   /**
    * Synthesize an orchestration algorithm and verify it with respect to the scenario model.
    *
-   * @param ScenarioModel the algorithm and scenario to verify
+   * @param name          the name of the scenario
+   * @param scenarioModel the scenario
    * @return true if the algorithm is correct, false otherwise
    */
   def synthesizeAndVerify(name: String, scenarioModel: ScenarioModel): Boolean = {
