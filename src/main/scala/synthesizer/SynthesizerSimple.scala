@@ -1,10 +1,8 @@
 package synthesizer
 
-import core.{AlgebraicLoop, AlgebraicLoopInit, CosimStepInstruction, FmuModel, InitializationInstruction, InputPortModel, PortRef, ScenarioModel}
+import core.{AlgebraicLoop, AlgebraicLoopInit, FmuModel, InitializationInstruction, InputPortModel, PortRef, ScenarioModel}
 import synthesizer.LoopStrategy._
-
 import scala.collection.mutable
-
 
 class SynthesizerSimple(scenarioModel: ScenarioModel, override val strategy: LoopStrategy.LoopStrategy = maximum) extends SynthesizerBase {
   private lazy val Configurations: Map[String, GraphBuilder] = {
@@ -31,7 +29,7 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, override val strategy: Loo
     else Map("conf1" -> new GraphBuilder(scenarioModel))
   }
 
-  val graphBuilder: GraphBuilder = Configurations.values.head
+  private val graphBuilder: GraphBuilder = Configurations.values.head
   val FMUsMayRejectStepped: mutable.HashSet[String] = new mutable.HashSet[String]()
   val StepEdges: Map[String, Set[Edge[StepInstructionNode]]] = Configurations.map(i => (i._1, i._2.stepEdges))
   val InitEdge: Set[Edge[InitializationInstructionNode]] = graphBuilder.initialEdges
@@ -56,10 +54,8 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, override val strategy: Loo
         //Remove all connections between FMUs in Loop
         edges.filter(e => e.srcNode.fmuName == e.trgNode.fmuName)
     }
-    val tarjanGraph: TarjanGraph[A] = new TarjanGraph[A](reducedEdges)
-    assert(!tarjanGraph.hasCycle, "The graph does still contain cycles")
-    tarjanGraph
-  }
+    new TarjanGraph[A](reducedEdges)
+  } ensuring(tarjanGraph => !tarjanGraph.hasCycle, "The graph does still contain cycles")
 
   def formatInitLoop(scc: List[InitializationInstructionNode]): InitializationInstruction = {
     val gets = graphBuilder.GetNodes.values.flatten.filter(o => scc.contains(o)).toList
@@ -96,7 +92,8 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, override val strategy: Loo
     formatAlgebraicLoop(sccNodes, edges, init_algorithm, isNested)
   }
 
-  def formatReactiveLoop(sccNodes: List[StepInstructionNode], edges: Set[Edge[StepInstructionNode]], init_algorithm: CoSimAlgorithm, isNested: Boolean): CoSimAlgorithm = {
+  def formatReactiveLoop(sccNodes: List[StepInstructionNode], edges: Set[Edge[StepInstructionNode]],
+                         init_algorithm: CoSimAlgorithm, isNested: Boolean): CoSimAlgorithm = {
     formatAlgebraicLoop(sccNodes, edges, init_algorithm, isNested)
   }
 

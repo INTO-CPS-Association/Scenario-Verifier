@@ -10,7 +10,7 @@ class NegativeTests extends AnyFlatSpec with should.Matchers {
   def generateAndVerifyFail(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
-    assert((1 until masterModel.cosimStep.values.head.length).exists(i => {
+    assert(masterModel.cosimStep.values.head.indices.exists(i => {
       val previous_actions = masterModel.cosimStep.values.head.take(i)
       val current_action = masterModel.cosimStep.values.head(i)
       !VerificationAPI.dynamicVerification(masterModel.scenario, previous_actions, current_action).correct
@@ -19,6 +19,10 @@ class NegativeTests extends AnyFlatSpec with should.Matchers {
 
   it should "catch problem with simple_master_reactivity.conf" in {
     generateAndVerifyFail("../common_mistakes/simple_master_reactivity.conf")
+  }
+
+  it should "catch problem for predatorprey.conf" in {
+    generateAndVerifyFail("../common_mistakes/predatorprey.conf")
   }
 
   it should "catch problem for simple_master_can_reject_step.conf" in {

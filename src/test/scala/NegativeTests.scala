@@ -8,7 +8,7 @@ class NegativeTests extends AnyFlatSpec with should.Matchers {
   def generateAndVerifyFail(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
-    assert(!VerificationAPI.verifyAlgorithm(masterModel, ScenarioGenerator.generateUppaalFile))
+    assert(!VerificationAPI.verifyAlgorithm(masterModel))
   }
 
   it should "catch problem with simple_master_reactivity.conf" in {

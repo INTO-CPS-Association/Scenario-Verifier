@@ -1,5 +1,5 @@
 import api.VerificationAPI
-import core.{ScenarioGenerator, ScenarioLoader}
+import core.ScenarioLoader
 import org.scalatest.Assertion
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
@@ -8,11 +8,15 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
   def generateAndVerify(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
-    assert(VerificationAPI.verifyAlgorithm(masterModel, ScenarioGenerator.generateUppaalFile))
+    assert(VerificationAPI.verifyAlgorithm(masterModel))
   }
 
   it should "work for simple_master.conf" in {
     generateAndVerify("examples/simple_master.conf")
+  }
+
+  it should "work for predatorprey.conf" in {
+    generateAndVerify("examples/predatorprey.conf")
   }
 
   it should "work for feedthrough loops" in {

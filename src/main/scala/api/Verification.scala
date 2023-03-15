@@ -11,6 +11,17 @@ import java.nio.file.Files
 import scala.reflect.io.Directory
 
 object VerificationAPI extends Logging {
+
+  /**
+   * Verifies whether the algorithm is correct with respect to the scenario model.
+   *
+   * @param masterModel    the algorithm and scenario to verify
+   * @return true if the algorithm is correct, false otherwise
+   */
+  def verifyAlgorithm(masterModel: MasterModel): Boolean = {
+    verifyAlgorithm(masterModel, ScenarioGenerator.generateUppaalFile)
+  }
+
   /**
    * Verifies whether the algorithm is correct with respect to the scenario model.
    *
@@ -18,11 +29,11 @@ object VerificationAPI extends Logging {
    * @param uppaalFileType the type of Uppaal file to generate - either a normal Uppaal file or a dynamic Uppaal file
    * @return true if the algorithm is correct, false otherwise
    */
-  def verifyAlgorithm(masterModel: MasterModel, uppaalFileType: (String, ModelEncoding, Directory) => File): Boolean = {
+  private def verifyAlgorithm(masterModel: MasterModel, uppaalFileType: (String, ModelEncoding, Directory) => File): Boolean = {
     require(VerifyTA.isInstalled, "Uppaal is not installed, please install it and add it to your PATH")
     val uppaalFile = generateUppaalFile(masterModel, uppaalFileType)
     val verificationResult = VerifyTA.verify(uppaalFile)
-    FileUtils.deleteQuietly(uppaalFile)
+    //FileUtils.deleteQuietly(uppaalFile)
     checkVerificationResult(verificationResult)
   }
 
@@ -60,7 +71,7 @@ object VerificationAPI extends Logging {
    */
   def synthesizeAndVerify(name: String, scenarioModel: ScenarioModel): Boolean = {
     val masterModel = GenerationAPI.synthesizeAlgorithm(name, scenarioModel)
-    verifyAlgorithm(masterModel, ScenarioGenerator.generateUppaalFile)
+    verifyAlgorithm(masterModel)
   }
 
 

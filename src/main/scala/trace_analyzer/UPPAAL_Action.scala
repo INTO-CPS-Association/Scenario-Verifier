@@ -1,6 +1,6 @@
 package trace_analyzer
 
-import core.{AbsoluteStepSize, CosimStepInstruction, ModelEncoding, PortRef, StepSize}
+import core.{AbsoluteStepSize, CosimStepInstruction, ModelEncoding, PortRef}
 
 final case class UPPAAL_Action(FMU: String = "", actionNumber: Int = -1, Port: String = "", stepSize: Int = -1, relative_step_size: Int = -1, commitment: Int = -1) {
   def format(): String = {
@@ -73,7 +73,6 @@ final case class ModelState(checksDisabled: Boolean,
     definedInputs.exists(i => i.fmu == fmu && i.name == portName)
   }
 
-
   def isDefinedInputState(fmu: String, portName: String): Boolean =
     definedInputs.exists(i => i.fmu == fmu && i.name == portName && (if (i.isReactive) i.time > FMUs.find(_.name == fmu).get.timeStamp else i.time >= FMUs.find(_.name == fmu).get.timeStamp))
 
@@ -91,30 +90,9 @@ final case class ModelState(checksDisabled: Boolean,
   private val definedInputs: List[PortVariableState] = FMUs.flatMap(i => i.inputPorts.filter(o => o.defined))
   private val definedOutputs: List[PortVariableState] = FMUs.flatMap(i => i.outputPorts.filter(o => o.defined))
 
-  def printState(): Unit = {
-    println("------------------------------------------")
-    println(f"ChecksDisabled = $checksDisabled")
-    println(f"LoopActive = $loopActive")
-    println(f"Time = $timeStamp")
-    FMUs.foreach(_.printFMU())
-    println("Next Action:")
-    action.format()
-
-  }
 }
 
-final case class FMUState(isSaved: Boolean, saveTime: Int, timeStamp: Int, name: String, inputPorts: List[PortVariableState], outputPorts: List[PortVariableState]) {
-  def printFMU(): Unit = {
-    println("****************************************")
-    println(f"FMU = $name")
-    println(f"isSaved = $isSaved")
-    println(f"FMU-Time = $timeStamp")
-    println("Input Ports:")
-    inputPorts.foreach(_.printPort())
-    println("Output Ports:")
-    outputPorts.foreach(_.printPort())
-  }
-}
+final case class FMUState(isSaved: Boolean, saveTime: Int, timeStamp: Int, name: String, inputPorts: List[PortVariableState], outputPorts: List[PortVariableState])
 
 case class PortVariableState(fmu: String, name: String, time: Int, defined: Boolean, isReactive: Boolean) {
   def printPort(): Unit = {

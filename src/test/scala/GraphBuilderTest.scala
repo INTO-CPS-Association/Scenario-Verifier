@@ -33,20 +33,20 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
     assert(nodes.forall(_.isInstanceOf[InitializationInstructionNode]))
   }
 
-  "GraphBuilder" should "should build an initial graph for Simple Master" in {
+  it should "should build an initial graph for Simple Master" in {
     testInitialGraph("examples/simple_master.conf")
   }
 
-  "GraphBuilder" should "should build an initial graph for Industrial case study" in {
+  it should "should build an initial graph for Industrial case study" in {
     testInitialGraph("examples/industrial_casestudy.conf")
   }
 
-  "GraphBuilder" should "should build an initial graph for Two Algebraic Loops" in {
+  it should "should build an initial graph for Two Algebraic Loops" in {
     testInitialGraph("examples/two_algebraic_loops.conf")
   }
 
 
-  "GraphBuilder" should "should build a step graph with connections, feedthrough and doStep edges" in {
+  it should "should build a step graph with connections, feedthrough and doStep edges" in {
     val conf = getClass.getResourceAsStream("examples/simple_master.conf")
     val scenario = ScenarioLoader.load(conf)
 

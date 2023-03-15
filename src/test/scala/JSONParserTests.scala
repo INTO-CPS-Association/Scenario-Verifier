@@ -19,27 +19,27 @@ class JSONParserTests extends AnyFlatSpec with should.Matchers {
     FileUtils.deleteQuietly(folder)
   }
 
-  "JSONParserTests" should "work for simple_master.json" in {
+  it should "work for simple_master.json" in {
     generateAndVerify("examples/JSON/simple_master_algorithm_where_an_FMU_can_reject_step_sizes.json")
   }
 
-  "JSONParserTests" should "work for simple_master_algorithm.json" in {
+  it should "work for simple_master_algorithm.json" in {
     generateAndVerify("examples/JSON/simple_master_algorithm.json")
   }
 
-  "JSONParserTests" should "work for step finding.json" in {
+  it should "work for step finding.json" in {
     generateAndVerify("examples/JSON/Master_step_finding_loop.json")
   }
 
-  "JSONParserTests" should "work for nested_loop.json" in {
+  it should "work for nested_loop.json" in {
     generateAndVerify("examples/JSON/nested_loop.json")
   }
 
-  "JSONParserTests" should "work for industrial_case_study.json" in {
+  it should "work for industrial_case_study.json" in {
     generateAndVerify("examples/JSON/Industrial_case_study.json")
   }
 
-  "JSONParserTests" should "work for Master_algebraic_loop_in_initialization.json" in {
+  it should "work for Master_algebraic_loop_in_initialization.json" in {
     generateAndVerify("examples/JSON/Master_algebraic_loop_in_initialization.json")
   }
 }

@@ -906,19 +906,6 @@
     bool getEnabled[MaxNOutputs] := { @m.getEnabled };
     bool setEnabled[MaxNInputs] := { @m.setEnabled };
 
-    void initialize(){
-        isInitialized := true;
-        //Set all variables to undefined
-        for(i = 0; i &lt; nInput; i++){
-            inputVariables[i].status := undefined;
-            inputVariables[i].time := 0;
-        }
-        for(i := 0; i &lt; nOutput; i++){
-            outputVariables[i].status := undefined;
-            outputVariables[i].time := 0;
-        }
-    }
-
     void getValue(int v, int a){
         outputVariables[v].status := defined;
         outputVariables[v].time := cTime;
@@ -1048,7 +1035,6 @@
         }
         stepEnabled := preDoStep(h);
     }
-
 </declaration>
     <location id="id37" x="-10285" y="-11662">
         <committed/>
@@ -1119,6 +1105,7 @@
     <transition>
         <source ref="id38"/>
         <target ref="id44"/>
+        <label kind="assignment" x="-10565" y="-11679">updateEnableActions()</label>
     </transition>
     <transition>
         <source ref="id44"/>

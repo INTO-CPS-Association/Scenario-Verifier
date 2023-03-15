@@ -3,7 +3,7 @@ name := "scenario_verifier"
 scalaVersion := "2.13.8"
 
 // library version
-version := "0.2.8"
+version := "0.2.11"
 
 publishTo := Some("Artifactory Realm" at "https://overture.au.dk/artifactory/into-cps")
 credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
