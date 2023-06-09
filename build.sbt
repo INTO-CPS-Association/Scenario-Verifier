@@ -3,7 +3,7 @@ name := "scenario_verifier"
 scalaVersion := "2.13.8"
 
 // library version
-version := "0.2.11"
+version := "0.2.21"
 
 publishTo := Some("Artifactory Realm" at "https://overture.au.dk/artifactory/into-cps")
 credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
@@ -62,7 +62,7 @@ libraryDependencies ++= {
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.3.0-SNAP2" % Test
 
 // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core
-libraryDependencies += "org.apache.logging.log4j" % "log4j-core" % "2.13.2"
+libraryDependencies += "org.apache.logging.log4j" % "log4j-core" % "2.20.0"
 
 // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api-scala
 libraryDependencies += "org.apache.logging.log4j" %% "log4j-api-scala" % "12.0"
@@ -71,8 +71,6 @@ libraryDependencies += "org.apache.logging.log4j" %% "log4j-api-scala" % "12.0"
 libraryDependencies += "com.github.scopt" %% "scopt" % "4.0.0-RC2"
 
 libraryDependencies += "com.github.pureconfig" %% "pureconfig" % "0.14.0"
-
-
 
 // Allow for parsing of fmu instructions
 libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2"
