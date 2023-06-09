@@ -27,27 +27,25 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     synthesizeAndVerify("examples/scenario_spaniard.conf")
   }
 
-it should "create valid Master Algorithm for Simple Adaptive Master" in {
-  synthesizeAndVerify("examples/simple_master_adaptive.conf")
-}
-it should "create valid Master Algorithm for Step finding Adaptive Master" in {
-  synthesizeAndVerify("examples_no_algorithm/step_finding_loop_adaptive.conf")
-}
+  it should "create valid Master Algorithm for Simple Adaptive Master" in {
+    synthesizeAndVerify("examples/simple_master_adaptive.conf")
+  }
+  it should "create valid Master Algorithm for Step finding Adaptive Master" in {
+    synthesizeAndVerify("examples_no_algorithm/step_finding_loop_adaptive.conf")
+  }
 
-it should "create valid Master Algorithm for Complex Adaptive Master" in {
-  synthesizeAndVerify("examples_no_algorithm/complex_master_adaptive.conf")
-}
+  it should "create valid Master Algorithm for Complex Adaptive Master" in {
+    synthesizeAndVerify("examples_no_algorithm/complex_master_adaptive.conf")
+  }
 
   it should "create valid Master Algorithm for Amesim" in {
     synthesizeAndVerify("examples/msd_from_amesim.conf")
   }
 
-it should "create valid Master Algorithm for Algebraic Initialization" in {
-  synthesizeAndVerify("examples/algebraic_loop_initialization.conf")
-  //synthesizeOptAndVerify("examples/algebraic_loop_initialization.conf")
-}
-
-
+  it should "create valid Master Algorithm for Algebraic Initialization" in {
+    synthesizeAndVerify("examples/algebraic_loop_initialization.conf")
+    //synthesizeOptAndVerify("examples/algebraic_loop_initialization.conf")
+  }
 
   it should "create valid Master Algorithm for Industrial case study" in {
     synthesizeAndVerify("examples/industrial_casestudy.conf")
@@ -80,6 +78,14 @@ it should "create valid Master Algorithm for Algebraic Initialization" in {
 
   it should "create valid Step Finding procedure for Step Loop only delayed ports" in {
     synthesizeAndVerify("examples_no_algorithm/step_finding_loop_two_delayed.conf")
+  }
+
+  it should "create valid procedure for Dynamic Verification 1" in {
+    synthesizeAndVerify("examples_no_algorithm/dynamic_state_estimation_scenario_1.conf")
+  }
+
+  it should "create valid procedure for Dynamic Verification 2" in {
+    synthesizeAndVerify("examples_no_algorithm/dynamic_state_estimation_scenario_2.conf")
   }
 
   it should "create valid Step Finding procedure for Step Loop three delayed FMUs" in {

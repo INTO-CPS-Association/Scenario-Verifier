@@ -13,7 +13,8 @@ trait CLITool extends Logging {
 
   def runCommand(options: List[String], processLogger: VerifyTaProcessLogger = new VerifyTaProcessLogger()): Int = {
     val cmd = s"""$command ${options.mkString(" ")}"""
-    logger.info(s"Running command: $cmd")
+    logger.debug(s"Running command: $cmd")
+    logger.info(s"Running $name with options: ${options.mkString(" ")}")
     val exitCode = Process(cmd).!(processLogger)
     if (exitCode != 0) {
       logger.error(s"Command returned non zero exit code: $exitCode.")
@@ -42,7 +43,10 @@ object VerifyTA extends CLITool {
 
   def command: String = "verifyta"
 
-  def runUppaal(uppaalFile: File, notSatisfiedHandler: (File, VerifyTaProcessLogger) => Unit): Int = {
+  def runUppaal(uppaalFile: File,
+                notSatisfiedHandler: (File, VerifyTaProcessLogger) => Unit,
+                onlineMode: Boolean = false
+               ): Int = {
     /*
     Options:
     -t <0|1|2>
@@ -54,9 +58,15 @@ object VerifyTA extends CLITool {
      -Y  Display traces symbolically (pre- and post-stable).
      */
     require(uppaalFile.exists(), s"File ${uppaalFile.getAbsolutePath} does not exist.")
-    require(isInstalled, s"UPPAAL is not installed in the system. Make sure it is in the PATH.")
+    if (!onlineMode) {
+      require(isInstalled, s"UPPAAL is not installed in the system. Make sure it is in the PATH.")
+    }
     val fPath = uppaalFile.getAbsolutePath
-    val options = List("-t", "1", "-Y", "-s", s"'$fPath'")
+    val options =
+      if (onlineMode)
+        List(s"'$fPath'")
+      else
+        List("-t", "1", "-Y", "-s", s"'$fPath'")
     val pLog = new VerifyTaProcessLogger()
     val exitCode = runCommand(options, pLog)
     if (exitCode != 0) {
@@ -77,13 +87,13 @@ object VerifyTA extends CLITool {
     }
   }
 
-  def verify(uppaalFile: File): Int = {
-    runUppaal(uppaalFile, (_, _) => ())
+  def verify(uppaalFile: File, isOnlineMode: Boolean = false): Int = {
+    runUppaal(uppaalFile, (_, _) => (), isOnlineMode)
   }
 
   def saveTraceToFile(uppaalFile: File, traceFile: File): Int = {
     val fPath = uppaalFile.getAbsolutePath
-    val options = List("-t", "1", "-Y", "-s", s"'${fPath}'")
+    val options = List("-t", "0", "-C", "-A", "-Y", "-s", s"'${fPath}'")
     val pLog = new VerifyTaProcessLogger()
     val exitCode = runCommand(options, pLog)
     if (exitCode != 0) {

@@ -32,6 +32,8 @@ object ScenarioLoader extends Logging {
   }
 
 
+  /*
+  //To
   def loadJson(is: InputStream): MasterModel = {
     val string = scala.io.Source.fromInputStream(is).mkString
     val dto = decode[MasterModelDTO](string)
@@ -42,6 +44,7 @@ object ScenarioLoader extends Logging {
         throw new IllegalArgumentException(error.toString + "could not be parsed")
     }
   }
+   */
 
 
   def load(stream: InputStream): MasterModel = {
@@ -61,10 +64,27 @@ object ScenarioLoader extends Logging {
 
       val parsingResults: Result[MasterConfig] = ConfigSource.fromConfig(conf).load[MasterConfig]
       val masterConfig = extractMasterConfig(parsingResults)
-      parse(masterConfig)
+      val masterModel = parse(masterConfig)
+      masterModel
     } finally {
       reader.close()
     }
+  }
+
+
+  /*
+    * Remove all ports that are not connected to any other port.
+    * This is done to simplify the orchestration algorithm.
+   */
+  def simplifyScenario(model: ScenarioModel): ScenarioModel = {
+    val connectedPorts = model.connections.flatMap(c => List(c.srcPort, c.trgPort))
+    // Remove all ports that are not connected to any other port
+    val fmus = model.fmus.map(fmu => {
+      val connectedOutputsPorts = fmu._2.outputs.filter(p => connectedPorts.contains(PortRef(fmu._1, p._1)))
+      val connectedInputsPorts = fmu._2.inputs.filter(p => connectedPorts.contains(PortRef(fmu._1, p._1)))
+      fmu.copy(_2 = fmu._2.copy(outputs = connectedOutputsPorts, inputs = connectedInputsPorts))
+    })
+    model.copy(fmus = fmus)
   }
 
   private def prettyPrintError(e: ConfigReaderFailure): Unit = {
@@ -94,7 +114,7 @@ object ScenarioLoader extends Logging {
   def parse(config: MasterConfig): MasterModel = {
     config match {
       case MasterConfig(name, scenario, initialization, cosimStep) =>
-        val scenarioModel = parse(scenario)
+        val scenarioModel = simplifyScenario(parse(scenario))
         val instantiationModel = generateInstantiationInstructions(scenarioModel).toList
         val initializationModel = initialization.map(instruction => parse(instruction, scenarioModel))
         val expandedInitModel = generateEnterInitInstructions(scenarioModel) ++ initializationModel ++ generateExitInitInstructions(scenarioModel)
@@ -330,7 +350,7 @@ object ScenarioLoader extends Logging {
     }
   }
 
-  private def parseConnection(connectionConfig: String, fmus: Map[String, FmuModel]): ConnectionModel = {
+  def parseConnection(connectionConfig: String, fmus: Map[String, FmuModel]): ConnectionModel = {
     val results = ConnectionParserSingleton.parse(ConnectionParserSingleton.connection, connectionConfig)
     assert(results.successful, s"Problem parsing connection string $connectionConfig.")
     val connection = results.get

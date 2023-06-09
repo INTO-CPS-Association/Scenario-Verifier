@@ -1,4 +1,4 @@
-package synthesizer
+package synthesizer.ScenarioBuilder
 
 import core.Reactivity._
 import core.{AdaptiveModel, ConnectionModel, FmuModel, InputPortModel, OutputPortModel, PortRef, Reactivity, ScenarioModel}

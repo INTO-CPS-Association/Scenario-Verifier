@@ -8,9 +8,11 @@ case class IdRef(str: String) extends AnyArgument
 
 case class PortIdRef(str: String) extends AnyArgument
 
-case class PortRef(fmu: String, port: String) extends AnyArgument {
+case class PortRef(fmu: String, port: String) extends AnyArgument with SMTLibElement {
   require(fmu.nonEmpty, "FMU name cannot be empty")
   require(port.nonEmpty, "Port name cannot be empty")
+
+  override def toSMTLib: String = s"${fmu}_${port}"
 }
 
 case class DOT()

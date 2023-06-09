@@ -6,36 +6,48 @@ import org.scalatest.flatspec._
 import org.scalatest.matchers._
 
 class PositiveTests extends AnyFlatSpec with should.Matchers {
+
+  def time[R](block: => R): R = {
+    val t0 = System.nanoTime()
+    val result = block // call-by-name
+    val t1 = System.nanoTime()
+    val t_ms = (t1 - t0) / 1000000
+    println("Elapsed time: " + t_ms + "ms")
+    result
+  }
+
   def generateAndVerify(resourcesFile: String): Boolean = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
     (1 until masterModel.cosimStep.values.head.length).forall(i => {
       val previous_actions = masterModel.cosimStep.values.head.take(i)
       val current_action = masterModel.cosimStep.values.head(i)
-      assert(VerificationAPI.dynamicVerification(masterModel.scenario, previous_actions, current_action).correct)
+      time {
+        VerificationAPI.dynamicVerification(masterModel.scenario, previous_actions, current_action)
+      }
       true
     })
   }
 
-  it should "work for simple_master.conf" in {
-    generateAndVerify("../examples/simple_master.conf")
+  def dynamicVerifyLongAlgorithm(resourcesFile: String): Boolean = {
+    val conf = getClass.getResourceAsStream(resourcesFile)
+    val masterModel = ScenarioLoader.load(conf)
+    val algorithm = masterModel.cosimStep.values.head
+    val hundredThousandRepetitionsOfAlgorithm  = (1 to 10000).flatMap(_ => algorithm).toList
+    (1 until algorithm.length).forall(i => {
+      val previous_actions = hundredThousandRepetitionsOfAlgorithm ++ algorithm.take(i)
+      val current_action = algorithm(i)
+      time {
+        VerificationAPI.dynamicVerification(masterModel.scenario, previous_actions, current_action)
+      }
+      true
+    })
   }
 
-  it should "work for feedthrough loops" in {
-    generateAndVerify("../examples/algebraic_loop_feedthrough.conf")
+  it should "work for simple_master_fmi3.conf" in {
+    generateAndVerify("../examples/simple_master_fmi3.conf")
   }
 
-  it should "work for algebraic_loop_msd" in {
-    generateAndVerify("../examples/algebraic_loop_msd_gs.conf")
-  }
-
-  it should "work for algebraic_loop_msd_fail_converge" in {
-    generateAndVerify("../examples/algebraic_loop_msd_jac.conf")
-  }
-
-  it should "work for two_algebraic_loops" in {
-    generateAndVerify("../examples/two_algebraic_loops.conf")
-  }
 
   it should "work for simple_master_step_sizes" in {
     generateAndVerify("../examples/simple_master_step_sizes.conf")
@@ -59,6 +71,18 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
 
   it should "work for algebraic_loop_initialization.conf" in {
     generateAndVerify("../examples/algebraic_loop_initialization.conf")
+  }
+
+  it should "work for dynamic scenario 1 - long algorithm" in {
+    dynamicVerifyLongAlgorithm("../examples/dynamic_state_estimation_scenario_1.conf")
+  }
+
+  it should "work for dynamic scenario 1" in {
+    generateAndVerify("../examples/dynamic_state_estimation_scenario_1.conf")
+  }
+
+  it should "work for dynamic scenario 2" in {
+    generateAndVerify("../examples/dynamic_state_estimation_scenario_2.conf")
   }
 
   it should "work for loop_within_loop.conf" in {

@@ -83,7 +83,7 @@ object ScenarioVerifierApp extends App with Logging {
         logger.info(f"Generating algorithm for scenario: ${config.master}")
         masterModel = GenerationAPI.synthesizeAlgorithm(masterModel.name, masterModel.scenario)
         FileUtils.deleteQuietly(new File(config.master))
-        writeFile(config.master, masterModel.toConf().split("\n"))
+        writeFile(config.master, masterModel.toConf().split("\n").toIndexedSeq)
       }
       logger.debug(s"Loaded model: $masterModel")
       val queryModel = new ModelEncoding(masterModel)

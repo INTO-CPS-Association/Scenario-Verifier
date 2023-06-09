@@ -1,3 +1,4 @@
+import api.GenerationAPI
 import core._
 import org.scalatest.Assertion
 import org.scalatest.flatspec._
@@ -25,6 +26,15 @@ class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
       case _ => false
     })
     assert(scenario.cosimStep == scenarioFromGeneratedSource.cosimStep)
+  }
+
+  private def synthesizeAndGenerateConf(resourcesFile: String): Unit = {
+    val conf = getClass.getResourceAsStream(resourcesFile)
+    val scenario = ScenarioLoader.load(conf)
+    val masterModel = GenerationAPI.synthesizeAlgorithm(scenario.name, scenario.scenario)
+    val generatedConfiguration = masterModel.toConf()
+    val scenarioFromGeneratedSource = ScenarioLoader.load(new ByteArrayInputStream(generatedConfiguration.getBytes()))
+
   }
 
   private def compareConnections(c1: List[ConnectionModel], c2: List[ConnectionModel]): Boolean = {
@@ -60,5 +70,17 @@ class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
 
   it should "create valid Procedure for step finding loop adaptive" in {
     confGenerationTest("examples_no_algorithm/step_finding_loop_adaptive.conf")
+  }
+
+  it should "create valid Procedure for complex master adaptive" in {
+    confGenerationTest("examples_no_algorithm/complex_master_adaptive.conf")
+  }
+
+  it should "create valid procedure for Dynamic Verification 1" in {
+    synthesizeAndGenerateConf("examples_no_algorithm/dynamic_state_estimation_scenario_1.conf")
+  }
+
+  it should "create valid procedure for Dynamic Verification 2" in {
+    synthesizeAndGenerateConf("examples_no_algorithm/dynamic_state_estimation_scenario_2.conf")
   }
 }

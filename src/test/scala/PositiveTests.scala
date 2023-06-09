@@ -11,12 +11,20 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
     assert(VerificationAPI.verifyAlgorithm(masterModel))
   }
 
-  it should "work for simple_master.conf" in {
+  it should "work for simple_master_fmi3.conf" in {
     generateAndVerify("examples/simple_master.conf")
   }
 
-  it should "work for predatorprey.conf" in {
+  it should "work for predatorprey_fmi3.conf" in {
     generateAndVerify("examples/predatorprey.conf")
+  }
+
+  it should "work for simple_master_fmi3.conf with unconnected ports" in {
+    generateAndVerify("examples/simple_master_unconnected.conf")
+  }
+
+  it should "work for predatorprey_fmi3.conf with unconnected ports" in {
+    generateAndVerify("examples/predatorprey_unconnected.conf")
   }
 
   it should "work for feedthrough loops" in {

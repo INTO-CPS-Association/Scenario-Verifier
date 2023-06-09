@@ -57,7 +57,7 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
     generateTraceExist("common_mistakes/incubator1.conf")
   }
 
-  it should "not generate a trace for simple_master.conf" in {
+  it should "not generate a trace for simple_master_fmi3.conf" in {
     generateTraceDoNotExist("examples/simple_master.conf")
   }
 

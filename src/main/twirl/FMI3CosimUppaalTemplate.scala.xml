@@ -31,6 +31,7 @@
 
         bool checksDisabled = false;
 
+
         //In case of a scenario with algebraic loops and step rejection,
         // we need to be able to turn off the precondition checks
         bool shouldChecksBeDisabled(){
@@ -80,6 +81,7 @@
         const int nFMU = @m.nFMUs;
 
         //number of algebraic loops in scenario - Should be changed
+        const int nAlgebraicLoopsInInit := @m.nAlgebraicLoopsInInit;
         const int nAlgebraicLoopsInStep := @m.nAlgebraicLoopsInStep;
 
         //Adaptive co-simulation - numbers of different configurations
@@ -187,11 +189,15 @@
         const int end = END_TIME;
         int time = START_TIME;
 
+        //Counters to track the current FMU of the co-simulation
+        int fmusUnloaded = 0;
+
         //***********************************************************************************************************
         //Scenario Dependent - Should be changed!
 
         //Number of internal connections - both init and normal
         const int nInternal := @m.nInternal;
+        const int nInternalInit := @m.nInternalInit;
 
         //Number of external connections in scenario
         const int nExternal := @m.nExternal;
@@ -270,6 +276,9 @@
 
         const InternalConnection feedthroughInStep[nConfig][nInternal] = { @m.feedthroughInStep };
 
+        //The initial internal connection could be different from the connection in the simulation and should be represented differently
+        const InternalConnection feedthroughInInit[nInternalInit] = { @m.feedthroughInInit };
+
         //The array show if an FMU can reject a step or not - if the FMU can reject a step the value is 1 on the index defined by the fmus
         const bool mayRejectStep[nFMU] = { @m.mayRejectStep };
 
@@ -277,7 +286,20 @@
         const int maxStepOperations := @m.maxStepOperations;
 
         //Numbers of operations in each step
+        const int nInstantiationOperations := @m.nInstantiationOperations;
+        const int nInitializationOperations := @m.nInitializationOperations;
         const int[0,maxStepOperations] nStepOperations[nConfig] := {@m.nStepOperations};
+        const int nTerminationOperations := @m.nTerminationOperations;
+
+        // Numbers for algebraic loop operations in init
+        const int maxNAlgebraicLoopOperationsInInit := @m.maxNAlgebraicLoopOperationsInInit;
+        const int maxNConvergeOperationsForAlgebraicLoopsInInit := @m.maxNConvergeOperationsForAlgebraicLoopsInInit;
+
+        //Numbers of operations to be performed per algebraic loop in init
+        const int[0,maxNConvergeOperationsForAlgebraicLoopsInInit] nConvergencePortsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit] = {@m.nConvergencePortsPerAlgebraicLoopInInit};
+        const int[0,maxNAlgebraicLoopOperationsInInit] nOperationsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit] = {@m.nOperationsPerAlgebraicLoopInInit};
+
+
 
         // Number of operations in the step finding loop
         const int maxFindStepOperations := @m.maxFindStepOperations;
@@ -297,6 +319,10 @@
         const int[0,maxNRetryOperationsForAlgebraicLoopsInStep] nRetryOperationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep] = {@m.nRetryOperationsPerAlgebraicLoopInStep};
 
         //These operations define what should be performed in the simulation - it is assumed that the operation first loads the fmus
+        const Operation instantiationOperations[nInstantiationOperations] = { @m.instantiationOperations };
+
+        const Operation initializationOperations[nInitializationOperations] = { @m.initializationOperations };
+
         const Operation stepOperations[nConfig][maxStepOperations] = { @m.stepOperations };
 
         //These are the operations to be performed in order to find the correct step
@@ -311,20 +337,39 @@
         //Possible multiple loops
         //Loop operations are to solve algebraic loops in the co-simulation scenario
         const Operation operationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep][maxNAlgebraicLoopOperationsInStep] = {@m.operationsPerAlgebraicLoopInStep };
+        const Operation operationsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit][maxNAlgebraicLoopOperationsInInit] = {@m.operationsPerAlgebraicLoopInInit };
 
         //The converge ports is to mark which variables that needs to be checked in the convergence loop
         //The convention is now to specify the FMU first and the port to denote the variables that should be checked
         const FmuOutputPort convergencePortsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep][maxNConvergeOperationsForAlgebraicLoopsInStep] = {@m.convergencePortsPerAlgebraicLoopInStep };
+        const FmuOutputPort convergencePortsPerAlgebraicLoopInInit[nAlgebraicLoopsInInit][maxNConvergeOperationsForAlgebraicLoopsInInit] = {@m.convergencePortsPerAlgebraicLoopInInit };
 
         const Operation retryOperationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep][maxNRetryOperationsForAlgebraicLoopsInStep] = {@m.retryOperationsPerAlgebraicLoopInStep };
+
+        const Operation terminationOperations[nTerminationOperations] = { @m.terminationOperations };
 
     </declaration>
 <template>
 <name>Interpreter</name>
 <declaration>
     int inst_pc := 0;
+    int init_pc := 0;
     int cosimstep_pc := 0;
+    int terminate_pc := 0;
     int n := 0;
+
+    void selectNextInstAction(){
+        unpackOperation(instantiationOperations[inst_pc]);
+        //Proceed to next action
+        inst_pc++;
+    }
+
+    void selectNextInitAction(){
+        unpackOperation(initializationOperations[init_pc]);
+        //Proceed to next action
+        init_pc++;
+    }
+
 
     void selectNextCosimStepAction(){
         if(cosimstep_pc &lt; nStepOperations[currentConfig]){
@@ -333,6 +378,13 @@
         //Proceed to next action
         cosimstep_pc++;
     }
+
+    void findFMUTerminateAction(){
+        unpackOperation(terminationOperations[terminate_pc]);
+        //Proceed to next action
+        terminate_pc++;
+    }
+
 
     void takeStep(int global_h, int newConfig){
         //h is progression of time
@@ -357,100 +409,413 @@
         n++;
     }
 </declaration>
-    <location id="id0" x="1674" y="187">
-        <name x="1700" y="178">Terminated</name>
-    </location>
-    <location id="id3" x="2176" y="-127">
-        <name x="2227" y="-152">Error</name>
-    </location>
-    <location id="id4" x="2048" y="25">
-        <name x="1988" y="68">SolveAlgebraicLoop</name>
-    </location>
-    <location id="id5" x="2065" y="-221">
-        <name x="2055" y="-255">FindStep</name>
-    </location>
-    <location id="id6" x="1351" y="-102">
-        <name x="1325" y="-144">CosimStep</name>
-        <committed/>
-    </location>
-    <location id="id7" x="1521" y="-425">
-        <name x="1427" y="-484">NormalFMUAction</name>
-    </location>
-    <location id="id8" x="1674" y="-102">
-        <name x="1691" y="-68">Simulate</name>
-        <committed/>
-    </location>
-    <init ref="id6"/>
-    <transition>
-        <source ref="id8"/>
-        <target ref="id0"/>
-        <label kind="guard" x="1691" y="102">cosimstep_pc == nStepOperations[currentConfig] + 1 </label>
-    </transition>
-    <transition>
-        <source ref="id4"/>
-        <target ref="id3"/>
-        <label kind="synchronisation" x="1980" y="-17">ErrorChan?</label>
-        <nail x="2176" y="25"/>
-    </transition>
-    <transition>
-        <source ref="id5"/>
-        <target ref="id3"/>
-        <label kind="synchronisation" x="2065" y="-255">ErrorChan?</label>
-        <nail x="2176" y="-221"/>
-    </transition>
-    <transition>
-        <source ref="id4"/>
-        <target ref="id8"/>
-        <label kind="synchronisation" x="1784" y="-26">solveLoop?</label>
-        <label kind="assignment" x="1801" y="8">selectNextCosimStepAction()</label>
-    </transition>
-    <transition>
-        <source ref="id8"/>
-        <target ref="id4"/>
-        <label kind="guard" x="1903" y="-93">loopActive != -1
-            &amp;&amp; action == loop</label>
-        <label kind="synchronisation" x="1818" y="-127">solveLoop!</label>
-        <nail x="2065" y="-110"/>
-    </transition>
-    <transition>
-        <source ref="id5"/>
-        <target ref="id8"/>
-        <label kind="synchronisation" x="1861" y="-416">findStepChan?</label>
-        <label kind="assignment" x="1861" y="-391">selectNextCosimStepAction(),
-            stepFinderActive := false</label>
-        <nail x="1946" y="-365"/>
-    </transition>
-    <transition>
-        <source ref="id8"/>
-        <target ref="id5"/>
-        <label kind="guard" x="1844" y="-221">action == findStep</label>
-        <label kind="synchronisation" x="2005" y="-170">findStepChan!</label>
-        <label kind="assignment" x="1997" y="-195">stepFinderActive := true</label>
-    </transition>
-    <transition>
-        <source ref="id6"/>
-        <target ref="id8"/>
-        <label kind="assignment" x="1326" y="-161">selectNextCosimStepAction(), isSimulation = 1</label>
-        <nail x="1521" y="-102"/>
-    </transition>
-    <transition>
-        <source ref="id7"/>
-        <target ref="id8"/>
-        <label kind="synchronisation" x="1631" y="-493">actionPerformed?</label>
-        <label kind="assignment" x="1631" y="-467">selectNextCosimStepAction()</label>
-        <nail x="1716" y="-442"/>
-    </transition>
-    <transition>
-        <source ref="id8"/>
-        <target ref="id7"/>
-        <label kind="guard" x="1334" y="-382">(action == get ||
-            action == set ||
-            action == step ||
-            action == save ||
-            action == restore)
-            &amp;&amp; cosimstep_pc &lt; (nStepOperations[currentConfig] +1)</label>
-        <label kind="synchronisation" x="1470" y="-255">fmu[activeFMU]!</label>
-    </transition>
+<location id="id0" x="569" y="34">
+</location>
+<location id="id1" x="1113" y="-102">
+    <committed/>
+</location>
+<location id="id2" x="841" y="-102">
+</location>
+<location id="id3" x="2176" y="-127">
+    <name x="2227" y="-152">Error</name>
+</location>
+<location id="id4" x="2048" y="25">
+    <name x="1988" y="68">SolveAlgebraicLoop</name>
+</location>
+<location id="id5" x="2065" y="-221">
+    <name x="2055" y="-255">FindStep</name>
+</location>
+<location id="id6" x="1351" y="-102">
+    <name x="1325" y="-144">CosimStep</name>
+    <committed/>
+</location>
+<location id="id7" x="1521" y="-425">
+    <name x="1427" y="-484">NormalFMUAction</name>
+</location>
+<location id="id8" x="561" y="416">
+    <name x="578" y="408">Terminated</name>
+</location>
+<location id="id9" x="561" y="272">
+    <committed/>
+</location>
+<location id="id10" x="952" y="272">
+    <name x="944" y="306">Termination</name>
+    <committed/>
+</location>
+<location id="id11" x="1674" y="-102">
+    <name x="1691" y="-68">Simulate</name>
+    <committed/>
+</location>
+<location id="id12" x="569" y="-102">
+    <committed/>
+</location>
+<location id="id13" x="339" y="-102">
+    <name x="501" y="-357">Initialization</name>
+    <committed/>
+</location>
+<location id="id14" x="-174" y="-102">
+    <name x="-139" y="-340">instantiationOperations</name>
+    <committed/>
+</location>
+<location id="id15" x="107" y="-102">
+</location>
+<location id="id16" x="-459" y="-102">
+    <name x="-469" y="-136">Start</name>
+    <committed/>
+</location>
+<init ref="id16"/>
+<transition>
+    <source ref="id0"/>
+    <target ref="id12"/>
+    <label kind="synchronisation" x="654" y="-34">solveLoopInit?</label>
+    <nail x="646" y="-34"/>
+</transition>
+<transition>
+    <source ref="id12"/>
+    <target ref="id0"/>
+    <label kind="guard" x="382" y="-17">action == loop</label>
+    <label kind="synchronisation" x="408" y="-59">solveLoopInit!</label>
+    <nail x="493" y="-25"/>
+</transition>
+<transition>
+    <source ref="id1"/>
+    <target ref="id1"/>
+    <label kind="select" x="1020" y="-306">step_fmu:int[1,H_max]</label>
+    <label kind="guard" x="1037" y="-289">n &lt; nFMU</label>
+    <label kind="assignment" x="1011" y="-272">setStepsizeFMU(n, step_fmu)</label>
+    <nail x="1003" y="-246"/>
+    <nail x="1198" y="-246"/>
+</transition>
+<transition>
+    <source ref="id1"/>
+    <target ref="id6"/>
+    <label kind="guard" x="1181" y="-136">n == nFMU</label>
+</transition>
+<transition>
+    <source ref="id11"/>
+    <target ref="id1"/>
+    <label kind="select" x="1377" y="51">global_h:int[1,H_max], config:int[0,nConfig-1]</label>
+    <label kind="guard" x="1079" y="34">cosimstep_pc == nStepOperations[currentConfig] + 1
+        &amp;&amp; time &lt; end</label>
+    <label kind="assignment" x="1470" y="17">takeStep(global_h,config), isSimulation= 0</label>
+    <nail x="1351" y="34"/>
+</transition>
+<transition>
+    <source ref="id2"/>
+    <target ref="id1"/>
+    <label kind="guard" x="859" y="-136">init_pc == nInitializationOperations</label>
+    <label kind="synchronisation" x="859" y="-119">actionPerformed?</label>
+    <label kind="assignment" x="858" y="-85">isInit = 0</label>
+</transition>
+<transition>
+    <source ref="id2"/>
+    <target ref="id12"/>
+    <label kind="guard" x="586" y="-314">init_pc &lt; nInitializationOperations</label>
+    <label kind="synchronisation" x="587" y="-297">actionPerformed?</label>
+    <label kind="assignment" x="586" y="-280">selectNextInitAction()</label>
+    <nail x="841" y="-280"/>
+    <nail x="569" y="-280"/>
+</transition>
+<transition>
+    <source ref="id12"/>
+    <target ref="id2"/>
+    <label kind="guard" x="603" y="-204">action == get ||
+        action == set ||
+        action == exitInitialization ||
+        action == enterInitialization</label>
+    <label kind="synchronisation" x="587" y="-123">fmu[activeFMU]!</label>
+</transition>
+<transition>
+    <source ref="id13"/>
+    <target ref="id12"/>
+    <label kind="assignment" x="357" y="-102">selectNextInitAction(), isInit = 1</label>
+</transition>
+<transition>
+    <source ref="id15"/>
+    <target ref="id13"/>
+    <label kind="guard" x="127" y="-136">inst_pc == nInstantiationOperations</label>
+    <label kind="synchronisation" x="135" y="-119">actionPerformed?</label>
+</transition>
+<transition>
+    <source ref="id4"/>
+    <target ref="id3"/>
+    <label kind="synchronisation" x="1980" y="-17">ErrorChan?</label>
+    <nail x="2176" y="25"/>
+</transition>
+<transition>
+    <source ref="id5"/>
+    <target ref="id3"/>
+    <label kind="synchronisation" x="2065" y="-255">ErrorChan?</label>
+    <nail x="2176" y="-221"/>
+</transition>
+<transition>
+    <source ref="id4"/>
+    <target ref="id11"/>
+    <label kind="synchronisation" x="1784" y="-26">solveLoop?</label>
+    <label kind="assignment" x="1801" y="8">selectNextCosimStepAction()</label>
+</transition>
+<transition>
+    <source ref="id11"/>
+    <target ref="id4"/>
+    <label kind="guard" x="1903" y="-93">loopActive != -1
+        &amp;&amp; action == loop</label>
+    <label kind="synchronisation" x="1818" y="-127">solveLoop!</label>
+    <nail x="2065" y="-110"/>
+</transition>
+<transition>
+    <source ref="id5"/>
+    <target ref="id11"/>
+    <label kind="synchronisation" x="1861" y="-416">findStepChan?</label>
+    <label kind="assignment" x="1861" y="-391">selectNextCosimStepAction(),
+        stepFinderActive := false</label>
+    <nail x="1946" y="-365"/>
+</transition>
+<transition>
+    <source ref="id11"/>
+    <target ref="id5"/>
+    <label kind="guard" x="1844" y="-221">action == findStep</label>
+    <label kind="synchronisation" x="2005" y="-170">findStepChan!</label>
+    <label kind="assignment" x="1997" y="-195">stepFinderActive := true</label>
+</transition>
+<transition>
+    <source ref="id6"/>
+    <target ref="id11"/>
+    <label kind="assignment" x="1428" y="-144">selectNextCosimStepAction(), isSimulation = 1</label>
+    <nail x="1521" y="-102"/>
+</transition>
+<transition>
+    <source ref="id8"/>
+    <target ref="id8"/>
+    <nail x="442" y="476"/>
+    <nail x="442" y="391"/>
+</transition>
+<transition>
+    <source ref="id7"/>
+    <target ref="id11"/>
+    <label kind="synchronisation" x="1631" y="-493">actionPerformed?</label>
+    <label kind="assignment" x="1631" y="-467">selectNextCosimStepAction()</label>
+    <nail x="1716" y="-442"/>
+</transition>
+<transition>
+    <source ref="id11"/>
+    <target ref="id7"/>
+    <label kind="guard" x="1334" y="-382">(action == get ||
+        action == set ||
+        action == step ||
+        action == save ||
+        action == restore)
+        &amp;&amp; cosimstep_pc &lt; (nStepOperations[currentConfig] +1)</label>
+    <label kind="synchronisation" x="1470" y="-255">fmu[activeFMU]!</label>
+</transition>
+<transition>
+    <source ref="id9"/>
+    <target ref="id10"/>
+    <label kind="guard" x="578" y="120">terminate_pc &lt; nTerminationOperations</label>
+    <label kind="assignment" x="680" y="86">findFMUTerminateAction()</label>
+    <nail x="561" y="153"/>
+    <nail x="952" y="153"/>
+</transition>
+<transition>
+    <source ref="id9"/>
+    <target ref="id8"/>
+    <label kind="guard" x="570" y="332">terminate_pc == nTerminationOperations</label>
+</transition>
+<transition>
+    <source ref="id10"/>
+    <target ref="id9"/>
+    <label kind="guard" x="655" y="187">action == unload ||
+        action == freeInstance ||
+        action == terminate</label>
+    <label kind="synchronisation" x="697" y="247">fmu[activeFMU]!</label>
+</transition>
+<transition>
+    <source ref="id11"/>
+    <target ref="id10"/>
+    <label kind="guard" x="1436" y="102">cosimstep_pc == nStepOperations[currentConfig] + 1
+        &amp;&amp; time &gt;= end</label>
+    <label kind="assignment" x="1436" y="161">findFMUTerminateAction(), isSimulation = 0</label>
+    <nail x="1683" y="272"/>
+</transition>
+<transition>
+    <source ref="id14"/>
+    <target ref="id15"/>
+    <label kind="guard" x="-120" y="-93">action == instantiate ||
+        action == setParameter ||
+        action == setupExperiment</label>
+    <label kind="synchronisation" x="-106" y="-127">fmu[activeFMU]!</label>
+</transition>
+<transition>
+    <source ref="id15"/>
+    <target ref="id14"/>
+    <label kind="guard" x="-156" y="-297">inst_pc &lt; nInstantiationOperations</label>
+    <label kind="synchronisation" x="-156" y="-280">actionPerformed?</label>
+    <label kind="assignment" x="-127" y="-263">selectNextInstAction()</label>
+    <nail x="107" y="-263"/>
+    <nail x="-174" y="-263"/>
+</transition>
+<transition>
+    <source ref="id16"/>
+    <target ref="id14"/>
+    <label kind="assignment" x="-383" y="-102">selectNextInstAction()</label>
+</transition>
+</template>
+<template>
+<name>LoopSolverInit</name>
+<parameter>const int maxIteration</parameter>
+<declaration>
+    int convergence_pc := 0;
+
+    //Number of iteration run in the loop Solver
+    int currentIteration := 0;
+
+    //for index
+    int i := 0;
+
+    void selectNextLoopAction(int l){
+        unpackOperation(operationsPerAlgebraicLoopInInit[l][convergence_pc]);
+        //Proceed to next action
+        convergence_pc ++;
+    }
+
+    void updateConvergenceVariables(int l){
+        int fmu;
+        int v;
+        for(i = 0; i &lt; nConvergencePortsPerAlgebraicLoopInInit[l]; i++){
+            fmu = convergencePortsPerAlgebraicLoopInInit[l][i].FMU;
+            v = convergencePortsPerAlgebraicLoopInInit[l][i].port;
+            connectionVariable[fmu][v][tentative].status = connectionVariable[fmu][v][final].status;
+            connectionVariable[fmu][v][tentative].time = connectionVariable[fmu][v][final].time;
+        }
+    }
+
+    void loopConverge(){
+        //Loop not longer active
+        loopActive := -1;
+        //Loop action counter reset
+        convergence_pc := 0;
+        //Reset convergence counter
+        currentIteration := 0;
+    }
+
+
+    void resetConvergenceloop(){
+        convergence_pc := 0;
+        selectNextLoopAction(loopActive);
+    }
+
+    //Convergence will happen when all convergenceVariables have a similar future and current value
+    bool convergenceCriteria(int l){
+        return forall(x:int[0,maxNConvergeOperationsForAlgebraicLoopsInInit-1])
+            convergencePortsPerAlgebraicLoopInInit[l][x].FMU != noFMU imply connectionVariable[convergencePortsPerAlgebraicLoopInInit[l][x].FMU][convergencePortsPerAlgebraicLoopInInit[l][x].port][final].status
+            == connectionVariable[convergencePortsPerAlgebraicLoopInInit[l][x].FMU][convergencePortsPerAlgebraicLoopInInit[l][x].port][tentative].status
+            &amp;&amp;
+            connectionVariable[convergencePortsPerAlgebraicLoopInInit[l][x].FMU][convergencePortsPerAlgebraicLoopInInit[l][x].port][final].time
+            == connectionVariable[convergencePortsPerAlgebraicLoopInInit[l][x].FMU][convergencePortsPerAlgebraicLoopInInit[l][x].port][tentative].time;
+    }
+
+    bool convergence(int l){
+        return (convergenceCriteria(l) &amp;&amp; isLoopExtraIteration);
+    }
+
+
+    void updateIsExtra(int l){
+        if(convergenceCriteria(l)){
+            isLoopExtraIteration := true;
+        }
+    }
+</declaration>
+<location id="id17" x="-1011" y="-518">
+    <committed/>
+</location>
+<location id="id18" x="-94" y="-816">
+    <name x="-146" y="-850">NotConverging</name>
+</location>
+<location id="id19" x="-391" y="-247">
+    <name x="-340" y="-213">UpdateVariables</name>
+    <committed/>
+</location>
+<location id="id20" x="-391" y="-510">
+    <name x="-357" y="-519">CheckConvergence</name>
+    <committed/>
+</location>
+<location id="id21" x="-1173" y="-416">
+</location>
+<location id="id22" x="-1343" y="-518">
+    <committed/>
+</location>
+<location id="id23" x="-1708" y="-518">
+</location>
+<init ref="id23"/>
+<transition>
+    <source ref="id20"/>
+    <target ref="id19"/>
+    <label kind="guard" x="-391" y="-417">!convergence(loopActive) &amp;&amp;
+        currentIteration &lt; maxIteration</label>
+    <label kind="assignment" x="-374" y="-349">updateIsExtra(loopActive)</label>
+</transition>
+<transition>
+    <source ref="id17"/>
+    <target ref="id22"/>
+    <label kind="guard" x="-1368" y="-671">convergence_pc &lt; nOperationsPerAlgebraicLoopInInit[loopActive]</label>
+    <label kind="assignment" x="-1283" y="-510">selectNextLoopAction(loopActive)</label>
+    <nail x="-1173" y="-620"/>
+</transition>
+<transition>
+    <source ref="id17"/>
+    <target ref="id20"/>
+    <label kind="guard" x="-884" y="-569">convergence_pc == nOperationsPerAlgebraicLoopInInit[loopActive]</label>
+    <label kind="assignment" x="-993" y="-518">currentIteration++</label>
+</transition>
+<transition>
+    <source ref="id21"/>
+    <target ref="id17"/>
+    <label kind="synchronisation" x="-1020" y="-433">actionPerformed?</label>
+</transition>
+<transition>
+    <source ref="id22"/>
+    <target ref="id21"/>
+    <label kind="guard" x="-1249" y="-374">action == get ||
+        action == set</label>
+    <label kind="synchronisation" x="-1282" y="-403">fmu[activeFMU]!</label>
+</transition>
+<transition>
+    <source ref="id19"/>
+    <target ref="id22"/>
+    <label kind="assignment" x="-1402" y="-212">updateConvergenceVariables(loopActive),
+        resetConvergenceloop()</label>
+    <nail x="-1309" y="-246"/>
+    <nail x="-1343" y="-246"/>
+</transition>
+<transition>
+    <source ref="id20"/>
+    <target ref="id18"/>
+    <label kind="guard" x="-468" y="-859">!convergence(loopActive) &amp;&amp;
+        currentIteration == maxIteration</label>
+    <label kind="synchronisation" x="-298" y="-884">ErrorChan!</label>
+    <nail x="-323" y="-620"/>
+    <nail x="-323" y="-816"/>
+</transition>
+<transition>
+    <source ref="id20"/>
+    <target ref="id23"/>
+    <label kind="guard" x="-1249" y="-816">convergence(loopActive)</label>
+    <label kind="synchronisation" x="-1071" y="-816">solveLoopInit!</label>
+    <label kind="assignment" x="-1385" y="-859">loopConverge(),
+        isLoopExtraIteration:= false</label>
+    <nail x="-391" y="-782"/>
+    <nail x="-1105" y="-790"/>
+    <nail x="-1708" y="-790"/>
+</transition>
+<transition>
+    <source ref="id23"/>
+    <target ref="id22"/>
+    <label kind="guard" x="-1581" y="-569">loopActive != -1
+        &amp;&amp; action == loop</label>
+    <label kind="synchronisation" x="-1505" y="-536">solveLoopInit?</label>
+    <label kind="assignment" x="-1632" y="-493">selectNextLoopAction(loopActive),
+        currentIteration := 0</label>
+    <nail x="-1377" y="-518"/>
+</transition>
 </template>
 <template>
 <name>LoopSolver</name>
@@ -867,6 +1232,7 @@
     int cTime := START_TIME;
     variable inputVariables[MaxNInputs] = { @{m.variableArray(m.maxNInputs)} };
     variable outputVariables[MaxNOutputs] = { @{m.variableArray(m.maxNOutputs)} };
+
     //Index for the for-loop
     int i := 0;
 
@@ -881,6 +1247,19 @@
     int stepEnabled := false;
     bool getEnabled[MaxNOutputs] := { @m.getEnabled };
     bool setEnabled[MaxNInputs] := { @m.setEnabled };
+
+    void initialize(){
+        isInitialized := true;
+        //Set all variables to undefined
+        for(i = 0; i &lt; nInput; i++){
+            inputVariables[i].status := undefined;
+            inputVariables[i].time := 0;
+        }
+        for(i := 0; i &lt; nOutput; i++){
+            outputVariables[i].status := undefined;
+            outputVariables[i].time := 0;
+        }
+    }
 
     void getValue(int v, int a){
         outputVariables[v].status := defined;
@@ -949,9 +1328,29 @@
         isSaved := true;
     }
 
-    bool preSet(int v, int a){
+    bool preSetInit(int v, int a){
         if(checksDisabled){
-        return true;
+            return true;
+        }
+        //All outputs connected to the input should be defined - no difference between delay and reactive in init. ConnectionVariables an d ExternalConnections are having the same order
+        return forall(x:int[0, nExternal-1]) external[currentConfig][x].TrgFMU == id &amp;&amp; external[currentConfig][x].input == v imply
+            connectionVariable[external[currentConfig][x].SrcFMU][external[currentConfig][x].output][a].status == defined;
+
+    }
+
+    bool preGetInit(int v){
+        if(checksDisabled){
+            return true;
+        }
+        //The internal time should be equivalent to 0 and all variable connected to this one should be defined
+        return forall(x:int[0, nInternalInit-1]) feedthroughInInit[x].FMU == id &amp;&amp; feedthroughInInit[x].output == v
+            imply inputVariables[feedthroughInInit[x].input].status == defined;
+    }
+
+
+    bool preSet(int v, int a){
+    if(checksDisabled){
+    return true;
     }
 
     //If the connection is reactive the connected variable needs to have a greater than the time of the FMU and be defined
@@ -1003,88 +1402,309 @@
     }
 
     void updateEnableActions(){
-        for(i = 0; i &lt; nInput; i++){
-            setEnabled[i] := preSet(i, final);
+        if(!isInitialized){
+            for(i = 0; i &lt; nInput; i++){
+                setEnabled[i] := preSetInit(i, final) &amp;&amp;
+                inputVariables[i].status == undefined;
+            }
+            for(i := 0; i &lt; nOutput; i++){
+                getEnabled[i] := preGetInit(i) &amp;&amp;
+                outputVariables[i].status == undefined;
+            }
+            stepEnabled := false;
+        }else{
+            for(i = 0; i &lt; nInput; i++){
+                setEnabled[i] := preSet(i, final);
+            }
+            for(i := 0; i &lt; nOutput; i++){
+                getEnabled[i] := preGet(i);
+            }
+            stepEnabled := preDoStep(h);
         }
-        for(i := 0; i &lt; nOutput; i++){
-            getEnabled[i] := preGet(i);
-        }
-        stepEnabled := preDoStep(h);
     }
+
 </declaration>
-    <location id="id28" x="-10285" y="-11662">
-        <committed/>
-    </location>
-    <location id="id29" x="-10387" y="-11305">
-        <name x="-10684" y="-11364">Simulation</name>
-    </location>
-    <init ref="id29"/>
-    <transition>
-        <source ref="id29"/>
-        <target ref="id28"/>
-        <label kind="guard" x="-10149" y="-11611">preSaveFMU() &amp;&amp;
-            action == save</label>
-        <label kind="synchronisation" x="-10081" y="-11526">fmu[id]?</label>
-        <label kind="assignment" x="-10089" y="-11492">saveFMU()</label>
-        <nail x="-10055" y="-11407"/>
-        <nail x="-10055" y="-11551"/>
-    </transition>
-    <transition>
-        <source ref="id29"/>
-        <target ref="id28"/>
-        <label kind="guard" x="-10276" y="-11543">action == restore &amp;&amp;
-            preRestoreFMU()</label>
-        <label kind="synchronisation" x="-10251" y="-11500">fmu[id]?</label>
-        <label kind="assignment" x="-10276" y="-11466">restoreFMU()</label>
-        <nail x="-10234" y="-11415"/>
-        <nail x="-10225" y="-11517"/>
-    </transition>
-    <transition>
-        <source ref="id29"/>
-        <target ref="id28"/>
-        <label kind="guard" x="-10421" y="-11509">action == step &amp;&amp;
-            preDoStep(stepsize)</label>
-        <label kind="synchronisation" x="-10412" y="-11449">fmu[id]?</label>
-        <label kind="assignment" x="-10429" y="-11398">doStep(stepsize)</label>
-        <nail x="-10429" y="-11449"/>
-        <nail x="-10404" y="-11568"/>
-    </transition>
-    <transition>
-        <source ref="id29"/>
-        <target ref="id28"/>
-        <label kind="guard" x="-10599" y="-11577">action == get &amp;&amp;
-            preGet(var)</label>
-        <label kind="synchronisation" x="-10591" y="-11526">fmu[id]?</label>
-        <label kind="assignment" x="-10616" y="-11500">getValue(var, commitment)</label>
-        <nail x="-10582" y="-11449"/>
-        <nail x="-10548" y="-11594"/>
-    </transition>
-    <transition>
-        <source ref="id29"/>
-        <target ref="id28"/>
-        <label kind="guard" x="-10863" y="-11568">preSet(var, commitment) &amp;&amp;
-            action == set</label>
-        <label kind="synchronisation" x="-10769" y="-11526">fmu[id]?</label>
-        <label kind="assignment" x="-10846" y="-11500">setValue(var, commitment)</label>
-        <nail x="-10676" y="-11415"/>
-        <nail x="-10608" y="-11645"/>
-    </transition>
-    <transition>
-        <source ref="id28"/>
-        <target ref="id29"/>
-        <label kind="synchronisation" x="-10226" y="-11679">actionPerformed!</label>
-        <label kind="assignment" x="-9971" y="-11560">updateEnableActions()</label>
-        <nail x="-9979" y="-11653"/>
-        <nail x="-9979" y="-11313"/>
-    </transition>
-    <transition>
-        <source ref="id29"/>
-        <target ref="id29"/>
-        <label kind="synchronisation" x="-10633" y="-11203">actionPerformed?</label>
-        <label kind="assignment" x="-10659" y="-11177">updateEnableActions()</label>
-        <nail x="-10438" y="-11143"/>
-        <nail x="-10557" y="-11237"/>
-    </transition>
+<location id="id45" x="-10285" y="-11662">
+    <committed/>
+</location>
+<location id="id46" x="-11058" y="-11509">
+    <name x="-11109" y="-11560">ActionPerformed_Init</name>
+    <committed/>
+</location>
+<location id="id47" x="-9800" y="-10990">
+    <name x="-9810" y="-11024">Unloaded</name>
+</location>
+<location id="id48" x="-10030" y="-10990">
+    <name x="-10081" y="-11033">Instance_Freed</name>
+</location>
+<location id="id49" x="-11584" y="-11118">
+</location>
+<location id="id50" x="-12034" y="-11118">
+    <committed/>
+</location>
+<location id="id51" x="-10752" y="-11305">
+    <label kind="invariant" x="-10795" y="-11279">preSimulation()</label>
+    <committed/>
+</location>
+<location id="id52" x="-11339" y="-11305">
+    <committed/>
+</location>
+<location id="id53" x="-11813" y="-11305">
+    <committed/>
+</location>
+<location id="id54" x="-12230" y="-11305">
+    <committed/>
+</location>
+<location id="id55" x="-11584" y="-11305">
+    <name x="-11645" y="-11381">Experiment_Setup</name>
+</location>
+<location id="id56" x="-12034" y="-11305">
+    <name x="-12078" y="-11390">Instantiated</name>
+</location>
+<location id="id57" x="-10183" y="-11475">
+    <label kind="invariant" x="-10174" y="-11458">preRestoreFMU()</label>
+    <committed/>
+</location>
+<location id="id58" x="-10948" y="-11415">
+    <label kind="invariant" x="-10922" y="-11432">preGetInit(var)</label>
+    <committed/>
+</location>
+<location id="id59" x="-11177" y="-11415">
+    <label kind="invariant" x="-11381" y="-11441">preSetInit(var, commitment)</label>
+    <committed/>
+</location>
+<location id="id60" x="-12418" y="-11305">
+    <name x="-12477" y="-11288">loaded</name>
+</location>
+<location id="id61" x="-10030" y="-11373">
+    <label kind="invariant" x="-10047" y="-11407">preSaveFMU()</label>
+    <committed/>
+</location>
+<location id="id62" x="-10336" y="-11492">
+    <label kind="invariant" x="-10370" y="-11466">preDoStep(stepsize)</label>
+    <committed/>
+</location>
+<location id="id63" x="-10523" y="-11500">
+    <label kind="invariant" x="-10599" y="-11492">preGet(var)</label>
+    <committed/>
+</location>
+<location id="id64" x="-11058" y="-11305">
+    <name x="-11050" y="-11296">Initialize</name>
+</location>
+<location id="id65" x="-10642" y="-11441">
+    <label kind="invariant" x="-10812" y="-11492">preSet(var, commitment)</label>
+    <committed/>
+</location>
+<location id="id66" x="-10387" y="-10990">
+</location>
+<location id="id67" x="-10387" y="-11305">
+    <name x="-10498" y="-11330">Simulation</name>
+</location>
+<init ref="id60"/>
+<transition>
+    <source ref="id45"/>
+    <target ref="id67"/>
+    <label kind="synchronisation" x="-10183" y="-11679">actionPerformed!</label>
+    <label kind="assignment" x="-9928" y="-11560">updateEnableActions()</label>
+    <nail x="-9936" y="-11653"/>
+    <nail x="-9936" y="-11313"/>
+</transition>
+<transition>
+    <source ref="id61"/>
+    <target ref="id45"/>
+    <label kind="assignment" x="-10149" y="-11602">saveFMU()</label>
+    <nail x="-10038" y="-11526"/>
+</transition>
+<transition>
+    <source ref="id57"/>
+    <target ref="id45"/>
+    <label kind="assignment" x="-10259" y="-11526">restoreFMU()</label>
+</transition>
+<transition>
+    <source ref="id62"/>
+    <target ref="id45"/>
+    <label kind="assignment" x="-10361" y="-11560">doStep(stepsize)</label>
+</transition>
+<transition>
+    <source ref="id63"/>
+    <target ref="id45"/>
+    <label kind="assignment" x="-10557" y="-11577">getValue(var, commitment)</label>
+</transition>
+<transition>
+    <source ref="id65"/>
+    <target ref="id45"/>
+    <label kind="assignment" x="-10565" y="-11679">setValue(var, commitment)</label>
+    <nail x="-10582" y="-11645"/>
+</transition>
+<transition>
+    <source ref="id58"/>
+    <target ref="id46"/>
+    <label kind="assignment" x="-10990" y="-11534">getValue(var, commitment)</label>
+</transition>
+<transition>
+    <source ref="id46"/>
+    <target ref="id64"/>
+    <label kind="synchronisation" x="-11118" y="-11449">actionPerformed!</label>
+    <label kind="assignment" x="-11143" y="-11415">updateEnableActions()</label>
+</transition>
+<transition>
+    <source ref="id59"/>
+    <target ref="id46"/>
+    <label kind="assignment" x="-11288" y="-11509">setValue(var, commitment)</label>
+</transition>
+<transition>
+    <source ref="id48"/>
+    <target ref="id47"/>
+    <label kind="guard" x="-9979" y="-11016">action == unload</label>
+    <label kind="synchronisation" x="-9936" y="-10973">fmu[id]?</label>
+</transition>
+<transition>
+    <source ref="id64"/>
+    <target ref="id64"/>
+    <label kind="synchronisation" x="-11101" y="-11152">actionPerformed?</label>
+    <label kind="assignment" x="-11126" y="-11109">updateEnableActions()</label>
+    <label kind="comments" x="-11152" y="-11058">Other SUs have performed an action</label>
+    <nail x="-10999" y="-11169"/>
+    <nail x="-11126" y="-11169"/>
+</transition>
+<transition>
+    <source ref="id66"/>
+    <target ref="id48"/>
+    <label kind="guard" x="-10259" y="-11016">action == freeInstance</label>
+    <label kind="synchronisation" x="-10242" y="-10973">fmu[id]?</label>
+</transition>
+<transition>
+    <source ref="id51"/>
+    <target ref="id67"/>
+    <label kind="synchronisation" x="-10693" y="-11322">actionPerformed!</label>
+    <label kind="assignment" x="-10727" y="-11347">updateEnableActions()</label>
+</transition>
+<transition>
+    <source ref="id64"/>
+    <target ref="id51"/>
+    <label kind="guard" x="-10973" y="-11305">action == exitInitialization</label>
+    <label kind="synchronisation" x="-10939" y="-11331">fmu[id]?</label>
+</transition>
+<transition>
+    <source ref="id52"/>
+    <target ref="id64"/>
+    <label kind="synchronisation" x="-11287" y="-11330">actionPerformed!</label>
+    <label kind="assignment" x="-11322" y="-11296">updateEnableActions(),
+        initialize()</label>
+</transition>
+<transition>
+    <source ref="id55"/>
+    <target ref="id52"/>
+    <label kind="guard" x="-11559" y="-11356">action == enterInitialization</label>
+    <label kind="synchronisation" x="-11542" y="-11331">fmu[id]?</label>
+</transition>
+<transition>
+    <source ref="id49"/>
+    <target ref="id55"/>
+    <label kind="synchronisation" x="-11771" y="-11245">actionPerformed!</label>
+    <nail x="-11660" y="-11211"/>
+</transition>
+<transition>
+    <source ref="id55"/>
+    <target ref="id49"/>
+    <label kind="guard" x="-11533" y="-11160">action == setParameter</label>
+    <label kind="synchronisation" x="-11516" y="-11186">fmu[id]?</label>
+    <nail x="-11507" y="-11211"/>
+</transition>
+<transition>
+    <source ref="id50"/>
+    <target ref="id56"/>
+    <label kind="synchronisation" x="-12255" y="-11169">actionPerformed!</label>
+    <nail x="-12136" y="-11211"/>
+</transition>
+<transition>
+    <source ref="id56"/>
+    <target ref="id50"/>
+    <label kind="guard" x="-11958" y="-11152">action == setParameter</label>
+    <label kind="synchronisation" x="-11924" y="-11211">fmu[id]?</label>
+    <nail x="-11932" y="-11203"/>
+</transition>
+<transition>
+    <source ref="id53"/>
+    <target ref="id55"/>
+    <label kind="synchronisation" x="-11779" y="-11330">actionPerformed!</label>
+</transition>
+<transition>
+    <source ref="id56"/>
+    <target ref="id53"/>
+    <label kind="guard" x="-12000" y="-11339">action == setupExperiment</label>
+    <label kind="synchronisation" x="-11992" y="-11288">fmu[id]?</label>
+</transition>
+<transition>
+    <source ref="id54"/>
+    <target ref="id56"/>
+    <label kind="synchronisation" x="-12204" y="-11330">actionPerformed!</label>
+</transition>
+<transition>
+    <source ref="id60"/>
+    <target ref="id54"/>
+    <label kind="guard" x="-12400" y="-11339">action == instantiate</label>
+    <label kind="synchronisation" x="-12382" y="-11305">fmu[id]?</label>
+</transition>
+<transition>
+    <source ref="id67"/>
+    <target ref="id57"/>
+    <label kind="guard" x="-10259" y="-11390">action == restore</label>
+    <label kind="synchronisation" x="-10302" y="-11373">fmu[id]?</label>
+    <nail x="-10200" y="-11390"/>
+</transition>
+<transition>
+    <source ref="id67"/>
+    <target ref="id67"/>
+    <label kind="synchronisation" x="-10633" y="-11203">actionPerformed?</label>
+    <label kind="assignment" x="-10659" y="-11177">updateEnableActions()</label>
+    <nail x="-10438" y="-11143"/>
+    <nail x="-10557" y="-11237"/>
+</transition>
+<transition>
+    <source ref="id64"/>
+    <target ref="id58"/>
+    <label kind="guard" x="-10973" y="-11390">action == get</label>
+    <label kind="synchronisation" x="-10982" y="-11373">fmu[id]?</label>
+    <nail x="-10990" y="-11373"/>
+</transition>
+<transition>
+    <source ref="id64"/>
+    <target ref="id59"/>
+    <label kind="guard" x="-11254" y="-11398">action == set</label>
+    <label kind="synchronisation" x="-11254" y="-11415">fmu[id]?</label>
+    <nail x="-11135" y="-11373"/>
+</transition>
+<transition>
+    <source ref="id67"/>
+    <target ref="id61"/>
+    <label kind="guard" x="-10234" y="-11339">action == save</label>
+    <label kind="synchronisation" x="-10140" y="-11356">fmu[id]?</label>
+</transition>
+<transition>
+    <source ref="id67"/>
+    <target ref="id62"/>
+    <label kind="guard" x="-10369" y="-11415">action == step</label>
+    <label kind="synchronisation" x="-10361" y="-11398">fmu[id]?</label>
+</transition>
+<transition>
+    <source ref="id67"/>
+    <target ref="id63"/>
+    <label kind="guard" x="-10489" y="-11475">action == get</label>
+    <label kind="synchronisation" x="-10463" y="-11449">fmu[id]?</label>
+</transition>
+<transition>
+    <source ref="id67"/>
+    <target ref="id65"/>
+    <label kind="guard" x="-10608" y="-11441">action == set</label>
+    <label kind="synchronisation" x="-10633" y="-11415">fmu[id]?</label>
+</transition>
+<transition>
+    <source ref="id67"/>
+    <target ref="id66"/>
+    <label kind="guard" x="-10378" y="-11101">action == terminate</label>
+    <label kind="synchronisation" x="-10378" y="-11126">fmu[id]?</label>
+</transition>
 </template>
     <system>
         // Place template instantiations here.
@@ -1093,6 +1713,8 @@
         //Max number of tries in the loops is upper bounded by the number of FMUs
         loopS = LoopSolver(nFMU + 1);
         finder = StepFinder(H_max + 1);
+        loop_solver_init = LoopSolverInit(nFMU + 1);
+
 
         //The arguments to FMU is Id, numbers of outputs, number of inputs, definition of inputTypes
         @for(fName<- m.fmuNames) {
@@ -1102,14 +1724,21 @@
         // List one or more processes to be composed into a system.
         system MasterA,
         @{m.fmuNames.map(fName => s"${fName}_fmu").reduce[String]((a, b) => a + "," + b)},
-        loopS, finder;
+        loopS, finder, loop_solver_init;
     </system>
     <queries>
         <query>
-            <formula>E&lt;&gt; MasterA.Terminated
+            <formula>A[] not deadlock
+            </formula>
+            <comment>
+            </comment>
+        </query>
+        <query>
+            <formula>A&lt;&gt; MasterA.Terminated
             </formula>
             <comment>
             </comment>
         </query>
     </queries>
 </nta>
+

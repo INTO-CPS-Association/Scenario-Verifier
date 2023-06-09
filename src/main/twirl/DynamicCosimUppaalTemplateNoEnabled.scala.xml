@@ -9,7 +9,6 @@
         const int END_TIME = 1;
         const int START_TIME = 0;
         int currentConfig := 0;
-
         //Is the stepFinder active
         bool stepFinderActive := false;
 
@@ -169,9 +168,6 @@
 
         //Channel to start and finish LoopSolver
         chan solveLoop;
-
-        //Channel to start and finish LoopSolver for Init
-        chan solveLoopInit;
 
         //A broadcase channel for an FMU to signal an error
         chan ErrorChan;
@@ -333,29 +329,6 @@
         //Proceed to next action
         cosimstep_pc++;
     }
-
-    void takeStep(int global_h, int newConfig){
-        //h is progression of time
-        time := time + h;
-        //Reset the loop actions
-        cosimstep_pc := 0;
-        //reset the global stepsize
-        h := global_h;
-        //reset n
-        n := 0;
-        currentConfig := newConfig;
-    }
-
-    void setStepsizeFMU(int fmu, int fmu_step_size){
-        if(mayRejectStep[fmu]){
-            //If an FMU can reject a Step it is maximum step should be updated in each iteration
-            stepVariables[fmu] = fmu_step_size;
-        }else{
-            //If not just set its maximum step to the global step
-            stepVariables[fmu] = h;
-        }
-        n++;
-    }
 </declaration>
     <location id="id0" x="1674" y="187">
         <name x="1700" y="178">Terminated</name>
@@ -463,8 +436,6 @@
     //Number of iteration run in the loop Solver
     int currentConvergeLoopIteration := 0;
 
-
-
     void selectNextLoopAction(int l){
         unpackOperation(operationsPerAlgebraicLoopInStep[currentConfig][l][convergence_pc]);
         //Proceed to next action
@@ -475,7 +446,6 @@
         unpackOperation(retryOperationsPerAlgebraicLoopInStep[currentConfig][l][restore_pc]);
         restore_pc++;
     }
-
 
     void updateConvergenceVariables(int l){
         int fmu;
@@ -876,11 +846,6 @@
     int savedTime;
     bool isSaved := false;
     bool isConsistent := true;
-    bool isInitialized := false;
-
-    int stepEnabled := false;
-    bool getEnabled[MaxNOutputs] := { @m.getEnabled };
-    bool setEnabled[MaxNInputs] := { @m.setEnabled };
 
     void getValue(int v, int a){
         outputVariables[v].status := defined;
@@ -1001,16 +966,6 @@
         //Should a requirement be a saved previous FMU?
         return isSaved;
     }
-
-    void updateEnableActions(){
-        for(i = 0; i &lt; nInput; i++){
-            setEnabled[i] := preSet(i, final);
-        }
-        for(i := 0; i &lt; nOutput; i++){
-            getEnabled[i] := preGet(i);
-        }
-        stepEnabled := preDoStep(h);
-    }
 </declaration>
     <location id="id28" x="-10285" y="-11662">
         <committed/>
@@ -1073,17 +1028,9 @@
         <source ref="id28"/>
         <target ref="id29"/>
         <label kind="synchronisation" x="-10226" y="-11679">actionPerformed!</label>
-        <label kind="assignment" x="-9971" y="-11560">updateEnableActions()</label>
+        <label kind="assignment" x="-9971" y="-11560"></label>
         <nail x="-9979" y="-11653"/>
         <nail x="-9979" y="-11313"/>
-    </transition>
-    <transition>
-        <source ref="id29"/>
-        <target ref="id29"/>
-        <label kind="synchronisation" x="-10633" y="-11203">actionPerformed?</label>
-        <label kind="assignment" x="-10659" y="-11177">updateEnableActions()</label>
-        <nail x="-10438" y="-11143"/>
-        <nail x="-10557" y="-11237"/>
     </transition>
 </template>
     <system>
@@ -1106,7 +1053,7 @@
     </system>
     <queries>
         <query>
-            <formula>E&lt;&gt; MasterA.Terminated
+            <formula>A&lt;&gt; MasterA.Terminated
             </formula>
             <comment>
             </comment>

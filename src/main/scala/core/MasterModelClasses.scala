@@ -1,14 +1,23 @@
 package core
 
+import core.AlgorithmType.AlgorithmType
+import core.Reactivity.Reactivity
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.generic.semiauto._
+
+import scala.collection.immutable
+
+object AlgorithmType extends Enumeration {
+  type AlgorithmType = Value
+  val init, step, event = Value
+}
+
 object Reactivity extends Enumeration {
   type Reactivity = Value
   val reactive, delayed, noPort = Value
 }
 
-import core.Reactivity.Reactivity
-import io.circe._
-import io.circe.generic.semiauto._
-import io.circe.generic.auto._
 
 trait ConfElement {
   def toConf(indentationLevel: Int): String
@@ -33,6 +42,10 @@ trait ConfElement {
   protected def toMap(elements: List[String]): String = {
     elements.mkString("{", ",", "}")
   }
+}
+
+trait SMTLibElement {
+  def toSMTLib: String
 }
 
 trait UppaalModel {
@@ -62,6 +75,9 @@ final case class FmuModel(
                          ) extends ConfElement {
   require(inputs.keySet.intersect(outputs.keySet).isEmpty, s"FMU inputs (${inputs.keySet.mkString(", ")}) and outputs (${outputs.keySet.mkString(", ")}) must be disjoint.")
 
+  lazy val reactiveInputs: Map[String, InputPortModel] = inputs.filter(_._2.reactivity == Reactivity.reactive)
+  lazy val delayedInputs: Map[String, InputPortModel] = inputs.filter(_._2.reactivity == Reactivity.delayed)
+
   override def toConf(indentationLevel: Int): String = {
     s"""
        |${indentBy(indentationLevel)}{
@@ -73,14 +89,76 @@ final case class FmuModel(
        |${indentBy(indentationLevel + 2)}${outputs.map { case (port, outputPortModel) => s"${sanitizeString(port)} = ${outputPortModel.toConf()}" }.mkString("\n")}
        |${indentBy(indentationLevel + 1)}}
        |${indentBy(indentationLevel)}}""".stripMargin
+  }
 
+  private def portVarsDecl(fmuName: String, ports: List[String]): String =
+    ports.map(port => s"(declare-const ${sanitizeString(fmuName)}_${sanitizeString(port)} Int)").mkString("\n")
+
+  private def dependenciesAssertions(fmuName: String, port: String, dependencies: List[String]): String =
+    dependencies.map(dependency => s"(assert (> ${sanitizeString(fmuName)}_${sanitizeString(port)} ${sanitizeString(fmuName)}_${sanitizeString(dependency)}))").mkString("\n")
+
+  private def initSMTLib(fmuName: String): String = {
+    // All outputs must be after their dependencies
+    val outputsAfterDependencies = outputs.map {
+      case (port, outputPortModel) =>
+        dependenciesAssertions(fmuName, port, outputPortModel.dependenciesInit)
+    }.filter(_.nonEmpty).mkString("\n")
+    s"""
+       |; Feed through dependencies
+       |$outputsAfterDependencies
+       |""".stripMargin
+  }
+
+  private def stepSMTLib(fmuName: String): String = {
+    val stepName = s"${sanitizeString(fmuName)}_step"
+    val step = s"(declare-const $stepName Int)"
+    // All delayed inputs must be after the step (bigger than the step)
+    //val delayedInputsAfterStep = delayedInputs.map(port => s"(assert (> ${sanitizeString(fmuName)}_${sanitizeString(port._1)} $stepName))").mkString("\n")
+    // All reactive inputs must be before the step (smaller than the step)
+    val reactiveInputsBeforeStep = reactiveInputs.map {
+      case (port, _) => s"(assert (< ${sanitizeString(fmuName)}_${sanitizeString(port)} $stepName))"
+    }.mkString("\n")
+    // All outputs must be after the step (bigger than the step)
+    //val outputsAfterStep = outputs.map {
+    //  case (port, _) => s"(assert (> ${sanitizeString(fmuName)}_${sanitizeString(port)} $stepName))"
+    //}.mkString("\n")
+
+    // All outputs must be after their dependencies
+    val outputsAfterDependencies = outputs.map {
+      case (port, outputPortModel) =>
+        dependenciesAssertions(fmuName, port, outputPortModel.dependencies)
+    }.filter(_.nonEmpty).mkString("\n")
+    s"""
+       |; Step action of the FMU
+       |$step
+       |; All reactive inputs must be before the step
+       |$reactiveInputsBeforeStep
+       |; Feed through dependencies - inputs must be before outputs
+       |$outputsAfterDependencies
+       |""".stripMargin
+  }
+
+
+  def toSMTLib(fmuName: String, algorithmType: AlgorithmType): String = {
+    val specificConstraints = algorithmType match {
+      case AlgorithmType.init => initSMTLib(fmuName)
+      case AlgorithmType.step => stepSMTLib(fmuName)
+    }
+    s"""
+       |; FMU $fmuName constraints
+       |; Output actions of $fmuName
+       |${portVarsDecl(fmuName, outputs.keySet.toList)}
+       |; Input actions of $fmuName
+       |${portVarsDecl(fmuName, inputs.keySet.toList)}
+       |$specificConstraints
+       |""".stripMargin
   }
 }
 
 final case class ConnectionModel(
                                   srcPort: PortRef,
                                   trgPort: PortRef,
-                                ) extends UppaalModel with ConfElement {
+                                ) extends UppaalModel with ConfElement with SMTLibElement {
   require(srcPort.fmu != trgPort.fmu, "srcPort and trgPort must not be in the same FMU")
 
   override def toUppaal: String =
@@ -88,6 +166,8 @@ final case class ConnectionModel(
 
   override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}${generatePort(srcPort)} -> ${generatePort(trgPort)}"
 
+  def toSMTLib: String =
+    s"(assert (< ${srcPort.toSMTLib} ${trgPort.toSMTLib}))"
 }
 
 final case class ScenarioModel(
@@ -118,7 +198,6 @@ final case class ScenarioModel(
     this.copy(fmus = enrichedFmus)
   }
 
-
   override def toConf(indentationLevel: Int): String = {
     s"""
        |${indentBy(indentationLevel)}fmus = {
@@ -127,211 +206,55 @@ final case class ScenarioModel(
        |${indentBy(indentationLevel)}connections = ${toArray(connections.map(_.toConf(indentationLevel + 1)))}
        |""".stripMargin
   }
+
+  def toSMTLib(algorithmType: AlgorithmType): String = {
+    require(fmus.nonEmpty, "fmus must not be empty")
+    require(connections.nonEmpty, "connections must not be empty")
+    require(config.configurations.size <= 1, "the scenario must not be adaptive")
+    val actionsWithoutStep: immutable.Iterable[String] =
+      fmus.foldLeft(immutable.Iterable.empty[String])((actions, fmu) =>
+        fmu._2.inputs.map(port => s"${sanitizeString(fmu._1)}_${sanitizeString(port._1)}").toList ++
+          fmu._2.outputs.map(port => s"${sanitizeString(fmu._1)}_${sanitizeString(port._1)}").toList ++
+          actions
+      ).toList.sorted
+
+    val actions = if (algorithmType == AlgorithmType.step) actionsWithoutStep ++ fmus.map(fmu => s"${fmu._1}_step").toList else actionsWithoutStep
+    val numberOfActions = actions.size
+    val fmuDeclarations = fmus.keySet.toList.sorted.map(fmu => fmus(fmu).toSMTLib(fmu, algorithmType)).mkString("\n")
+    val connectionAssertions = connections.map(_.toSMTLib).mkString("\n")
+    val reactiveInputs = fmus.flatMap(fmu => fmu._2.reactiveInputs.map(i => PortRef(fmu._1, i._1))).toList
+    val reactiveConnections = connections.filter(c => reactiveInputs.contains(c.srcPort))
+    val delayedConnections = connections.filterNot(c => reactiveInputs.contains(c.trgPort))
+    val delayedConstraints = delayedConnectionConstraints(delayedConnections)
+    s"""$fmuDeclarations
+       |; Connections - Assert that the source port is smaller than the target port
+       |$connectionAssertions
+       |; Delayed connections - The get and set can either be done before or after the step - but they need to be consistent across the connection
+       |; Assert that all the actions are bigger than 0
+       |(assert (and ${actions.map(a => s"(>= $a 0)").mkString("\n\t")}))
+       |; Assert that all the actions are smaller than the maxAction
+       |(assert (and ${actions.map(action => s"(< $action $numberOfActions)").mkString("\n\t")}))
+       |; Assert that all actions are different
+       |(assert (distinct ${actions.mkString("\n\t")}))
+       |""".stripMargin
+  }
+
+  private def delayedConnectionConstraints(delayedConnections: List[ConnectionModel]) = {
+    delayedConnections.map(c => {
+      val srcActionName = s"${sanitizeString(c.srcPort.fmu)}_${sanitizeString(c.srcPort.port)}"
+      val trgActionName = s"${sanitizeString(c.trgPort.fmu)}_${sanitizeString(c.trgPort.port)}"
+      val srcFMUStep = s"${sanitizeString(c.srcPort.fmu)}_step"
+      val trgFMUStep = s"${sanitizeString(c.trgPort.fmu)}_step"
+      //Delayed connections - The get and set can either be done before or after the step
+      s"""
+         |(assert (or
+         |          (and (< $srcActionName $srcFMUStep) (< $trgActionName $trgFMUStep))
+         |          (and (> $srcActionName $srcFMUStep) (> $trgActionName $trgFMUStep))
+         |))""".stripMargin
+    }).mkString("\n")
+  }
 }
 
-
-trait SimulationInstruction extends UppaalModel with ConfElement {
-  def fmu: String
-
-  require(fmu.nonEmpty, "fmu must not be empty")
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}"
-}
-
-sealed abstract class InitializationInstruction extends SimulationInstruction
-
-final case class InitSet(port: PortRef) extends InitializationInstruction {
-  override def fmu: String = port.fmu
-
-  override def toUppaal: String = s"{$fmu, set, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{set: ${generatePort(port)}}"
-
-}
-
-final case class InitGet(port: PortRef) extends InitializationInstruction {
-  override def fmu: String = port.fmu
-
-  override def toUppaal: String = s"{$fmu, get, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{get: ${generatePort(port)}}"
-}
-
-final case class EnterInitMode(fmu: String) extends InitializationInstruction {
-  override def toUppaal: String = s"{$fmu, enterInitialization, noPort, noStep, noFMU, noCommitment, noLoop}"
-
-}
-
-final case class ExitInitMode(fmu: String) extends InitializationInstruction {
-  override def toUppaal: String = s"{$fmu, exitInitialization, noPort, noStep, noFMU, noCommitment, noLoop}"
-}
-
-final case class AlgebraicLoopInit(untilConverged: List[PortRef],
-                                   iterate: List[InitializationInstruction]) extends InitializationInstruction {
-  override def fmu: String = "noFMU"
-
-  override def toUppaal: String = throw new Exception("AlgebraicLoopInit should not be serialized to Uppaal")
-
-  override def toConf(indentationLevel: Int): String =
-    s"""${indentBy(indentationLevel)}{
-       |${indentBy(indentationLevel + 1)}loop: {
-       |${indentBy(indentationLevel + 2)}until-converged: ${toArray(untilConverged.map(generatePort))}
-       |${indentBy(indentationLevel + 2)}iterate: ${toArray(iterate.map(_.toConf(indentationLevel + 3)), "\n")}
-       |${indentBy(indentationLevel + 1)}}
-       |${indentBy(indentationLevel)}}
-       """.stripMargin
-}
-
-sealed abstract class InstantiationInstruction extends SimulationInstruction {
-  def action: String
-
-  override def toUppaal: String = s"{$fmu, $action, noPort, noStep, noFMU, noCommitment, noLoop}"
-}
-
-final case class Instantiate(fmu: String) extends InstantiationInstruction {
-  override def action: String = "instantiate"
-}
-
-final case class SetupExperiment(fmu: String) extends InstantiationInstruction {
-  override def action: String = "setupExperiment"
-}
-
-sealed abstract class StepSize extends ConfElement
-
-final case class DefaultStepSize() extends StepSize {
-  override def toConf(indentationLevel: Int): String = ""
-}
-
-final case class RelativeStepSize(fmu: String) extends StepSize {
-  override def toConf(indentationLevel: Int): String = s", by-same-as: $fmu"
-}
-
-final case class AbsoluteStepSize(H: Int) extends StepSize {
-  require(H > 0, "H must be greater than 0")
-
-  override def toConf(indentationLevel: Int): String = s", by: $H"
-}
-
-sealed abstract class CosimStepInstruction extends SimulationInstruction
-
-final case class Set(port: PortRef) extends CosimStepInstruction {
-  override def fmu: String = port.fmu
-
-  override def toUppaal: String = s"{$fmu, set, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
-
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{set: ${generatePort(port)}}"
-}
-
-final case class Get(port: PortRef) extends CosimStepInstruction {
-  override def fmu: String = port.fmu
-
-  override def toUppaal: String = s"{$fmu, get, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{get: ${generatePort(port)}}"
-}
-
-final case class GetTentative(port: PortRef) extends CosimStepInstruction {
-  override def fmu: String = port.fmu
-
-  override def toUppaal: String = s"{$fmu, get, ${fmuPortName(port)}, noStep, noFMU, tentative, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{get-tentative: ${generatePort(port)}}"
-}
-
-final case class SetTentative(port: PortRef) extends CosimStepInstruction {
-  override def fmu: String = port.fmu
-
-  override def toUppaal: String =
-    s"{$fmu, set, ${fmuPortName(port)}, noStep, noFMU, tentative, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{set-tentative: ${generatePort(port)}}"
-}
-
-final case class Step(fmu: String, by: StepSize) extends CosimStepInstruction {
-  override def toUppaal: String =
-    by match {
-      case DefaultStepSize() => s"{$fmu, step, noPort, H, noFMU, noCommitment, noLoop}"
-      case RelativeStepSize(fmu_step) => s"{$fmu, step, noPort, noStep, $fmu_step, noCommitment, noLoop}"
-      case AbsoluteStepSize(step_size) => s"{$fmu, step, noPort, $step_size, noFMU, noCommitment, noLoop}"
-    }
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{step: $fmu ${by.toConf(0)}}"
-}
-
-final case class SaveState(fmu: String) extends CosimStepInstruction {
-  override def toUppaal: String = s"{$fmu, save, noPort, noStep, noFMU, noCommitment, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{save-state: $fmu}"
-}
-
-case class RestoreState(fmu: String) extends CosimStepInstruction {
-  override def toUppaal: String = s"{$fmu, restore, noPort, noStep, noFMU, noCommitment, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{restore-state: $fmu}"
-}
-
-case class AlgebraicLoop(untilConverged: List[PortRef],
-                         iterate: List[CosimStepInstruction],
-                         ifRetryNeeded: List[CosimStepInstruction]) extends CosimStepInstruction {
-  override def fmu: String = "noFMU"
-
-  override def toUppaal: String = throw new Exception("Algebraic loop not supported in Uppaal")
-
-  override def toConf(indentationLevel: Int): String =
-    s"""${indentBy(indentationLevel)}{
-       |${indentBy(indentationLevel + 1)}loop: {
-       |${indentBy(indentationLevel + 2)}until-converged: ${toArray(untilConverged.map(generatePort))}
-       |${indentBy(indentationLevel + 2)}iterate: ${toArray(iterate.map(_.toConf(indentationLevel + 3)), "\n")}
-       |${indentBy(indentationLevel + 2)}if-retry-needed: ${toArray(ifRetryNeeded.map(_.toConf(indentationLevel + 3)))}
-       |${indentBy(indentationLevel + 1)}}
-       |${indentBy(indentationLevel)}}
-       """.stripMargin
-}
-
-case class StepLoop(untilStepAccept: List[String], // List of FMU ids
-                    iterate: List[CosimStepInstruction],
-                    ifRetryNeeded: List[CosimStepInstruction]) extends CosimStepInstruction {
-  override def fmu: String = "noFMU"
-
-  override def toUppaal: String = s"{noFMU, findStep, noPort, noStep, noFMU, noCommitment, noLoop}"
-
-  override def toConf(indentationLevel: Int): String =
-    s"""${indentBy(indentationLevel)}{
-       |${indentBy(indentationLevel + 1)}loop: {
-       |${indentBy(indentationLevel + 2)}until-step-accept: ${toArray(untilStepAccept)}
-       |${indentBy(indentationLevel + 2)}iterate: ${toArray(iterate.map(_.toConf(indentationLevel + 3)), "\n")}
-       |${indentBy(indentationLevel + 2)}if-retry-needed: ${toArray(ifRetryNeeded.map(_.toConf(indentationLevel + 3)))}
-       |${indentBy(indentationLevel + 1)}}
-       |${indentBy(indentationLevel)}}
-       """.stripMargin
-}
-
-case object NoOP extends CosimStepInstruction {
-  override def fmu: String = "noFMU"
-
-  override def toUppaal: String = "{noFMU, noOp, noPort, noStep, noFMU, noCommitment, noLoop}"
-}
-
-sealed abstract class TerminationInstruction extends SimulationInstruction {
-  def actionName: String
-
-  require(actionName.nonEmpty, "Termination instruction name cannot be empty")
-
-  override def toUppaal: String = s"{ $fmu,  $actionName, noPort, noStep, noFMU, noCommitment, noLoop}"
-}
-
-case class Terminate(fmu: String) extends TerminationInstruction {
-  override def actionName: String = "terminate"
-}
-
-case class FreeInstance(fmu: String) extends TerminationInstruction {
-  override def actionName: String = "freeInstance"
-}
-
-case class Unload(fmu: String) extends TerminationInstruction {
-  override def actionName: String = "unload"
-}
 
 final case class MasterModel(
                               name: String,
@@ -358,6 +281,56 @@ final case class MasterModel(
        |cosim-step = $step
        |""".stripMargin
   }
+
+  def toSMTLib(algorithmTypes: List[AlgorithmType],
+               produceModel: Boolean = false): String = {
+    require(algorithmTypes.nonEmpty, "algorithmTypes must not be empty")
+    val initializationConstraints = if (algorithmTypes.contains(AlgorithmType.init)) {
+      val initInstructions = initialization
+        .filter(instruction => instruction.isInstanceOf[InitGet] || instruction.isInstanceOf[InitSet])
+        .map(_.toSMTLib)
+      val initAlgorithmAssertions = initInstructions.indices.map(i => s"(assert (= ${initInstructions(i)} $i))").mkString("\n")
+      s"""
+         |; Scenario encoding - Initialization Procedure
+         |${scenario.toSMTLib(AlgorithmType.init)}
+         |$initAlgorithmAssertions
+         |""".stripMargin
+    } else ""
+
+    val coSimStepConstraints: String = if (algorithmTypes.contains(AlgorithmType.step)) {
+      val first_cosimStep = cosimStep.head._2
+      val stepInstructions = first_cosimStep
+        .filter(instruction => instruction.isInstanceOf[Get] || instruction.isInstanceOf[Set] || instruction.isInstanceOf[Step])
+        .map(_.toSMTLib)
+      val stepAlgorithmAssertions = stepInstructions.indices.map(i => s"(assert (= ${stepInstructions(i)} $i))").mkString("\n")
+      s"""
+         |; Scenario encoding - CosimStep Procedure
+         |${scenario.toSMTLib(AlgorithmType.step)}
+         |$stepAlgorithmAssertions
+         |""".stripMargin
+    } else ""
+
+    val constraints: List[String] =
+      List(initializationConstraints, coSimStepConstraints).filter(_.nonEmpty)
+
+    s"""
+       |(set-option :produce-models true)
+       |(set-logic QF_LIA)
+       |(set-option :produce-unsat-cores true)
+       |(set-option :verbosity 1)
+       |${
+      constraints.map(constraint =>
+        s"""
+           |(push 1)
+           |$constraint
+           |(check-sat)
+           |${if (produceModel) "(get-model)" else ""}
+           |(pop 1)
+           |""".stripMargin).mkString("\n")
+    }
+       |(exit)
+      """.stripMargin
+  }
 }
 
 case class MasterModelDTO(
@@ -380,8 +353,26 @@ case class ConfigurationModel(
                              )
 
 object MasterModelDTO {
-  implicit val masterModelEncoder: Encoder.AsObject[MasterModelDTO] = deriveEncoder[MasterModelDTO]
-  implicit val masterModelDecoder: Decoder[MasterModelDTO] = deriveDecoder[MasterModelDTO]
+  implicit val configurationModelEncoder: Encoder.AsObject[ConfigurationModel] = deriveEncoder[ConfigurationModel]
+  implicit val ConfigurationModelDecoder: Decoder[ConfigurationModel] = deriveDecoder[ConfigurationModel]
+
+  implicit val scenarioModelEncoder: Encoder.AsObject[ScenarioModel] = deriveEncoder[ScenarioModel]
+  implicit val scenarioModelDecoder: Decoder[ScenarioModel] = deriveDecoder[ScenarioModel]
+
+  implicit val adaptiveModelEncoder: Encoder.AsObject[AdaptiveModel] = deriveEncoder[AdaptiveModel]
+  implicit val adaptiveModelDecoder: Decoder[AdaptiveModel] = deriveDecoder[AdaptiveModel]
+
+  implicit val connectionModelEncoder: Encoder.AsObject[ConnectionModel] = deriveEncoder[ConnectionModel]
+  implicit val connectionModelDecoder: Decoder[ConnectionModel] = deriveDecoder[ConnectionModel]
+
+  implicit val inputPortModelEncoder: Encoder.AsObject[InputPortModel] = deriveEncoder[InputPortModel]
+  implicit val inputPortModelDecoder: Decoder[InputPortModel] = deriveDecoder[InputPortModel]
+
+  implicit val stepLoopEncoder: Encoder.AsObject[StepLoop] = deriveEncoder[StepLoop]
+  implicit val stepLoopDecoder: Decoder[StepLoop] = deriveDecoder[StepLoop]
+
+  //implicit val masterModelEncoder: Encoder.AsObject[MasterModelDTO] = deriveEncoder[MasterModelDTO]
+  //implicit val masterModelDecoder: Decoder[MasterModelDTO] = deriveDecoder[MasterModelDTO]
 
   implicit val portRefKeyEncoder: KeyEncoder[PortRef] = (portRef: PortRef) => portRef.fmu + "." + portRef.port
   implicit val portRefKeyDecoder: KeyDecoder[PortRef] = (portRef: String) => {
@@ -392,4 +383,3 @@ object MasterModelDTO {
   implicit val reactiveDecoder: Decoder[Reactivity.Value] = Decoder.decodeEnumeration(Reactivity)
   implicit val reactiveEncoder: Encoder[Reactivity.Value] = Encoder.encodeEnumeration(Reactivity)
 }
-
