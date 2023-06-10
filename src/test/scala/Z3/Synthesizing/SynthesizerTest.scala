@@ -26,4 +26,8 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     synthesizeAndVerify("../../examples_fmi_3/example.conf")
   }
 
+  it should "create valid Master Algorithm for Powersystem" in {
+    synthesizeAndVerify("../../examples_fmi_3/powersystem.conf")
+  }
+
 }
