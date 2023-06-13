@@ -12,7 +12,7 @@ case class PortRef(fmu: String, port: String) extends AnyArgument with SMTLibEle
   require(fmu.nonEmpty, "FMU name cannot be empty")
   require(port.nonEmpty, "Port name cannot be empty")
 
-  override def toSMTLib: String = s"${fmu}_${port}"
+  override def toSMTLib: String = s"$fmu-$port"
 }
 
 case class DOT()

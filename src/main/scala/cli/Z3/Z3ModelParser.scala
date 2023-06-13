@@ -14,8 +14,8 @@ object Z3ModelParser {
                                    masterModel: MasterModel3): List[InitializationInstruction] = {
     val actions = filterActions(Z3algorithm)
     val instructions = actions.map(action => {
-      val fmuName = action.split("_").head
-      val portName = action.split("_").last
+      val fmuName = action.split("-").head
+      val portName = action.split("-").last
       val fmuModel = masterModel.scenario.fmus(fmuName)
       if (fmuModel.inputs.contains(portName))
         core.InitSet(PortRef(fmuName, portName))
@@ -31,8 +31,8 @@ object Z3ModelParser {
                                     masterModel: MasterModel3): List[CosimStepInstruction] = {
     val actions = filterActions(Z3algorithm)
     val instructions = actions.map(action => {
-      val fmuName = action.split("_").head
-      val actionType = action.split("_").last
+      val fmuName = action.split("-").head
+      val actionType = action.split("-").last
       if (actionType.equalsIgnoreCase("step"))
         core.Step(fmuName, DefaultStepSize())
       else {
@@ -53,8 +53,8 @@ object Z3ModelParser {
                                     masterModel: MasterModel3): List[EventInstruction] = {
     val actions = filterActions(algorithm)
     val instructions = actions.map(action => {
-      val fmuName = action.split("_").head
-      val portName = action.split("_").last
+      val fmuName = action.split("-").head
+      val portName = action.split("-").last
       val fmuModel = masterModel.scenario.fmus(fmuName)
       if (fmuModel.inputs.contains(portName))
         core.FMI3.Set(PortRef(fmuName, portName))

@@ -3,6 +3,7 @@ package cli.Z3
 import cli.{CLITool, VerifyTaProcessLogger}
 import core.FMI3.MasterModel3
 import core._
+import org.apache.logging.log4j.scala.Logging
 
 import java.io.File
 
@@ -24,9 +25,9 @@ object Z3 extends CLITool {
   }
 }
 
-object SMTEncoder {
+object SMTEncoder extends Logging {
   private def encodeFile(masterModel: MasterModel3, algorithmTypes: List[AlgorithmType.Value], synthesize: Boolean): File = {
-    val smtLib = masterModel.toSMTLib(algorithmTypes, synthesize, parallel = false)
+    val smtLib = masterModel.toSMTLib(algorithmTypes, synthesize, isParallel = false)
     // Write to file
     val smtFile = File.createTempFile("cosim", ".smt2")
     //smtFile.deleteOnExit()
@@ -40,8 +41,10 @@ object SMTEncoder {
     val smtFile = encodeFile(masterModel, List(AlgorithmType.init, AlgorithmType.step, AlgorithmType.event), synthesize = false)
     val result = Z3.runZ3(smtFile)
     if (result.contains("sat")) {
+      logger.info("Algorithm is correct")
       true
     } else {
+      logger.info("Algorithm is incorrect")
       false
     }
   }
@@ -51,13 +54,13 @@ object SMTEncoder {
     val smtFile = encodeFile(masterModel, List(AlgorithmType.init, AlgorithmType.step, AlgorithmType.event), synthesize = true)
     val model = Z3.runZ3(smtFile)
     if (model.contains("sat")) {
+      logger.info("The scenario is realizable and the algorithm is synthesized")
       val updatedModel = Z3ModelParser.parseZ3Model(model, masterModel)
       updatedModel
     } else {
       throw new Exception("Z3 failed to synthesize algorithm - the scenario is not realizable")
     }
   }
-
 
   /*
   def dynamicVerifyAlgorithm(masterModel: MasterModel): Boolean = {

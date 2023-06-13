@@ -35,7 +35,7 @@ class MaudeTests extends AnyFlatSpec with should.Matchers {
     generateAndVerify("examples/water_tank.conf", "water_tank")
   }
 
-  "ScenarioGenerator" should "work for simple_master.conf" in {
+  "ScenarioGenerator" should "work for simple_master_fmi3.conf" in {
     generateAndVerify("examples/simple_master.conf", "simple_master")
   }
 

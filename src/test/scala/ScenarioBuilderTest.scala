@@ -8,7 +8,7 @@ import scala.collection.immutable.HashSet
 @Ignore
 class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
   def generateSynthesisAndVerify(scenarioName: String, nFMU: Int, nConnection: Int, feedthrough: Boolean = true, canRejectStep: Boolean = false): Assertion = {
-    val scenario = ScenarioBuilder.ScenarioBuilder.generateScenario(nFMU, nConnection, feedthrough, canRejectStep)
+    val scenario = ScenarioBuilder.FMI2ScenarioBuilder.generateScenario(nFMU, nConnection, feedthrough, canRejectStep)
     assert(VerificationAPI.synthesizeAndVerify(scenarioName, scenario))
   }
 
@@ -38,7 +38,7 @@ class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
 
   it should "create valid Connection example" in {
     val fmuNames = HashSet("fmu1", "fmu2")
-    val connections = ScenarioBuilder.ScenarioBuilder.generateConnections(fmuNames, 2)
+    val connections = ScenarioBuilder.FMI2ScenarioBuilder.generateConnections(fmuNames, 2)
     assert(connections.exists(o => o.srcPort.fmu == fmuNames.toVector(0)) && connections.exists(o => o.srcPort.fmu == fmuNames.toVector(1)))
     assert(connections.exists(o => o.trgPort.fmu == fmuNames.toVector(0)) && connections.exists(o => o.trgPort.fmu == fmuNames.toVector(1)))
   }

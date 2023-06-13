@@ -1,6 +1,6 @@
 package Z3.Synthesizing
 
-import api.FMI3.VerificationAPI
+import api.FMI3.Verification
 import core.FMI3.ScenarioLoaderFMI3
 import org.scalatest.Assertion
 import org.scalatest.flatspec._
@@ -10,7 +10,7 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
   private def synthesizeAndVerify(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoaderFMI3.load(conf)
-    val synthesizedAlgorithm = VerificationAPI.synthesizeAlgorithm(masterModel.scenario)
+    val synthesizedAlgorithm = Verification.synthesizeAlgorithm(masterModel.scenario)
     assert(true)
   }
 
