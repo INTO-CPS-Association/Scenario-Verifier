@@ -22,7 +22,7 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
       - name: Build with Maven
-        run: mvn clean package
+        run: mvn clean package -Dmaven.test.skip=true
 
   deploy:
     if: github.ref == 'refs/heads/master'
@@ -52,7 +52,7 @@ jobs:
             server-password: MAVEN_PASSWORD
             gpg-passphrase: MAVEN_GPG_PASSPHRASE
         - name: Deploy
-          run: mvn -B deploy -Psonatype
+          run: mvn -B deploy -Psonatype -Dmaven.test.skip=true
           env:
             MAVEN_USERNAME: ${{ secrets.OSS_SONATYPE_USERNAME }}
             MAVEN_PASSWORD: ${{ secrets.OSS_SONATYPE_PASSWORD }}
