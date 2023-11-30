@@ -1,4 +1,4 @@
-import core.{ConnectionParserSingleton, ScenarioLoader}
+import org.intocps.verification.scenarioverifier.core.{ConnectionParserSingleton, ScenarioLoader}
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 

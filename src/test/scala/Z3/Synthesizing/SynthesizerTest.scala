@@ -1,7 +1,7 @@
 package Z3.Synthesizing
 
-import api.FMI3.Verification
-import core.FMI3.ScenarioLoaderFMI3
+import org.intocps.verification.scenarioverifier.api.FMI3.Verification
+import org.intocps.verification.scenarioverifier.core.FMI3.ScenarioLoaderFMI3
 import org.scalatest.Assertion
 import org.scalatest.flatspec._
 import org.scalatest.matchers._

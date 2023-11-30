@@ -1,5 +1,5 @@
-import api.VerificationAPI
-import core.{ScenarioGenerator, ScenarioLoader}
+import org.intocps.verification.scenarioverifier.api.VerificationAPI
+import org.intocps.verification.scenarioverifier.core.{ScenarioGenerator, ScenarioLoader}
 import org.scalatest.Assertion
 import org.scalatest.flatspec._
 import org.scalatest.matchers._

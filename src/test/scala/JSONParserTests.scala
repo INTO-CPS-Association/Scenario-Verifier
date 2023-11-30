@@ -1,6 +1,6 @@
-import cli.VerifyTA
-import core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.apache.commons.io.FileUtils
+import org.intocps.verification.scenarioverifier.cli.VerifyTA
+import org.intocps.verification.scenarioverifier.core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import java.nio.file.Files

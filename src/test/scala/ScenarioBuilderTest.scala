@@ -1,14 +1,16 @@
-import api.VerificationAPI
+import org.intocps.verification.scenarioverifier.api.VerificationAPI
+import org.intocps.verification.scenarioverifier.synthesizer.ScenarioBuilder
+import org.intocps.verification.scenarioverifier.synthesizer.ScenarioBuilder.FMI2ScenarioBuilder
 import org.scalatest.{Assertion, Ignore}
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import synthesizer.{ScenarioBuilder, _}
+import synthesizer._
 
 import scala.collection.immutable.HashSet
 @Ignore
 class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
   def generateSynthesisAndVerify(scenarioName: String, nFMU: Int, nConnection: Int, feedthrough: Boolean = true, canRejectStep: Boolean = false): Assertion = {
-    val scenario = ScenarioBuilder.FMI2ScenarioBuilder.generateScenario(nFMU, nConnection, feedthrough, canRejectStep)
+    val scenario = FMI2ScenarioBuilder.generateScenario(nFMU, nConnection, feedthrough, canRejectStep)
     assert(VerificationAPI.synthesizeAndVerify(scenarioName, scenario))
   }
 

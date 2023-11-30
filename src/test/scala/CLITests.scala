@@ -1,4 +1,4 @@
-import cli.VerifyTA
+import org.intocps.verification.scenarioverifier.cli.VerifyTA
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 

@@ -1,5 +1,6 @@
-import core.ScenarioLoader
 import org.apache.commons.io.FileUtils
+import org.intocps.verification.scenarioverifier.core.ScenarioLoader
+import org.intocps.verification.scenarioverifier.synthesizer.{GraphBuilder, GraphVisualizer, InitializationInstructionNode, StepInstructionNode, TarjanGraph}
 import org.scalatest.Ignore
 import org.scalatest.flatspec._
 import org.scalatest.matchers._

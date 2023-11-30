@@ -1,5 +1,6 @@
-import api.GenerationAPI
 import core._
+import org.intocps.verification.scenarioverifier.api.GenerationAPI
+import org.intocps.verification.scenarioverifier.core.{ConnectionModel, EnterInitMode, ExitInitMode, FmuModel, ScenarioLoader}
 import org.scalatest.Assertion
 import org.scalatest.flatspec._
 import org.scalatest.matchers._

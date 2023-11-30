@@ -70,11 +70,11 @@
         //***********************************************************************************************************
 
         //Max number of inputs/outputs any FMU can have - Should be changed
-        const int MaxNInputs = 20;
-        const int MaxNOutputs = 10;
+        const int MaxNInputs = 5;
+        const int MaxNOutputs = 4;
 
         //Numbers of FMUs in scenario - Should be changed
-        const int nFMU = 8;
+        const int nFMU = 5;
 
         //number of algebraic loops in scenario - Should be changed
         const int nAlgebraicLoopsInStep := 1;
@@ -188,13 +188,13 @@
         const int nInternal := 1;
 
         //Number of external connections in scenario
-        const int nExternal := 71;
+        const int nExternal := 14;
 
         //The initial of value of h
         int h := H_max;
 
         //This array is representing the variables of the stepSize that each FMU can take - H_max is the default value
-        int stepVariables[nFMU] = {H_max,H_max,H_max,H_max,H_max,H_max,H_max,H_max};
+        int stepVariables[nFMU] = {H_max,H_max,H_max,H_max,H_max};
 
         //A generic action to pick the next action
         void unpackOperation(Operation operation){
@@ -233,322 +233,131 @@
         //Encoding of the scenario
         //Each FMU should have a different ID \in [0, nFMU-1]
         
-        const int powersystem3 := 5;
+        const int KalmanFilter_KInstance := 1;
         
-        const int estimator_2 := 0;
+        const int Supervisor_SInstance := 2;
         
-        const int powersystem5 := 3;
+        const int Controller_CInstance := 0;
         
-        const int estimator_1 := 2;
+        const int Plant_PInstance := 3;
         
-        const int powersystem1 := 7;
-        
-        const int powersystem2 := 1;
-        
-        const int controller := 4;
-        
-        const int powersystem4 := 6;
+        const int Room_RInstance := 4;
         
 
         //Number of inputs and outputs of each FMU
         
-        const int powersystem3_input := 5;
-        const int powersystem3_output := 2;
+        const int Plant_PInstance_input := 2;
+        const int Plant_PInstance_output := 1;
         
-        const int controller_input := 10;
-        const int controller_output := 5;
+        const int Supervisor_SInstance_input := 4;
+        const int Supervisor_SInstance_output := 4;
         
-        const int powersystem5_input := 5;
-        const int powersystem5_output := 2;
+        const int Room_RInstance_input := 0;
+        const int Room_RInstance_output := 1;
         
-        const int estimator_1_input := 16;
-        const int estimator_1_output := 10;
+        const int KalmanFilter_KInstance_input := 3;
+        const int KalmanFilter_KInstance_output := 2;
         
-        const int estimator_2_input := 20;
-        const int estimator_2_output := 6;
-        
-        const int powersystem1_input := 5;
-        const int powersystem1_output := 2;
-        
-        const int powersystem4_input := 5;
-        const int powersystem4_output := 2;
-        
-        const int powersystem2_input := 5;
-        const int powersystem2_output := 2;
+        const int Controller_CInstance_input := 5;
+        const int Controller_CInstance_output := 1;
         
 
         //Definition of inputs and outputs of each FMU
         
-        // powersystem4 inputs - 5
+        // KalmanFilter_KInstance inputs - 3
         
-        const int powersystem4_input_u_2 := 2;
+        const int KalmanFilter_KInstance_T_room_in := 0;
         
-        const int powersystem4_input_PM := 3;
+        const int KalmanFilter_KInstance_T_bair_in := 1;
         
-        const int powersystem4_input_u_3 := 4;
+        const int KalmanFilter_KInstance_heater_on_in := 2;
         
-        const int powersystem4_input_u_5 := 1;
+        // KalmanFilter_KInstance outputs - 2
         
-        const int powersystem4_input_u_1 := 0;
+        const int KalmanFilter_KInstance_T_bair_out := 0;
         
-        // powersystem4 outputs - 2
+        const int KalmanFilter_KInstance_T_heater_out := 1;
         
-        const int powersystem4_output_P_e := 0;
+        const int KalmanFilter_KInstance_inputTypes[nConfig][MaxNInputs] := { {reactive,reactive,reactive,noPort,noPort} };
         
-        const int powersystem4_output_dy1 := 1;
+        // Controller_CInstance inputs - 5
         
-        const int powersystem4_inputTypes[nConfig][MaxNInputs] := { {delayed,delayed,delayed,delayed,delayed,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort} };
+        const int Controller_CInstance_C_in := 4;
         
-        // controller inputs - 10
+        const int Controller_CInstance_T_bair_in := 2;
         
-        const int controller_input_estimated_omega_FMU_3 := 1;
+        const int Controller_CInstance_H_in := 3;
         
-        const int controller_input_estimated_angle_FMU_2 := 3;
+        const int Controller_CInstance_UL_in := 1;
         
-        const int controller_input_estimated_omega_FMU_2 := 4;
+        const int Controller_CInstance_LL_in := 0;
         
-        const int controller_input_estimated_omega_FMU_4 := 8;
+        // Controller_CInstance outputs - 1
         
-        const int controller_input_estimated_angle_FMU_3 := 5;
+        const int Controller_CInstance_heater_on_out := 0;
         
-        const int controller_input_estimated_angle_FMU_1 := 2;
+        const int Controller_CInstance_inputTypes[nConfig][MaxNInputs] := { {delayed,delayed,delayed,delayed,delayed} };
         
-        const int controller_input_estimated_angle_FMU_4 := 9;
+        // Plant_PInstance inputs - 2
         
-        const int controller_input_estimated_angle_FMU_5 := 0;
+        const int Plant_PInstance_heater_on_in := 0;
         
-        const int controller_input_estimated_omega_FMU_1 := 7;
+        const int Plant_PInstance_T_room_in := 1;
         
-        const int controller_input_estimated_omega_FMU_5 := 6;
+        // Plant_PInstance outputs - 1
         
-        // controller outputs - 5
+        const int Plant_PInstance_T_bair_out := 0;
         
-        const int controller_output_pm4 := 4;
+        const int Plant_PInstance_inputTypes[nConfig][MaxNInputs] := { {delayed,delayed,noPort,noPort,noPort} };
         
-        const int controller_output_pm3 := 0;
+        // Room_RInstance inputs - 0
         
-        const int controller_output_pm5 := 1;
+        // Room_RInstance outputs - 1
         
-        const int controller_output_pm2 := 2;
+        const int Room_RInstance_T_room_out := 0;
         
-        const int controller_output_pm1 := 3;
+        const int Room_RInstance_inputTypes[nConfig][MaxNInputs] := { {noPort,noPort,noPort,noPort,noPort} };
         
-        const int controller_inputTypes[nConfig][MaxNInputs] := { {delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort} };
+        // Supervisor_SInstance inputs - 4
         
-        // powersystem5 inputs - 5
+        const int Supervisor_SInstance_T_room_in := 0;
         
-        const int powersystem5_input_u_1 := 0;
+        const int Supervisor_SInstance_T_heater_in := 1;
         
-        const int powersystem5_input_u_3 := 3;
+        const int Supervisor_SInstance_T_bair_in := 2;
         
-        const int powersystem5_input_PM := 2;
+        const int Supervisor_SInstance_heater_on_in := 3;
         
-        const int powersystem5_input_u_2 := 1;
+        // Supervisor_SInstance outputs - 4
         
-        const int powersystem5_input_u_4 := 4;
+        const int Supervisor_SInstance_H_out := 0;
         
-        // powersystem5 outputs - 2
+        const int Supervisor_SInstance_UL_out := 1;
         
-        const int powersystem5_output_P_e := 0;
+        const int Supervisor_SInstance_LL_out := 2;
         
-        const int powersystem5_output_dy1 := 1;
+        const int Supervisor_SInstance_C_out := 3;
         
-        const int powersystem5_inputTypes[nConfig][MaxNInputs] := { {delayed,delayed,delayed,delayed,delayed,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort} };
-        
-        // powersystem2 inputs - 5
-        
-        const int powersystem2_input_PM := 2;
-        
-        const int powersystem2_input_u_1 := 0;
-        
-        const int powersystem2_input_u_5 := 1;
-        
-        const int powersystem2_input_u_3 := 3;
-        
-        const int powersystem2_input_u_4 := 4;
-        
-        // powersystem2 outputs - 2
-        
-        const int powersystem2_output_P_e := 0;
-        
-        const int powersystem2_output_dy1 := 1;
-        
-        const int powersystem2_inputTypes[nConfig][MaxNInputs] := { {delayed,delayed,delayed,delayed,delayed,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort} };
-        
-        // powersystem3 inputs - 5
-        
-        const int powersystem3_input_PM := 3;
-        
-        const int powersystem3_input_u_4 := 4;
-        
-        const int powersystem3_input_u_2 := 2;
-        
-        const int powersystem3_input_u_1 := 0;
-        
-        const int powersystem3_input_u_5 := 1;
-        
-        // powersystem3 outputs - 2
-        
-        const int powersystem3_output_P_e := 0;
-        
-        const int powersystem3_output_dy1 := 1;
-        
-        const int powersystem3_inputTypes[nConfig][MaxNInputs] := { {delayed,delayed,delayed,delayed,delayed,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort} };
-        
-        // estimator_2 inputs - 20
-        
-        const int estimator_2_input_pe1 := 0;
-        
-        const int estimator_2_input_k4_2 := 15;
-        
-        const int estimator_2_input_pm3 := 19;
-        
-        const int estimator_2_input_k3_2 := 12;
-        
-        const int estimator_2_input_pm2 := 18;
-        
-        const int estimator_2_input_states_1 := 17;
-        
-        const int estimator_2_input_states_2 := 13;
-        
-        const int estimator_2_input_pe2 := 11;
-        
-        const int estimator_2_input_k2_1 := 2;
-        
-        const int estimator_2_input_pm4 := 10;
-        
-        const int estimator_2_input_pm5 := 7;
-        
-        const int estimator_2_input_k2_2 := 1;
-        
-        const int estimator_2_input_k3_1 := 3;
-        
-        const int estimator_2_input_pe4 := 4;
-        
-        const int estimator_2_input_pe5 := 14;
-        
-        const int estimator_2_input_pe3 := 8;
-        
-        const int estimator_2_input_states_4 := 6;
-        
-        const int estimator_2_input_pm1 := 16;
-        
-        const int estimator_2_input_k4_1 := 5;
-        
-        const int estimator_2_input_states_3 := 9;
-        
-        // estimator_2 outputs - 6
-        
-        const int estimator_2_output_states_1 := 5;
-        
-        const int estimator_2_output_states_2 := 3;
-        
-        const int estimator_2_output_states_3 := 1;
-        
-        const int estimator_2_output_states_4 := 0;
-        
-        const int estimator_2_output_states_6 := 2;
-        
-        const int estimator_2_output_states_5 := 4;
-        
-        const int estimator_2_inputTypes[nConfig][MaxNInputs] := { {delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed} };
-        
-        // powersystem1 inputs - 5
-        
-        const int powersystem1_input_u_4 := 4;
-        
-        const int powersystem1_input_u_3 := 3;
-        
-        const int powersystem1_input_u_2 := 1;
-        
-        const int powersystem1_input_PM := 2;
-        
-        const int powersystem1_input_u_5 := 0;
-        
-        // powersystem1 outputs - 2
-        
-        const int powersystem1_output_P_e := 0;
-        
-        const int powersystem1_output_dy1 := 1;
-        
-        const int powersystem1_inputTypes[nConfig][MaxNInputs] := { {delayed,delayed,delayed,delayed,delayed,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort,noPort} };
-        
-        // estimator_1 inputs - 16
-        
-        const int estimator_1_input_pe5 := 11;
-        
-        const int estimator_1_input_pe3 := 7;
-        
-        const int estimator_1_input_pe1 := 0;
-        
-        const int estimator_1_input_states_3 := 8;
-        
-        const int estimator_1_input_pe2 := 1;
-        
-        const int estimator_1_input_pm2 := 14;
-        
-        const int estimator_1_input_states_4 := 5;
-        
-        const int estimator_1_input_states_6 := 2;
-        
-        const int estimator_1_input_pm5 := 6;
-        
-        const int estimator_1_input_states_2 := 10;
-        
-        const int estimator_1_input_pm1 := 12;
-        
-        const int estimator_1_input_states_1 := 13;
-        
-        const int estimator_1_input_states_5 := 4;
-        
-        const int estimator_1_input_pe4 := 3;
-        
-        const int estimator_1_input_pm3 := 15;
-        
-        const int estimator_1_input_pm4 := 9;
-        
-        // estimator_1 outputs - 10
-        
-        const int estimator_1_output_states_2 := 7;
-        
-        const int estimator_1_output_k3_2 := 8;
-        
-        const int estimator_1_output_k2_1 := 6;
-        
-        const int estimator_1_output_states_4 := 0;
-        
-        const int estimator_1_output_k3_1 := 9;
-        
-        const int estimator_1_output_k2_2 := 1;
-        
-        const int estimator_1_output_states_3 := 2;
-        
-        const int estimator_1_output_k4_1 := 3;
-        
-        const int estimator_1_output_k4_2 := 4;
-        
-        const int estimator_1_output_states_1 := 5;
-        
-        const int estimator_1_inputTypes[nConfig][MaxNInputs] := { {delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,delayed,noPort,noPort,noPort,noPort} };
+        const int Supervisor_SInstance_inputTypes[nConfig][MaxNInputs] := { {reactive,reactive,reactive,reactive,noPort} };
         
 
         //This array is to keep track of the value of each output port - each output port needs two variables (current and future)
         // and each variable is having two values (defined and time)
-        variable connectionVariable[nFMU][MaxNOutputs][2] = { {{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}}},{{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}}},{{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}}},{{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}}},{{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}}},{{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}}},{{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}}},{{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}}} };
+        variable connectionVariable[nFMU][MaxNOutputs][2] = { {{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}}},{{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}}},{{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}}},{{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}}},{{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}},{{undefined,0}, {undefined,0}}} };
 
         //Connections - do not longer contain the type of the input - but it is still a 1:1 mapping
-        const ExternalConnection external[nConfig][nExternal] = { {{controller, controller_output_pm1, powersystem1, powersystem1_input_PM},{controller, controller_output_pm2, powersystem2, powersystem2_input_PM},{controller, controller_output_pm3, powersystem3, powersystem3_input_PM},{controller, controller_output_pm4, powersystem4, powersystem4_input_PM},{controller, controller_output_pm5, powersystem5, powersystem5_input_PM},{powersystem1, powersystem1_output_dy1, powersystem2, powersystem2_input_u_1},{powersystem1, powersystem1_output_dy1, powersystem3, powersystem3_input_u_1},{powersystem1, powersystem1_output_dy1, powersystem4, powersystem4_input_u_1},{powersystem1, powersystem1_output_dy1, powersystem5, powersystem5_input_u_1},{powersystem2, powersystem2_output_dy1, powersystem1, powersystem1_input_u_2},{powersystem2, powersystem2_output_dy1, powersystem3, powersystem3_input_u_2},{powersystem2, powersystem2_output_dy1, powersystem4, powersystem4_input_u_2},{powersystem2, powersystem2_output_dy1, powersystem5, powersystem5_input_u_2},{powersystem3, powersystem3_output_dy1, powersystem1, powersystem1_input_u_3},{powersystem3, powersystem3_output_dy1, powersystem2, powersystem2_input_u_3},{powersystem3, powersystem3_output_dy1, powersystem4, powersystem4_input_u_3},{powersystem3, powersystem3_output_dy1, powersystem5, powersystem5_input_u_3},{powersystem4, powersystem4_output_dy1, powersystem1, powersystem1_input_u_4},{powersystem4, powersystem4_output_dy1, powersystem2, powersystem2_input_u_4},{powersystem4, powersystem4_output_dy1, powersystem3, powersystem3_input_u_4},{powersystem4, powersystem4_output_dy1, powersystem5, powersystem5_input_u_4},{powersystem5, powersystem5_output_dy1, powersystem1, powersystem1_input_u_5},{powersystem5, powersystem5_output_dy1, powersystem2, powersystem2_input_u_5},{powersystem5, powersystem5_output_dy1, powersystem3, powersystem3_input_u_5},{powersystem5, powersystem5_output_dy1, powersystem4, powersystem4_input_u_5},{powersystem1, powersystem1_output_P_e, estimator_1, estimator_1_input_pe1},{powersystem2, powersystem2_output_P_e, estimator_1, estimator_1_input_pe2},{powersystem3, powersystem3_output_P_e, estimator_1, estimator_1_input_pe3},{powersystem4, powersystem4_output_P_e, estimator_1, estimator_1_input_pe4},{powersystem5, powersystem5_output_P_e, estimator_1, estimator_1_input_pe5},{controller, controller_output_pm1, estimator_1, estimator_1_input_pm1},{controller, controller_output_pm2, estimator_1, estimator_1_input_pm2},{controller, controller_output_pm3, estimator_1, estimator_1_input_pm3},{controller, controller_output_pm4, estimator_1, estimator_1_input_pm4},{controller, controller_output_pm5, estimator_1, estimator_1_input_pm5},{powersystem1, powersystem1_output_P_e, estimator_2, estimator_2_input_pe1},{powersystem2, powersystem2_output_P_e, estimator_2, estimator_2_input_pe2},{powersystem3, powersystem3_output_P_e, estimator_2, estimator_2_input_pe3},{powersystem4, powersystem4_output_P_e, estimator_2, estimator_2_input_pe4},{powersystem5, powersystem5_output_P_e, estimator_2, estimator_2_input_pe5},{controller, controller_output_pm1, estimator_2, estimator_2_input_pm1},{controller, controller_output_pm2, estimator_2, estimator_2_input_pm2},{controller, controller_output_pm3, estimator_2, estimator_2_input_pm3},{controller, controller_output_pm4, estimator_2, estimator_2_input_pm4},{controller, controller_output_pm5, estimator_2, estimator_2_input_pm5},{estimator_1, estimator_1_output_k2_1, estimator_2, estimator_2_input_k2_1},{estimator_1, estimator_1_output_k2_2, estimator_2, estimator_2_input_k2_2},{estimator_1, estimator_1_output_k3_1, estimator_2, estimator_2_input_k3_1},{estimator_1, estimator_1_output_k3_2, estimator_2, estimator_2_input_k3_2},{estimator_1, estimator_1_output_k4_1, estimator_2, estimator_2_input_k4_1},{estimator_1, estimator_1_output_k4_2, estimator_2, estimator_2_input_k4_2},{estimator_1, estimator_1_output_states_1, estimator_2, estimator_2_input_states_1},{estimator_1, estimator_1_output_states_2, estimator_2, estimator_2_input_states_2},{estimator_1, estimator_1_output_states_3, estimator_2, estimator_2_input_states_3},{estimator_1, estimator_1_output_states_4, estimator_2, estimator_2_input_states_4},{estimator_1, estimator_1_output_states_1, controller, controller_input_estimated_angle_FMU_4},{estimator_1, estimator_1_output_states_2, controller, controller_input_estimated_angle_FMU_5},{estimator_1, estimator_1_output_states_3, controller, controller_input_estimated_omega_FMU_4},{estimator_1, estimator_1_output_states_4, controller, controller_input_estimated_omega_FMU_5},{estimator_2, estimator_2_output_states_1, estimator_1, estimator_1_input_states_1},{estimator_2, estimator_2_output_states_2, estimator_1, estimator_1_input_states_2},{estimator_2, estimator_2_output_states_3, estimator_1, estimator_1_input_states_3},{estimator_2, estimator_2_output_states_4, estimator_1, estimator_1_input_states_4},{estimator_2, estimator_2_output_states_5, estimator_1, estimator_1_input_states_5},{estimator_2, estimator_2_output_states_6, estimator_1, estimator_1_input_states_6},{estimator_2, estimator_2_output_states_1, controller, controller_input_estimated_angle_FMU_1},{estimator_2, estimator_2_output_states_2, controller, controller_input_estimated_angle_FMU_2},{estimator_2, estimator_2_output_states_3, controller, controller_input_estimated_angle_FMU_3},{estimator_2, estimator_2_output_states_4, controller, controller_input_estimated_omega_FMU_1},{estimator_2, estimator_2_output_states_5, controller, controller_input_estimated_omega_FMU_2},{estimator_2, estimator_2_output_states_6, controller, controller_input_estimated_omega_FMU_3}} };
+        const ExternalConnection external[nConfig][nExternal] = { {{Controller_CInstance, Controller_CInstance_heater_on_out, Plant_PInstance, Plant_PInstance_heater_on_in},{Controller_CInstance, Controller_CInstance_heater_on_out, KalmanFilter_KInstance, KalmanFilter_KInstance_heater_on_in},{Supervisor_SInstance, Supervisor_SInstance_LL_out, Controller_CInstance, Controller_CInstance_LL_in},{Supervisor_SInstance, Supervisor_SInstance_UL_out, Controller_CInstance, Controller_CInstance_UL_in},{Supervisor_SInstance, Supervisor_SInstance_H_out, Controller_CInstance, Controller_CInstance_H_in},{Supervisor_SInstance, Supervisor_SInstance_C_out, Controller_CInstance, Controller_CInstance_C_in},{Plant_PInstance, Plant_PInstance_T_bair_out, Controller_CInstance, Controller_CInstance_T_bair_in},{Plant_PInstance, Plant_PInstance_T_bair_out, KalmanFilter_KInstance, KalmanFilter_KInstance_T_bair_in},{Room_RInstance, Room_RInstance_T_room_out, Plant_PInstance, Plant_PInstance_T_room_in},{Room_RInstance, Room_RInstance_T_room_out, KalmanFilter_KInstance, KalmanFilter_KInstance_T_room_in},{Room_RInstance, Room_RInstance_T_room_out, Supervisor_SInstance, Supervisor_SInstance_T_room_in},{KalmanFilter_KInstance, KalmanFilter_KInstance_T_heater_out, Supervisor_SInstance, Supervisor_SInstance_T_heater_in},{KalmanFilter_KInstance, KalmanFilter_KInstance_T_bair_out, Supervisor_SInstance, Supervisor_SInstance_T_bair_in},{Controller_CInstance, Controller_CInstance_heater_on_out, Supervisor_SInstance, Supervisor_SInstance_heater_on_in}} };
 
         const InternalConnection feedthroughInStep[nConfig][nInternal] = { {{noFMU, noPort, noPort}} };
 
         //The array show if an FMU can reject a step or not - if the FMU can reject a step the value is 1 on the index defined by the fmus
-        const bool mayRejectStep[nFMU] = { false,false,false,false,false,false,false,false };
+        const bool mayRejectStep[nFMU] = { false,false,false,false,false };
 
 
-        const int maxStepOperations := 72;
+        const int maxStepOperations := 1;
 
         //Numbers of operations in each step
-        const int[0,maxStepOperations] nStepOperations[nConfig] := {72};
+        const int[0,maxStepOperations] nStepOperations[nConfig] := {1};
 
         // Number of operations in the step finding loop
         const int maxFindStepOperations := 1;
@@ -568,7 +377,7 @@
         const int[0,maxNRetryOperationsForAlgebraicLoopsInStep] nRetryOperationsPerAlgebraicLoopInStep[nConfig][nAlgebraicLoopsInStep] = {{0}};
 
         //These operations define what should be performed in the simulation - it is assumed that the operation first loads the fmus
-        const Operation stepOperations[nConfig][maxStepOperations] = { {{powersystem5, set, powersystem5_input_u_3, noStep, noFMU, final, noLoop},{powersystem5, set, powersystem5_input_PM, noStep, noFMU, final, noLoop},{powersystem5, get, powersystem5_output_dy1, noStep, noFMU, final, noLoop},{powersystem3, set, powersystem3_input_u_5, noStep, noFMU, final, noLoop},{powersystem4, set, powersystem4_input_u_5, noStep, noFMU, final, noLoop},{powersystem2, set, powersystem2_input_u_5, noStep, noFMU, final, noLoop},{powersystem1, set, powersystem1_input_u_5, noStep, noFMU, final, noLoop},{powersystem5, set, powersystem5_input_u_1, noStep, noFMU, final, noLoop},{powersystem5, set, powersystem5_input_u_2, noStep, noFMU, final, noLoop},{estimator_2, step, noPort, H, noFMU, noCommitment, noLoop},{estimator_2, set, estimator_2_input_k2_1, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_pm5, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_k3_1, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_k4_2, noStep, noFMU, final, noLoop},{estimator_2, get, estimator_2_output_states_4, noStep, noFMU, final, noLoop},{controller, set, controller_input_estimated_omega_FMU_1, noStep, noFMU, final, noLoop},{estimator_1, set, estimator_1_input_states_4, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_pe4, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_states_4, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_pm3, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_states_2, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_pe5, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_k2_2, noStep, noFMU, final, noLoop},{estimator_2, get, estimator_2_output_states_5, noStep, noFMU, final, noLoop},{controller, set, controller_input_estimated_omega_FMU_2, noStep, noFMU, final, noLoop},{estimator_1, set, estimator_1_input_states_5, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_pm4, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_pe2, noStep, noFMU, final, noLoop},{estimator_2, get, estimator_2_output_states_2, noStep, noFMU, final, noLoop},{controller, set, controller_input_estimated_angle_FMU_2, noStep, noFMU, final, noLoop},{estimator_1, set, estimator_1_input_states_2, noStep, noFMU, final, noLoop},{estimator_2, get, estimator_2_output_states_3, noStep, noFMU, final, noLoop},{estimator_1, set, estimator_1_input_states_3, noStep, noFMU, final, noLoop},{controller, set, controller_input_estimated_angle_FMU_3, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_k3_2, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_k4_1, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_pe3, noStep, noFMU, final, noLoop},{estimator_2, get, estimator_2_output_states_1, noStep, noFMU, final, noLoop},{controller, set, controller_input_estimated_angle_FMU_1, noStep, noFMU, final, noLoop},{estimator_1, set, estimator_1_input_states_1, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_pe1, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_states_1, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_pm1, noStep, noFMU, final, noLoop},{estimator_2, get, estimator_2_output_states_6, noStep, noFMU, final, noLoop},{estimator_1, set, estimator_1_input_states_6, noStep, noFMU, final, noLoop},{controller, set, controller_input_estimated_omega_FMU_3, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_pm2, noStep, noFMU, final, noLoop},{estimator_1, get, estimator_1_output_states_3, noStep, noFMU, final, noLoop},{controller, set, controller_input_estimated_omega_FMU_4, noStep, noFMU, final, noLoop},{estimator_2, set, estimator_2_input_states_3, noStep, noFMU, final, noLoop},{powersystem3, step, noPort, H, noFMU, noCommitment, noLoop},{powersystem3, get, powersystem3_output_P_e, noStep, noFMU, final, noLoop},{powersystem2, step, noPort, H, noFMU, noCommitment, noLoop},{powersystem2, get, powersystem2_output_P_e, noStep, noFMU, final, noLoop},{powersystem2, get, powersystem2_output_dy1, noStep, noFMU, final, noLoop},{powersystem3, set, powersystem3_input_u_2, noStep, noFMU, final, noLoop},{powersystem3, get, powersystem3_output_dy1, noStep, noFMU, final, noLoop},{powersystem2, set, powersystem2_input_u_3, noStep, noFMU, final, noLoop},{powersystem1, step, noPort, H, noFMU, noCommitment, noLoop},{powersystem1, get, powersystem1_output_P_e, noStep, noFMU, final, noLoop},{powersystem1, set, powersystem1_input_u_2, noStep, noFMU, final, noLoop},{powersystem1, set, powersystem1_input_u_3, noStep, noFMU, final, noLoop},{powersystem1, get, powersystem1_output_dy1, noStep, noFMU, final, noLoop},{powersystem2, set, powersystem2_input_u_1, noStep, noFMU, final, noLoop},{powersystem3, set, powersystem3_input_u_1, noStep, noFMU, final, noLoop},{powersystem4, step, noPort, H, noFMU, noCommitment, noLoop},{powersystem4, get, powersystem4_output_P_e, noStep, noFMU, final, noLoop},{powersystem4, set, powersystem4_input_u_1, noStep, noFMU, final, noLoop},{powersystem4, get, powersystem4_output_dy1, noStep, noFMU, final, noLoop},{powersystem1, set, powersystem1_input_u_4, noStep, noFMU, final, noLoop},{powersystem3, set, powersystem3_input_u_4, noStep, noFMU, final, noLoop},{powersystem2, set, powersystem2_input_u_4, noStep, noFMU, final, noLoop}} };
+        const Operation stepOperations[nConfig][maxStepOperations] = { {{Plant_PInstance, step, noPort, H, noFMU, noCommitment, noLoop}} };
 
         //These are the operations to be performed in order to find the correct step
         //In these operation there is a difference on the third parameter to doStep:
@@ -1110,8 +919,8 @@
 <parameter>const int id, const int nOutput, const int nInput, const int inputType[nConfig][MaxNInputs]</parameter>
 <declaration>
     int cTime := START_TIME;
-    variable inputVariables[MaxNInputs] = { {defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0} };
-    variable outputVariables[MaxNOutputs] = { {defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0},{defined,0} };
+    variable inputVariables[MaxNInputs] = { {defined,0},{defined,0},{defined,0},{defined,0},{defined,0} };
+    variable outputVariables[MaxNOutputs] = { {defined,0},{defined,0},{defined,0},{defined,0} };
     //Index for the for-loop
     int i := 0;
 
@@ -1318,26 +1127,20 @@
 
         //The arguments to FMU is Id, numbers of outputs, number of inputs, definition of inputTypes
         
-        powersystem3_fmu = FMU(powersystem3, powersystem3_output, powersystem3_input, powersystem3_inputTypes) ;
+        Supervisor_SInstance_fmu = FMU(Supervisor_SInstance, Supervisor_SInstance_output, Supervisor_SInstance_input, Supervisor_SInstance_inputTypes) ;
         
-        powersystem1_fmu = FMU(powersystem1, powersystem1_output, powersystem1_input, powersystem1_inputTypes) ;
+        Plant_PInstance_fmu = FMU(Plant_PInstance, Plant_PInstance_output, Plant_PInstance_input, Plant_PInstance_inputTypes) ;
         
-        powersystem4_fmu = FMU(powersystem4, powersystem4_output, powersystem4_input, powersystem4_inputTypes) ;
+        KalmanFilter_KInstance_fmu = FMU(KalmanFilter_KInstance, KalmanFilter_KInstance_output, KalmanFilter_KInstance_input, KalmanFilter_KInstance_inputTypes) ;
         
-        powersystem2_fmu = FMU(powersystem2, powersystem2_output, powersystem2_input, powersystem2_inputTypes) ;
+        Room_RInstance_fmu = FMU(Room_RInstance, Room_RInstance_output, Room_RInstance_input, Room_RInstance_inputTypes) ;
         
-        estimator_2_fmu = FMU(estimator_2, estimator_2_output, estimator_2_input, estimator_2_inputTypes) ;
-        
-        controller_fmu = FMU(controller, controller_output, controller_input, controller_inputTypes) ;
-        
-        estimator_1_fmu = FMU(estimator_1, estimator_1_output, estimator_1_input, estimator_1_inputTypes) ;
-        
-        powersystem5_fmu = FMU(powersystem5, powersystem5_output, powersystem5_input, powersystem5_inputTypes) ;
+        Controller_CInstance_fmu = FMU(Controller_CInstance, Controller_CInstance_output, Controller_CInstance_input, Controller_CInstance_inputTypes) ;
         
 
         // List one or more processes to be composed into a system.
         system MasterA,
-        estimator_2_fmu,powersystem3_fmu,powersystem2_fmu,powersystem4_fmu,powersystem5_fmu,powersystem1_fmu,controller_fmu,estimator_1_fmu,
+        Supervisor_SInstance_fmu,Room_RInstance_fmu,Plant_PInstance_fmu,Controller_CInstance_fmu,KalmanFilter_KInstance_fmu,
         loopS, finder;
     </system>
     <queries>

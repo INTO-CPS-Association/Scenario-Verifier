@@ -1,5 +1,5 @@
-import api.{TraceResult, VerificationAPI}
-import core.ScenarioLoader
+import org.intocps.verification.scenarioverifier.api.{TraceResult, VerificationAPI}
+import org.intocps.verification.scenarioverifier.core.ScenarioLoader
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import org.scalatest.{Assertion, Ignore}

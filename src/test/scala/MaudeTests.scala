@@ -1,7 +1,6 @@
 import java.io.{BufferedWriter, File, FileWriter, PrintWriter}
 import java.nio.file.Files
-
-import core.{MaudeModelEncoding, ScenarioLoader}
+import org.intocps.verification.scenarioverifier.core.{MaudeModelEncoding, ScenarioLoader}
 import org.scalatest.Ignore
 import org.scalatest.flatspec._
 import org.scalatest.matchers._

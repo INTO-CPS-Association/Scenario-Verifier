@@ -1,6 +1,6 @@
+import org.intocps.verification.scenarioverifier.synthesizer.{Edge, TarjanGraph}
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import synthesizer.{Edge, TarjanGraph}
 
 class GraphTester extends AnyFlatSpec with should.Matchers {
   it should "Find 2 connected components" in {

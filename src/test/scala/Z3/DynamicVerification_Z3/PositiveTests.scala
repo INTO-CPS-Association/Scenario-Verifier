@@ -1,7 +1,7 @@
 package Z3.DynamicVerification_Z3
 
-import api.VerificationAPI
-import core.ScenarioLoader
+import org.intocps.verification.scenarioverifier.api.VerificationAPI
+import org.intocps.verification.scenarioverifier.core.ScenarioLoader
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 

@@ -1,11 +1,11 @@
 package Z3
 
-import api.FMI3.Verification
-import core.FMI3.ScenarioLoaderFMI3
 import org.apache.logging.log4j.scala.Logging
+import org.intocps.verification.scenarioverifier.api.FMI3.Verification
+import org.intocps.verification.scenarioverifier.core.FMI3.ScenarioLoaderFMI3
+import org.intocps.verification.scenarioverifier.synthesizer.ScenarioBuilder.FMI3ScenarioBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
-import synthesizer.ScenarioBuilder.FMI3ScenarioBuilder
 
 class ScalabilityTest extends AnyFlatSpec with should.Matchers with Logging {
 
