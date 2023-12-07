@@ -45,7 +45,7 @@
     </developers>
     <properties>
         <encoding>UTF-8</encoding>
-        <scala.version>2.13.8</scala.version>
+        <scala.version>2.13.9</scala.version>
         <SCCALA_VERSION>2.13</SCCALA_VERSION>
         <spec2.version>4.9.3</spec2.version>
         <maven.compiler.source>11</maven.compiler.source>
