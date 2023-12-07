@@ -19,6 +19,7 @@ object GraphVisualizer extends Logging {
       case RestoreNode(name) => f"$index:Restore_$name"
       case SaveNode(name) => f"$index:Save_$name"
       case EmptyNode() => throw new Exception("Empty node should not be in SCC")
+      case _ => throw new Exception("Unknown node type")
     }
   }
 

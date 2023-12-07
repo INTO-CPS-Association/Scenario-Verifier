@@ -2,7 +2,6 @@ import org.intocps.verification.scenarioverifier.core.{PortRef, ScenarioLoader}
 import org.intocps.verification.scenarioverifier.synthesizer.{DoStepNode, Edge, GetNode, GraphBuilder, InitializationInstructionNode, SetNode, SetTentativeNode, StepInstructionNode}
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import synthesizer._
 
 class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
   def testInitialGraph(file: String): Unit = {

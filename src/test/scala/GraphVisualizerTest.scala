@@ -4,7 +4,6 @@ import org.intocps.verification.scenarioverifier.synthesizer.{GraphBuilder, Grap
 import org.scalatest.Ignore
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import synthesizer._
 
 
 //Ignore

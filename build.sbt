@@ -1,6 +1,6 @@
 name := "scenario_verifier"
 
-scalaVersion := "2.13.8"
+scalaVersion := "2.13.12"
 
 // library version
 version := "0.2.21"

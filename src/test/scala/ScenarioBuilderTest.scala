@@ -4,7 +4,6 @@ import org.intocps.verification.scenarioverifier.synthesizer.ScenarioBuilder.FMI
 import org.scalatest.{Assertion, Ignore}
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import synthesizer._
 
 import scala.collection.immutable.HashSet
 @Ignore
