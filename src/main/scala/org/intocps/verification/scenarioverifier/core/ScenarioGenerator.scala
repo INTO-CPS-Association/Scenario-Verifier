@@ -20,8 +20,13 @@ object ScenarioGenerator extends Logging {
     file
   }
 
+
+  def generateUppaalEncoding(model: ModelEncoding): String = {
+    xml.CosimUppaalTemplate.render(model).toString().trim
+  }
+
   def generateUppaalFile(scenarioName: String, model: ModelEncoding, directory: Directory): File = {
-    val uppaalModel = xml.CosimUppaalTemplate.render(model).toString().trim
+    val uppaalModel = generateUppaalEncoding(model)
     writeToFile(uppaalModel, directory, scenarioName)
   }
 

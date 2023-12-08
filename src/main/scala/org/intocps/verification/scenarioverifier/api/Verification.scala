@@ -39,17 +39,8 @@ object VerificationAPI extends Logging {
     }
     val uppaalFile = generateUppaalFile(masterModel, uppaalFileType)
     val verificationResult = VerifyTA.verify(uppaalFile, isOnlineMode)
-    //FileUtils.deleteQuietly(uppaalFile)
+    FileUtils.deleteQuietly(uppaalFile)
     checkVerificationResult(verificationResult)
-  }
-
-  def time[R](block: => R): R = {
-    val t0 = System.nanoTime()
-    val result = block // call-by-name
-    val t1 = System.nanoTime()
-    val t_ms = (t1 - t0) / 1000000
-    println("Elapsed time: " + t_ms + "ms")
-    result
   }
 
   /**

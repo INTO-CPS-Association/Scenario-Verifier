@@ -5,7 +5,6 @@ import Reactivity.Reactivity
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
-import org.intocps.verification.scenarioverifier.core
 
 import scala.collection.immutable
 import scala.collection.immutable.Set
@@ -302,7 +301,7 @@ final case class MasterModel(
     val coSimStepConstraints: String = if (algorithmTypes.contains(AlgorithmType.step)) {
       val first_cosimStep = cosimStep.head._2
       val stepInstructions = first_cosimStep
-        .filter(instruction => instruction.isInstanceOf[Get] || instruction.isInstanceOf[core.Set] || instruction.isInstanceOf[Step])
+        .filter(instruction => instruction.isInstanceOf[Get] || instruction.isInstanceOf[org.intocps.verification.scenarioverifier.core.Set] || instruction.isInstanceOf[Step])
         .map(_.toSMTLib)
       val stepAlgorithmAssertions = stepInstructions.indices.map(i => s"(assert (= ${stepInstructions(i)} $i))").mkString("\n")
       s"""
