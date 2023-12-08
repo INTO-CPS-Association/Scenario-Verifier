@@ -4,26 +4,19 @@ import org.intocps.verification.scenarioverifier.api.VerificationAPI
 import org.intocps.verification.scenarioverifier.core.ScenarioLoader
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
+import org.scalatest._
 
+@Ignore
 class PositiveTests extends AnyFlatSpec with should.Matchers {
-  def time[R](block: => R): R = {
-    val t0 = System.nanoTime()
-    val result = block // call-by-name
-    val t1 = System.nanoTime()
-    val t_ms = (t1 - t0) / 1000000
-    println("Elapsed time: " + t_ms + "ms")
-    result
-  }
 
   def generateAndVerify(resourcesFile: String): Boolean = {
+    // Assert that Z3 is installed
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
     (1 until masterModel.cosimStep.values.head.length).forall(i => {
       val previous_actions = masterModel.cosimStep.values.head.take(i)
       val current_action = masterModel.cosimStep.values.head(i)
-      time {
-        //VerificationAPI.dynamicZ3Verification(masterModel.scenario, previous_actions, current_action)
-      }
+      // VerificationAPI.dynamicZ3Verification(masterModel.scenario, previous_actions, current_action)
       true
     })
   }

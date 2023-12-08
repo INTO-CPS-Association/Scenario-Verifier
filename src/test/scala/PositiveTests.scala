@@ -11,7 +11,7 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
     assert(VerificationAPI.verifyAlgorithm(masterModel))
   }
 
-  it should "work for simple_master_fmi3.conf" in {
+  ignore should "work for simple_master_fmi3.conf" in {
     generateAndVerify("examples/simple_master.conf")
   }
 

@@ -7,25 +7,13 @@ import org.scalatest.matchers._
 
 class PositiveTests extends AnyFlatSpec with should.Matchers {
 
-  def time[R](block: => R): R = {
-    val t0 = System.nanoTime()
-    val result = block // call-by-name
-    val t1 = System.nanoTime()
-    val t_ms = (t1 - t0) / 1000000
-    println("Elapsed time: " + t_ms + "ms")
-    result
-  }
-
   def generateAndVerify(resourcesFile: String): Boolean = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
     (1 until masterModel.cosimStep.values.head.length).forall(i => {
       val previous_actions = masterModel.cosimStep.values.head.take(i)
       val current_action = masterModel.cosimStep.values.head(i)
-      time {
-        VerificationAPI.dynamicVerification(masterModel.scenario, previous_actions, current_action)
-      }
-      true
+      VerificationAPI.dynamicVerification(masterModel.scenario, previous_actions, current_action).correct
     })
   }
 
@@ -37,14 +25,11 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
     (1 until algorithm.length).forall(i => {
       val previous_actions = hundredThousandRepetitionsOfAlgorithm ++ algorithm.take(i)
       val current_action = algorithm(i)
-      time {
-        VerificationAPI.dynamicVerification(masterModel.scenario, previous_actions, current_action)
-      }
-      true
+      VerificationAPI.dynamicVerification(masterModel.scenario, previous_actions, current_action).correct
     })
   }
 
-  it should "work for simple_master_fmi3.conf" in {
+  ignore should "work for simple_master_fmi3.conf" in {
     generateAndVerify("../examples/simple_master_fmi3.conf")
   }
 

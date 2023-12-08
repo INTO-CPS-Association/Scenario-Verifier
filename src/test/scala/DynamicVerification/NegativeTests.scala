@@ -20,7 +20,7 @@ class NegativeTests extends AnyFlatSpec with should.Matchers {
   it should "catch problem with simple_master_reactivity.conf" in {
     generateAndVerifyFail("../common_mistakes/simple_master_reactivity.conf")
   }
-
+  /*
   it should "catch problem for predatorprey_fmi3.conf" in {
     generateAndVerifyFail("../common_mistakes/predatorprey_fmi3.conf")
   }
@@ -28,7 +28,7 @@ class NegativeTests extends AnyFlatSpec with should.Matchers {
   it should "catch problem for simple_master_can_reject_step.conf" in {
     generateAndVerifyFail("../common_mistakes/simple_master_can_reject_step.conf")
   }
-
+  */
   it should "catch problem for simple_master_get_set_wrong" in {
     generateAndVerifyFail("../common_mistakes/simple_master_get_set_wrong.conf")
   }

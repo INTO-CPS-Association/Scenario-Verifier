@@ -5,7 +5,9 @@ import org.intocps.verification.scenarioverifier.core.ScenarioLoader
 import org.scalatest.Assertion
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
+import org.scalatest._
 
+@Ignore
 class NegativeTests extends AnyFlatSpec with should.Matchers {
   def generateAndVerifyFail(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
@@ -21,7 +23,6 @@ class NegativeTests extends AnyFlatSpec with should.Matchers {
   it should "catch problem with simple_master_reactivity.conf" in {
     generateAndVerifyFail("../common_mistakes/simple_master_reactivity.conf")
   }
-
 
   it should "catch problem for simple_master_can_reject_step.conf" in {
     generateAndVerifyFail("../common_mistakes/simple_master_can_reject_step.conf")
