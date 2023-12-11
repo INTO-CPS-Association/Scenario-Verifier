@@ -12,7 +12,7 @@ object GenerationAPI extends Logging {
     * Synthesize an orchestration algorithm with respect to the scenario model.
    */
   def synthesizeAlgorithm(name: String, scenarioModel: ScenarioModel): MasterModel = {
-    logger.info("Synthesizing algorithm")
+    logger.info("Synthesizing algorithm for scenario: " + scenarioModel.toConf(0))
     val simplifiedScenario = simplifyScenario(scenarioModel)
     val synthesizer = new SynthesizerSimple(simplifiedScenario)
     val instantiationModel = ScenarioLoader.generateInstantiationInstructions(simplifiedScenario).toList
