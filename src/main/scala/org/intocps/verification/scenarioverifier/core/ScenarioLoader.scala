@@ -32,22 +32,6 @@ object ScenarioLoader extends Logging {
     parse(masterConfig)
   }
 
-
-  /*
-  //To
-  def loadJson(is: InputStream): MasterModel = {
-    val string = scala.io.Source.fromInputStream(is).mkString
-    val dto = decode[MasterModelDTO](string)
-    dto match {
-      case Right(masterModel) =>
-        enrichDTO(masterModel)
-      case Left(error) =>
-        throw new IllegalArgumentException(error.toString + "could not be parsed")
-    }
-  }
-   */
-
-
   def load(stream: InputStream): MasterModel = {
     val reader = new InputStreamReader(stream)
     try {
@@ -79,11 +63,15 @@ object ScenarioLoader extends Logging {
    */
   def simplifyScenario(model: ScenarioModel): ScenarioModel = {
     val connectedPorts = model.connections.flatMap(c => List(c.srcPort, c.trgPort))
-    // Remove all ports that are not connected to any other port
     val fmus = model.fmus.map(fmu => {
+      // Remove all ports that are not connected to any other port
       val connectedOutputsPorts = fmu._2.outputs.filter(p => connectedPorts.contains(PortRef(fmu._1, p._1)))
       val connectedInputsPorts = fmu._2.inputs.filter(p => connectedPorts.contains(PortRef(fmu._1, p._1)))
-      fmu.copy(_2 = fmu._2.copy(outputs = connectedOutputsPorts, inputs = connectedInputsPorts))
+      val connectedOutputsPortsWithConnectedFeedthroguh = connectedOutputsPorts.map(p => p._1 -> OutputPortModel(
+        p._2.dependenciesInit.filter(d => connectedInputsPorts.contains(d)),
+        p._2.dependencies.filter(d => connectedInputsPorts.contains(d))
+      ))
+      fmu.copy(_2 = fmu._2.copy(outputs = connectedOutputsPortsWithConnectedFeedthroguh, inputs = connectedInputsPorts))
     })
     model.copy(fmus = fmus)
   }

@@ -95,4 +95,8 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
   it should "create valid Feedthrough Loop" in {
     synthesizeAndVerify("examples_no_algorithm/algebraic_loop_feedthrough.conf")
   }
+
+  it should "create valid algorithm for MasterModelExample" in {
+    synthesizeAndVerify("examples_no_algorithm/master_model_example.conf")
+  }
 }
