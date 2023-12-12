@@ -6,9 +6,9 @@ import org.scalatest.flatspec._
 import org.scalatest.matchers._
 
 
-//Ignore
 class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
   def testGraph(file: String, name: String): Unit = {
+    println("Testing " + file)
     val conf = getClass.getResourceAsStream(file)
     val masterModel = ScenarioLoader.load(conf)
     val scenario = masterModel.scenario

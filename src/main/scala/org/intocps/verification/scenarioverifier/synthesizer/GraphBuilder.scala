@@ -1,7 +1,6 @@
 package org.intocps.verification.scenarioverifier.synthesizer
 
 import org.intocps.verification.scenarioverifier.core.Reactivity.reactive
-import org.apache.logging.log4j.scala.Logging
 import org.intocps.verification.scenarioverifier
 import org.intocps.verification.scenarioverifier.core.{ConnectionModel, CosimStepInstruction, DefaultStepSize, Get, InitGet, InitSet, InitializationInstruction, NoOP, OutputPortModel, PortRef, RestoreState, SaveState, ScenarioModel, SetTentative, Step}
 
@@ -66,7 +65,7 @@ final case class EmptyNode() extends StepInstructionNode {
 
 final case class Edge[A](srcNode: A, trgNode: A)
 
-class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = false) extends Logging {
+class GraphBuilder(scenario: ScenarioModel, val removeTransitive: Boolean = false) {
   private val stepNodes: Set[DoStepNode] = scenario.fmus.map(fmu => DoStepNode(fmu._1)).toSet
   val GetNodes: Map[String, Set[GetNode]] = scenario.fmus.map(fmu => (fmu._1, fmu._2.outputs.map(o => GetNode(fmu._1, PortRef(fmu._1, o._1))).toSet))
   private val SetNodesReactive: Map[String, Set[SetTentativeNode]] =

@@ -66,9 +66,9 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     synthesizeAndVerify("examples/step_finding_loop_msd_1.conf")
   }
 
-  // it should "create a valid Step Finding And Algebraic procedure for Combined Step and Jac Algebraic" in {
-  //   synthesizeAndVerify("examples/loop_within_loop.conf")
-  // }
+  it should "create a valid Step Finding And Algebraic procedure for Combined Step and Jac Algebraic" in {
+    synthesizeAndVerify("examples/loop_within_loop.conf")
+  }
 
   it should "create valid Step Finding procedure for Step Loop only delayed ports" in {
     synthesizeAndVerify("examples_no_algorithm/step_finding_loop_two_delayed.conf")

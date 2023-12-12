@@ -5,9 +5,8 @@ import java.io.File
 import guru.nidi.graphviz.attribute.{Color, Label}
 import guru.nidi.graphviz.engine.{Format, Graphviz}
 import guru.nidi.graphviz.model.Factory.{graph, mutGraph, mutNode}
-import org.apache.logging.log4j.scala.Logging
 
-object GraphVisualizer extends Logging {
+object GraphVisualizer {
   def getName[A <: Node](node: A, SCCs: List[List[A]]): String = {
     val scc = SCCs.find(_.contains(node)).get
     val index = SCCs.indexOf(scc)
