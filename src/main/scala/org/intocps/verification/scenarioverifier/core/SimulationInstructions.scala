@@ -3,6 +3,8 @@ package org.intocps.verification.scenarioverifier.core
 trait SimulationInstruction extends UppaalModel with ConfElement {
   def fmu: String
 
+  def portName : String = "noPort"
+
   require(fmu.nonEmpty, "fmu must not be empty")
 
   override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}"
@@ -13,6 +15,7 @@ abstract class InitializationInstruction extends SimulationInstruction with SMTL
 final case class InitSet(port: PortRef) extends InitializationInstruction {
   override def fmu: String = port.fmu
 
+  override def portName : String = port.port
   override def toUppaal: String = s"{$fmu, set, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
 
   override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{set: ${generatePort(port)}}"
@@ -23,6 +26,8 @@ final case class InitSet(port: PortRef) extends InitializationInstruction {
 final case class InitGet(port: PortRef) extends InitializationInstruction with SMTLibElement {
 
   override def fmu: String = port.fmu
+
+  override def portName : String = port.port
 
   override def toUppaal: String = s"{$fmu, get, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
 
@@ -97,6 +102,8 @@ sealed abstract class CosimStepInstruction extends SimulationInstruction with SM
 final case class Set(port: PortRef) extends CosimStepInstruction {
   override def fmu: String = port.fmu
 
+  override def portName : String = port.port
+
   override def toUppaal: String = s"{$fmu, set, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
 
 
@@ -108,6 +115,8 @@ final case class Set(port: PortRef) extends CosimStepInstruction {
 final case class Get(port: PortRef) extends CosimStepInstruction {
   override def fmu: String = port.fmu
 
+  override def portName : String = port.port
+
   override def toUppaal: String = s"{$fmu, get, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
 
   override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{get: ${generatePort(port)}}"
@@ -118,6 +127,8 @@ final case class Get(port: PortRef) extends CosimStepInstruction {
 final case class GetTentative(port: PortRef) extends CosimStepInstruction {
   override def fmu: String = port.fmu
 
+  override def portName : String = port.port
+
   override def toUppaal: String = s"{$fmu, get, ${fmuPortName(port)}, noStep, noFMU, tentative, noLoop}"
 
   override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{get-tentative: ${generatePort(port)}}"
@@ -127,6 +138,8 @@ final case class GetTentative(port: PortRef) extends CosimStepInstruction {
 
 final case class SetTentative(port: PortRef) extends CosimStepInstruction {
   override def fmu: String = port.fmu
+
+  override def portName : String = port.port
 
   override def toUppaal: String =
     s"{$fmu, set, ${fmuPortName(port)}, noStep, noFMU, tentative, noLoop}"

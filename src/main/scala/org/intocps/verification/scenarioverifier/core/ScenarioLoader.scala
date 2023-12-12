@@ -19,7 +19,6 @@ import java.nio.file.{Files, Paths}
 import scala.collection.immutable
 
 object ScenarioLoader extends Logging {
-
   def load(file: String): MasterModel = {
     if (!Files.exists(Paths.get(file))) {
       val msg = f"File not found: $file. Current working directory is: ${System.getProperty("user.dir")}."
@@ -37,7 +36,6 @@ object ScenarioLoader extends Logging {
     try {
       // read from stream
       val conf = ConfigFactory.parseReader(reader)
-
       // This forces pure config to not tolerate unknown keys in the config file.
       // It gives errors when typos happen.
       // From https://pureconfig.github.io/docs/overriding-behavior-for-case-classes.html
@@ -103,7 +101,7 @@ object ScenarioLoader extends Logging {
   def parse(config: MasterConfig): MasterModel = {
     config match {
       case MasterConfig(name, scenario, initialization, cosimStep) =>
-        val scenarioModel = simplifyScenario(parse(scenario))
+        val scenarioModel = parse(scenario)
         val instantiationModel = generateInstantiationInstructions(scenarioModel).toList
         val initializationModel = initialization.map(instruction => parse(instruction, scenarioModel))
         val expandedInitModel = generateEnterInitInstructions(scenarioModel) ++ initializationModel ++ generateExitInitInstructions(scenarioModel)

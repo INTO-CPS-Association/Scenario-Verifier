@@ -39,6 +39,11 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
     generateAndVerify("examples/algebraic_loop_msd_gs.conf")
   }
 
+    it should "work for mastermode step rejection" in {
+    generateAndVerify("examples/masterModel.conf")
+  }
+
+
   it should "work for algebraic_loop_msd_fail_converge" in {
     generateAndVerify("examples/algebraic_loop_msd_jac.conf")
   }

@@ -12,7 +12,6 @@ class ParserTests extends AnyFlatSpec with should.Matchers {
     assert(results.cosimStep.values.head.size == 8)
     assert(results.scenario.connections.size == 3)
     assert(results.scenario.fmus.size == 2)
-    print(results)
   }
 
   it should "load tricky master configuration" in {
@@ -23,7 +22,6 @@ class ParserTests extends AnyFlatSpec with should.Matchers {
     assert(results.cosimStep.isEmpty)
     assert(results.scenario.connections.size == 25)
     assert(results.scenario.fmus.size == 5)
-    print(results)
   }
 
   it should "load scenario without ports" in {
@@ -32,7 +30,6 @@ class ParserTests extends AnyFlatSpec with should.Matchers {
     //Simple Test
     assert(results.scenario.connections.size == 2)
     assert(results.scenario.fmus.size == 2)
-    print(results)
   }
 
 

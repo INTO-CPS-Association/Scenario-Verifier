@@ -44,33 +44,27 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
 
   it should "create valid Master Algorithm for Algebraic Initialization" in {
     synthesizeAndVerify("examples/algebraic_loop_initialization.conf")
-    //synthesizeOptAndVerify("examples/algebraic_loop_initialization.conf")
   }
 
   it should "create valid Master Algorithm for Industrial case study" in {
     synthesizeAndVerify("examples/industrial_casestudy.conf")
-    //synthesizeOptAndVerify("examples/industrial_casestudy.conf")
   }
 
   it should "create valid Step procedure for Two Algebraic Loops" in {
     synthesizeAndVerify("examples/two_algebraic_loops.conf")
-    //synthesizeOptAndVerify("examples/two_algebraic_loops.conf")
   }
 
   it should "create valid Jacboian Step procedure for Algebraic Loop" in {
     synthesizeAndVerify("examples/algebraic_loop_msd_jac.conf")
-    //synthesizeOptAndVerify("examples/algebraic_loop_msd_jac.conf")
   }
 
   it should "create valid Gauss Seidel Step procedure for Algebraic Loop" in {
     synthesizeAndVerify("examples/algebraic_loop_msd_gs.conf")
-    //synthesizeOptAndVerify("examples/algebraic_loop_msd_gs.conf", minimum)
   }
 
   it should "create valid Step Finding procedure for Step Loop" in {
     synthesizeAndVerify("examples/step_finding_loop_msd_1.conf")
   }
-
 
   // it should "create a valid Step Finding And Algebraic procedure for Combined Step and Jac Algebraic" in {
   //   synthesizeAndVerify("examples/loop_within_loop.conf")
