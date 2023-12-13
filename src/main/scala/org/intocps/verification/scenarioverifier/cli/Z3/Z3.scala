@@ -1,11 +1,12 @@
 package org.intocps.verification.scenarioverifier.cli.Z3
 
+import java.io.File
+
 import org.apache.logging.log4j.scala.Logging
-import org.intocps.verification.scenarioverifier.cli.{CLITool, VerifyTaProcessLogger}
+import org.intocps.verification.scenarioverifier.cli.CLITool
+import org.intocps.verification.scenarioverifier.cli.VerifyTaProcessLogger
 import org.intocps.verification.scenarioverifier.core.AlgorithmType
 import org.intocps.verification.scenarioverifier.core.FMI3.MasterModel3
-
-import java.io.File
 
 object Z3 extends CLITool {
   def name: String = "Z3"
@@ -30,7 +31,7 @@ object SMTEncoder extends Logging {
     val smtLib = masterModel.toSMTLib(algorithmTypes, synthesize, isParallel = false)
     // Write to file
     val smtFile = File.createTempFile("cosim", ".smt2")
-    //smtFile.deleteOnExit()
+    // smtFile.deleteOnExit()
     val bw = new java.io.BufferedWriter(new java.io.FileWriter(smtFile))
     bw.write(smtLib)
     bw.close()
@@ -48,7 +49,6 @@ object SMTEncoder extends Logging {
       false
     }
   }
-
 
   def synthesizeAlgorithm(masterModel: MasterModel3): MasterModel3 = {
     val smtFile = encodeFile(masterModel, List(AlgorithmType.init, AlgorithmType.step, AlgorithmType.event), synthesize = true)

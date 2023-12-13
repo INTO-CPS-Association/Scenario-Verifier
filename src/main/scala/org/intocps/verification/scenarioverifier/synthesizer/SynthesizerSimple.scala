@@ -1,10 +1,16 @@
 package org.intocps.verification.scenarioverifier.synthesizer
 
-import org.intocps.verification.scenarioverifier.core.{AlgebraicLoop, AlgebraicLoopInit, FmuModel, InitializationInstruction, InputPortModel, PortRef, ScenarioModel}
-import LoopStrategy._
-import org.intocps.verification.scenarioverifier.synthesizer
-
 import scala.collection.mutable
+
+import org.intocps.verification.scenarioverifier.core.AlgebraicLoop
+import org.intocps.verification.scenarioverifier.core.AlgebraicLoopInit
+import org.intocps.verification.scenarioverifier.core.FmuModel
+import org.intocps.verification.scenarioverifier.core.InitializationInstruction
+import org.intocps.verification.scenarioverifier.core.InputPortModel
+import org.intocps.verification.scenarioverifier.core.PortRef
+import org.intocps.verification.scenarioverifier.core.ScenarioModel
+import org.intocps.verification.scenarioverifier.synthesizer
+import LoopStrategy._
 
 class SynthesizerSimple(scenarioModel: ScenarioModel, override val strategy: LoopStrategy.LoopStrategy = maximum) extends SynthesizerBase {
   private lazy val Configurations: Map[String, GraphBuilder] = {
@@ -86,7 +92,7 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, override val strategy: Loo
         }
     }
     new TarjanGraph[A](reducedEdges)
-  } ensuring (tarjanGraph => !tarjanGraph.hasCycle, "The graph does still contain cycles")
+  }.ensuring(tarjanGraph => !tarjanGraph.hasCycle, "The graph does still contain cycles")
 
   def formatInitLoop(scc: List[InitializationInstructionNode]): InitializationInstruction = {
     val gets = graphBuilder.GetNodes.values.flatten.filter(o => scc.contains(o)).toList

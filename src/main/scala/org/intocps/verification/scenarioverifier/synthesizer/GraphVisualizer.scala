@@ -2,9 +2,13 @@ package org.intocps.verification.scenarioverifier.synthesizer
 
 import java.io.File
 
-import guru.nidi.graphviz.attribute.{Color, Label}
-import guru.nidi.graphviz.engine.{Format, Graphviz}
-import guru.nidi.graphviz.model.Factory.{graph, mutGraph, mutNode}
+import guru.nidi.graphviz.attribute.Color
+import guru.nidi.graphviz.attribute.Label
+import guru.nidi.graphviz.engine.Format
+import guru.nidi.graphviz.engine.Graphviz
+import guru.nidi.graphviz.model.Factory.graph
+import guru.nidi.graphviz.model.Factory.mutGraph
+import guru.nidi.graphviz.model.Factory.mutNode
 
 object GraphVisualizer {
   def getName[A <: Node](node: A, SCCs: List[List[A]]): String = {

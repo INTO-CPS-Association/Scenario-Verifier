@@ -1,10 +1,14 @@
+import java.nio.file.Files
+
+import scala.reflect.io.Directory
+
 import org.apache.commons.io.FileUtils
 import org.intocps.verification.scenarioverifier.cli.VerifyTA
-import org.intocps.verification.scenarioverifier.core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
+import org.intocps.verification.scenarioverifier.core.ModelEncoding
+import org.intocps.verification.scenarioverifier.core.ScenarioGenerator
+import org.intocps.verification.scenarioverifier.core.ScenarioLoader
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import java.nio.file.Files
-import scala.reflect.io.Directory
 
 /*
 class JSONParserTests extends AnyFlatSpec with should.Matchers {

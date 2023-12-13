@@ -145,7 +145,29 @@
         <sourceDirectory>src/main/scala</sourceDirectory>
         <testSourceDirectory>src/test/scala</testSourceDirectory>
         <plugins>
-
+            <plugin>
+                <groupId>org.antipathy</groupId>
+                <!-- The scala binary here doesn't need to match the project version -->
+                <artifactId>mvn-scalafmt_2.13</artifactId>
+                <!-- This represents the desired version of the plugin, whould be in the form:
+                     (major).(minor).(commitepoch).(commithash), which can be found here:
+                     https://github.com/simonjpegg/mvn_scalafmt/releases
+                     e.g. <version>1.0.1589620826.41b214a</version>
+                     Note: The SCALA version is OMITTED from this value
+                -->
+                <version>1.1.1684076452.9f83818</version>
+                <configuration>
+                    <configLocation>${project.basedir}/.scalafmt.conf</configLocation> <!-- path to config -->
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>format</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <!-- see http://davidb.github.com/scala-maven-plugin -->
                 <groupId>net.alchim31.maven</groupId>

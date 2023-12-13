@@ -45,10 +45,12 @@ class ModelEncoding(model: MasterModel) extends Logging {
 
   def nOutputs(f: String) = model.scenario.fmus(f).outputs.size
 
-  val fmuInputEncoding: Map[String, Map[String, Int]] = fmuNames.map(fName => (fName, model.scenario.fmus(fName).inputs.keys.zipWithIndex.toMap)).toMap
+  val fmuInputEncoding: Map[String, Map[String, Int]] =
+    fmuNames.map(fName => (fName, model.scenario.fmus(fName).inputs.keys.zipWithIndex.toMap)).toMap
   val fmuInputEncodingInverse: Map[String, Map[Int, String]] = fmuInputEncoding.map(f => (f._1, f._2.map(_.swap)))
 
-  val fmuOutputEncoding: Map[String, Map[String, Int]] = fmuNames.map(fName => (fName, model.scenario.fmus(fName).outputs.keys.zipWithIndex.toMap)).toMap
+  val fmuOutputEncoding: Map[String, Map[String, Int]] =
+    fmuNames.map(fName => (fName, model.scenario.fmus(fName).outputs.keys.zipWithIndex.toMap)).toMap
   val fmuOutputEncodingInverse: Map[String, Map[Int, String]] = fmuOutputEncoding.map(f => (f._1, f._2.map(_.swap)))
 
   val isAdaptive: Boolean = model.scenario.config.configurableInputs.nonEmpty
@@ -61,52 +63,63 @@ class ModelEncoding(model: MasterModel) extends Logging {
 
   val standardConnections: List[ConnectionModel] = model.scenario.connections
 
-  def connections: Map[String, List[ConnectionModel]] = model.scenario.config.configurations.map(keyValue => (keyValue._1, keyValue._2.connections))
+  def connections: Map[String, List[ConnectionModel]] =
+    model.scenario.config.configurations.map(keyValue => (keyValue._1, keyValue._2.connections))
 
-  val connectionEncoding: Map[String, Map[ConnectionModel, Int]] = connections.map(keyValue => (keyValue._1, keyValue._2.zipWithIndex.toMap))
+  val connectionEncoding: Map[String, Map[ConnectionModel, Int]] =
+    connections.map(keyValue => (keyValue._1, keyValue._2.zipWithIndex.toMap))
   val connectionEncodingInverse: Map[String, Map[Int, ConnectionModel]] = connectionEncoding.map(f => (f._1, f._2.map(_.swap)))
 
-  val configuration: Map[Int, (String, String)] = model.scenario.config.configurations.zipWithIndex.map(_.swap).toMap.map(i => (i._1, (i._2._1, i._2._2.cosimStep)))
+  val configuration: Map[Int, (String, String)] =
+    model.scenario.config.configurations.zipWithIndex.map(_.swap).toMap.map(i => (i._1, (i._2._1, i._2._2.cosimStep)))
 
   def fmuInputTypes(f: String): String = {
     val inputs = model.scenario.fmus(f).inputs
     val inputEnc = fmuInputEncodingInverse(f)
-    (0 until nConfigs).map(id => {
-      val inputPortConfig: Map[PortRef, InputPortModel] = if (isAdaptive) model.scenario.config.configurations(configuration(id)._1).inputs.filter(_._1.fmu == f) else Map.empty
-      ((0 until inputs.size).map(idx =>
-        if (inputPortConfig.keys.toList.contains(PortRef(f, inputEnc(idx))))
-          inputPortConfig(PortRef(f, inputEnc(idx))).reactivity.toString
-        else {
-          inputs(inputEnc(idx)).reactivity.toString
-        }
-      ) ++ (inputs.size until maxNInputs).map(_ => "noPort")).mkString(",")
-    }).mkString("{", "}, {", "}")
+    (0 until nConfigs)
+      .map(id => {
+        val inputPortConfig: Map[PortRef, InputPortModel] =
+          if (isAdaptive) model.scenario.config.configurations(configuration(id)._1).inputs.filter(_._1.fmu == f) else Map.empty
+        ((0 until inputs.size).map(idx =>
+          if (inputPortConfig.keys.toList.contains(PortRef(f, inputEnc(idx))))
+            inputPortConfig(PortRef(f, inputEnc(idx))).reactivity.toString
+          else {
+            inputs(inputEnc(idx)).reactivity.toString
+          }) ++ (inputs.size until maxNInputs).map(_ => "noPort")).mkString(",")
+      })
+      .mkString("{", "}, {", "}")
   }
 
   def connectionVariable: String = {
-    (0 until nFMUs).map(_ =>
-      (0 until maxNOutputs)
-        .map(_ => """{{undefined,0}, {undefined,0}}""")
-        .mkString("{", ",", "}")).mkString(",")
+    (0 until nFMUs)
+      .map(_ =>
+        (0 until maxNOutputs)
+          .map(_ => """{{undefined,0}, {undefined,0}}""")
+          .mkString("{", ",", "}"))
+      .mkString(",")
   }
 
   def external: String = {
-    (0 until nConfigs).map(id => {
-      if (isAdaptive)
-        (0 until nExternal).map(idx => connectionEncodingInverse(configuration(id)._1)(idx)).map(_.toUppaal).mkString(",")
-      else
-        standardConnections.map(_.toUppaal).mkString(",")
-    }).mkString("{", "}, {", "}")
+    (0 until nConfigs)
+      .map(id => {
+        if (isAdaptive)
+          (0 until nExternal).map(idx => connectionEncodingInverse(configuration(id)._1)(idx)).map(_.toUppaal).mkString(",")
+        else
+          standardConnections.map(_.toUppaal).mkString(",")
+      })
+      .mkString("{", "}, {", "}")
   }
 
   private val noFeedThrough: String = "{noFMU, noPort, noPort}"
 
   def encodeFeedThrough(extract: OutputPortModel => List[String]): String = {
     val feedthrough = model.scenario.fmus
-      .flatMap(f => f._2.outputs
-        .flatMap(o => extract(o._2)
-          .map(d => s"{${f._1}, ${fmuPortName(f._1, d)}, ${fmuPortName(f._1, o._1)}}"))
-      ).mkString(",")
+      .flatMap(f =>
+        f._2.outputs
+          .flatMap(o =>
+            extract(o._2)
+              .map(d => s"{${f._1}, ${fmuPortName(f._1, d)}, ${fmuPortName(f._1, o._1)}}")))
+      .mkString(",")
     if (feedthrough.nonEmpty)
       feedthrough
     else {
@@ -115,9 +128,11 @@ class ModelEncoding(model: MasterModel) extends Logging {
   }
 
   def feedthroughInStep: String =
-    (0 until nConfigs).map(_ => {
-      encodeFeedThrough(_.dependencies)
-    }).mkString("{", "}, {", "}")
+    (0 until nConfigs)
+      .map(_ => {
+        encodeFeedThrough(_.dependencies)
+      })
+      .mkString("{", "}, {", "}")
 
   def feedthroughInInit: String =
     encodeFeedThrough(_.dependenciesInit)
@@ -149,14 +164,14 @@ class ModelEncoding(model: MasterModel) extends Logging {
   val loopOpsEncodingInit: Map[Int, AlgebraicLoopInit] = allAlgebraicLoopsInInit.zipWithIndex.map(_.swap).toMap
   val loopOpsEncodingInitInverse: Map[AlgebraicLoopInit, Int] = loopOpsEncodingInit.map(_.swap)
 
-  val loopOpsEncoding: Map[String, Map[Int, AlgebraicLoop]] = allAlgebraicLoopsInStep.map(keyValue => (keyValue._1, keyValue._2.zipWithIndex.map(_.swap).toMap))
+  val loopOpsEncoding: Map[String, Map[Int, AlgebraicLoop]] =
+    allAlgebraicLoopsInStep.map(keyValue => (keyValue._1, keyValue._2.zipWithIndex.map(_.swap).toMap))
   val loopOpsEncodingInverse: Map[String, Map[AlgebraicLoop, Int]] = loopOpsEncoding.map(keyValue => (keyValue._1, keyValue._2.map(_.swap)))
 
   val maxNAlgebraicLoopOperationsInStep: Int = maxOr1(allAlgebraicLoopsInStep.valuesIterator.flatMap(i => i.map(_.iterate.length)).toList)
   val maxNAlgebraicLoopOperationsInInit: Int = maxOr1(allAlgebraicLoopsInInit.map(i => i.iterate.length))
 
   val maxStepOperations = model.cosimStep.valuesIterator.map(_.length).max
-
 
   private def fillDefault[A](value: List[String], max: Int, default: A, f: A => String): List[String] = {
     value ++ (0 until (max - value.length)).map(_ => f(default))
@@ -169,19 +184,22 @@ class ModelEncoding(model: MasterModel) extends Logging {
   private def fillNoPorts(value: List[String], max: Int): Seq[String] =
     value ++ (0 until (max - value.length)).map(_ => "{ noFMU, noPort}")
 
-
   def operationsPerAlgebraicLoopInInit: String = {
-    (0 until nAlgebraicLoopsInInit).map(idx => {
-      val loopsInstructions: AlgebraicLoopInit = loopOpsEncodingInit.getOrElse(idx, AlgebraicLoopInit(Nil, Nil))
-      fillNoOps(loopsInstructions.iterate.map(op => encodeOperation(op)), maxNAlgebraicLoopOperationsInInit)
-        .mkString("{", ",", "}")
-    }).mkString(",")
+    (0 until nAlgebraicLoopsInInit)
+      .map(idx => {
+        val loopsInstructions: AlgebraicLoopInit = loopOpsEncodingInit.getOrElse(idx, AlgebraicLoopInit(Nil, Nil))
+        fillNoOps(loopsInstructions.iterate.map(op => encodeOperation(op)), maxNAlgebraicLoopOperationsInInit)
+          .mkString("{", ",", "}")
+      })
+      .mkString(",")
   }
 
   def getAlgebraicLoopInInit(getOperations: AlgebraicLoopInit => Int): String =
-    (0 until nAlgebraicLoopsInInit).map(idx => {
-      getOperations(loopOpsEncodingInit.getOrElse(idx, AlgebraicLoopInit(Nil, Nil)))
-    }).mkString(",")
+    (0 until nAlgebraicLoopsInInit)
+      .map(idx => {
+        getOperations(loopOpsEncodingInit.getOrElse(idx, AlgebraicLoopInit(Nil, Nil)))
+      })
+      .mkString(",")
 
   def getConvergencePorts(algebraicLoopInit: AlgebraicLoopInit): Int = algebraicLoopInit.untilConverged.size
 
@@ -195,52 +213,74 @@ class ModelEncoding(model: MasterModel) extends Logging {
 
   def nConvergencePortsPerAlgebraicLoopInStep: String = getNAlgebraicLoopOperations(getAConvergencePorts)
 
-  def nOperationsPerAlgebraicLoopInStep: String = getNAlgebraicLoopOperations(getALoopOperations _ andThen nOperations)
+  def nOperationsPerAlgebraicLoopInStep: String = getNAlgebraicLoopOperations((getALoopOperations _).andThen(nOperations))
 
-  def nRetryOperationsPerAlgebraicLoopInStep: String = getNAlgebraicLoopOperations(getARetryOperations _ andThen nOperations)
+  def nRetryOperationsPerAlgebraicLoopInStep: String = getNAlgebraicLoopOperations((getARetryOperations _).andThen(nOperations))
 
-  def retryOperationsPerAlgebraicLoopInStep: String = getAlgebraicLoopOp(getARetryOperations, encodeList, maxNRetryOperationsForAlgebraicLoopsInStep)
+  def retryOperationsPerAlgebraicLoopInStep: String =
+    getAlgebraicLoopOp(getARetryOperations, encodeList, maxNRetryOperationsForAlgebraicLoopsInStep)
 
   def operationsPerAlgebraicLoopInStep: String = getAlgebraicLoopOp(getALoopOperations, encodeList, maxNAlgebraicLoopOperationsInStep)
 
   def getNAlgebraicLoopOperations(op: AlgebraicLoop => Int): String =
-    (0 until nConfigs).map(id => {
-      val loopConfig = if (isAdaptive) loopOpsEncoding(configuration(id)._2) else loopOpsEncoding.values.head
-      (0 until nAlgebraicLoopsInStep).map(idx => op(loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil)))).mkString(",")
-    }).mkString("{", "}, {", "}")
+    (0 until nConfigs)
+      .map(id => {
+        val loopConfig = if (isAdaptive) loopOpsEncoding(configuration(id)._2) else loopOpsEncoding.values.head
+        (0 until nAlgebraicLoopsInStep).map(idx => op(loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil)))).mkString(",")
+      })
+      .mkString("{", "}, {", "}")
 
-  def getAlgebraicLoopOp(op: AlgebraicLoop => List[CosimStepInstruction], f: (List[CosimStepInstruction], String) => List[String], nOperations: Int): String = {
-    (0 until nConfigs).map(id => {
-      val configName = getConfigName(id)
-      val loopConfig = if (isAdaptive) loopOpsEncoding(configuration(id)._2) else loopOpsEncoding.values.head
-      (0 until nAlgebraicLoopsInStep).map(idx => {
-        val loopsInstructions: AlgebraicLoop = loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil))
-        fillNoOps(f(op(loopsInstructions), configName), nOperations).mkString("{", ",", "}")
-      }).mkString(",")
-    }).mkString("{", "}, {", "}")
+  def getAlgebraicLoopOp(
+      op: AlgebraicLoop => List[CosimStepInstruction],
+      f: (List[CosimStepInstruction], String) => List[String],
+      nOperations: Int): String = {
+    (0 until nConfigs)
+      .map(id => {
+        val configName = getConfigName(id)
+        val loopConfig = if (isAdaptive) loopOpsEncoding(configuration(id)._2) else loopOpsEncoding.values.head
+        (0 until nAlgebraicLoopsInStep)
+          .map(idx => {
+            val loopsInstructions: AlgebraicLoop = loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil))
+            fillNoOps(f(op(loopsInstructions), configName), nOperations).mkString("{", ",", "}")
+          })
+          .mkString(",")
+      })
+      .mkString("{", "}, {", "}")
   }
 
   def convergencePortsPerAlgebraicLoopInStep: String = {
-    (0 until nConfigs).map(id => {
-      val loopConfig = if (isAdaptive) loopOpsEncoding(configuration(id)._2) else loopOpsEncoding.values.head
-      (0 until nAlgebraicLoopsInStep).map(idx => {
-        val loopsInstructions: AlgebraicLoop = loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil))
-        fillNoPorts(loopsInstructions.untilConverged.map(p => s"""{ ${p.fmu}, ${fmuPortName(p.fmu, p.port)} }"""), maxNConvergeOperationsForAlgebraicLoopsInStep)
-          .mkString("{", ",", "}")
-      }).mkString(",")
-    }).mkString("{", "}, {", "}")
+    (0 until nConfigs)
+      .map(id => {
+        val loopConfig = if (isAdaptive) loopOpsEncoding(configuration(id)._2) else loopOpsEncoding.values.head
+        (0 until nAlgebraicLoopsInStep)
+          .map(idx => {
+            val loopsInstructions: AlgebraicLoop = loopConfig.getOrElse(idx, AlgebraicLoop(Nil, Nil, Nil))
+            fillNoPorts(
+              loopsInstructions.untilConverged.map(p => s"""{ ${p.fmu}, ${fmuPortName(p.fmu, p.port)} }"""),
+              maxNConvergeOperationsForAlgebraicLoopsInStep)
+              .mkString("{", ",", "}")
+          })
+          .mkString(",")
+      })
+      .mkString("{", "}, {", "}")
   }
 
   def convergencePortsPerAlgebraicLoopInInit: String = {
-    (0 until nAlgebraicLoopsInInit).map(idx => {
-      val loopsInstructions: AlgebraicLoopInit = loopOpsEncodingInit.getOrElse(idx, AlgebraicLoopInit(Nil, Nil))
-      val encoded = fillNoPorts(loopsInstructions.untilConverged.map(p => s"""{ ${p.fmu}, ${fmuPortName(p.fmu, p.port)} }"""), maxNConvergeOperationsForAlgebraicLoopsInInit)
-      s"""{ ${encoded.mkString(",")} }"""
-    }).mkString(",")
+    (0 until nAlgebraicLoopsInInit)
+      .map(idx => {
+        val loopsInstructions: AlgebraicLoopInit = loopOpsEncodingInit.getOrElse(idx, AlgebraicLoopInit(Nil, Nil))
+        val encoded = fillNoPorts(
+          loopsInstructions.untilConverged.map(p => s"""{ ${p.fmu}, ${fmuPortName(p.fmu, p.port)} }"""),
+          maxNConvergeOperationsForAlgebraicLoopsInInit)
+        s"""{ ${encoded.mkString(",")} }"""
+      })
+      .mkString(",")
   }
 
-  val maxNRetryOperationsForAlgebraicLoopsInStep: Int = maxOr1(allAlgebraicLoopsInStep.valuesIterator.flatMap(i => i.map(_.ifRetryNeeded.length)).toList)
-  val maxNConvergeOperationsForAlgebraicLoopsInStep: Int = maxOr1(allAlgebraicLoopsInStep.valuesIterator.flatMap(i => i.map(_.untilConverged.length)).toList)
+  val maxNRetryOperationsForAlgebraicLoopsInStep: Int = maxOr1(
+    allAlgebraicLoopsInStep.valuesIterator.flatMap(i => i.map(_.ifRetryNeeded.length)).toList)
+  val maxNConvergeOperationsForAlgebraicLoopsInStep: Int = maxOr1(
+    allAlgebraicLoopsInStep.valuesIterator.flatMap(i => i.map(_.untilConverged.length)).toList)
   val maxNConvergeOperationsForAlgebraicLoopsInInit: Int = maxOr1(allAlgebraicLoopsInInit.map(i => i.untilConverged.length))
 
   val allStepFindingLoopsInStep: Map[String, List[StepLoop]] =
@@ -248,8 +288,8 @@ class ModelEncoding(model: MasterModel) extends Logging {
       (keyValue._1, ModelQuery.recFilter(keyValue._2, i => i.isInstanceOf[StepLoop]).map(_.asInstanceOf[StepLoop])))
 
   val maxFindStepOperations: Int = maxOr1(allStepFindingLoopsInStep.valuesIterator.flatMap(i => i.map(_.iterate.length)).toList)
-  val maxFindStepRestoreOperations: Int = maxOr1(allStepFindingLoopsInStep.valuesIterator.flatMap(i => i.map(_.ifRetryNeeded.length)).toList)
-
+  val maxFindStepRestoreOperations: Int = maxOr1(
+    allStepFindingLoopsInStep.valuesIterator.flatMap(i => i.map(_.ifRetryNeeded.length)).toList)
 
   val nTerminationOperations: Int = model.terminate.length
 
@@ -262,26 +302,43 @@ class ModelEncoding(model: MasterModel) extends Logging {
 
   def nFindStepOperations: String = getStepLoop(getLoopOperations, length, 1.toString).mkString(",")
 
-  def findStepLoopOperations: String = getStepLoopOperations(getLoopOperations, encodeList, fillNoOps, noOpEncoding, maxFindStepOperations).mkString(",")
+  def findStepLoopOperations: String =
+    getStepLoopOperations(getLoopOperations, encodeList, fillNoOps, noOpEncoding, maxFindStepOperations).mkString(",")
 
-  def findStepLoopRestoreOperations: String = getStepLoopOperations(getRetryOperations, encodeList, fillNoOps, noOpEncoding, maxFindStepRestoreOperations).mkString(",")
+  def findStepLoopRestoreOperations: String =
+    getStepLoopOperations(getRetryOperations, encodeList, fillNoOps, noOpEncoding, maxFindStepRestoreOperations).mkString(",")
 
-  //TODO fix this
-  def getStepLoop(getOperations: StepLoop => List[CosimStepInstruction], format: (List[CosimStepInstruction], String) => String, defaultValue: String): List[String] = {
-    (0 until nConfigs).map(id => {
-      val configName = getConfigName(id)
-      val configurationStepLoop = if (isAdaptive) allStepFindingLoopsInStep(configuration(id)._2) else allStepFindingLoopsInStep.values.head
-      if (configurationStepLoop.isEmpty) defaultValue else configurationStepLoop.map(x => format(getOperations(x), configName)).mkString(",")
-    }).toList
+  // TODO fix this
+  def getStepLoop(
+      getOperations: StepLoop => List[CosimStepInstruction],
+      format: (List[CosimStepInstruction], String) => String,
+      defaultValue: String): List[String] = {
+    (0 until nConfigs)
+      .map(id => {
+        val configName = getConfigName(id)
+        val configurationStepLoop =
+          if (isAdaptive) allStepFindingLoopsInStep(configuration(id)._2) else allStepFindingLoopsInStep.values.head
+        if (configurationStepLoop.isEmpty) defaultValue
+        else configurationStepLoop.map(x => format(getOperations(x), configName)).mkString(",")
+      })
+      .toList
   }
 
-  def getStepLoopOperations(getOperations: StepLoop => List[CosimStepInstruction], format: (List[CosimStepInstruction], String) => List[String], fillList: (List[String], Int) => List[String], defaultValue: String, nTimes: Int = 1): List[String] = {
-    (0 until nConfigs).map(id => {
-      val configName = getConfigName(id)
-      val configurationStepLoop = if (isAdaptive) allStepFindingLoopsInStep(configuration(id)._2) else allStepFindingLoopsInStep.values.head
-      val list = if (configurationStepLoop.isEmpty) List(defaultValue) else format(getOperations(configurationStepLoop.head), configName)
-      fillList(list, nTimes).mkString("{", ",", "}")
-    }).toList
+  def getStepLoopOperations(
+      getOperations: StepLoop => List[CosimStepInstruction],
+      format: (List[CosimStepInstruction], String) => List[String],
+      fillList: (List[String], Int) => List[String],
+      defaultValue: String,
+      nTimes: Int = 1): List[String] = {
+    (0 until nConfigs)
+      .map(id => {
+        val configName = getConfigName(id)
+        val configurationStepLoop =
+          if (isAdaptive) allStepFindingLoopsInStep(configuration(id)._2) else allStepFindingLoopsInStep.values.head
+        val list = if (configurationStepLoop.isEmpty) List(defaultValue) else format(getOperations(configurationStepLoop.head), configName)
+        fillList(list, nTimes).mkString("{", ",", "}")
+      })
+      .toList
   }
 
   private def getConfigName(id: Int) = if (isAdaptive) configuration(id)._2 else loopOpsEncoding.keys.head
@@ -309,7 +366,8 @@ class ModelEncoding(model: MasterModel) extends Logging {
 
   def encodeOperation(op: InitializationInstruction): String = {
     op match {
-      case AlgebraicLoopInit(i, y) => s"""{noFMU, loop, noPort, noStep, noFMU, noCommitment, ${loopOpsEncodingInitInverse(AlgebraicLoopInit(i, y))}}"""
+      case AlgebraicLoopInit(i, y) =>
+        s"""{noFMU, loop, noPort, noStep, noFMU, noCommitment, ${loopOpsEncodingInitInverse(AlgebraicLoopInit(i, y))}}"""
       case _ => op.toUppaal
     }
   }
@@ -317,16 +375,19 @@ class ModelEncoding(model: MasterModel) extends Logging {
   def instantiationOperations: String = model.instantiation.map(_.toUppaal).mkString(",")
 
   def stepOperations: String = {
-    (0 until nConfigs).map(id => {
-      val configName = getConfigName(id)
-      val cosimStep = if (isAdaptive) model.cosimStep(configuration(id)._2) else model.cosimStep.values.head
-      fillNoOps(cosimStep.map(op => encodeOperation(op, configName)), maxStepOperations).mkString("{", ",", "}")
-    }).mkString(",")
+    (0 until nConfigs)
+      .map(id => {
+        val configName = getConfigName(id)
+        val cosimStep = if (isAdaptive) model.cosimStep(configuration(id)._2) else model.cosimStep.values.head
+        fillNoOps(cosimStep.map(op => encodeOperation(op, configName)), maxStepOperations).mkString("{", ",", "}")
+      })
+      .mkString(",")
   }
 
   def encodeOperation(op: CosimStepInstruction, config: String = ""): String = {
     op match {
-      case AlgebraicLoop(i, y, x) => s"""{noFMU, loop, noPort, noStep, noFMU, noCommitment, ${loopOpsEncodingInverse(config)(AlgebraicLoop(i, y, x))}}"""
+      case AlgebraicLoop(i, y, x) =>
+        s"""{noFMU, loop, noPort, noStep, noFMU, noCommitment, ${loopOpsEncodingInverse(config)(AlgebraicLoop(i, y, x))}}"""
       case _ => op.toUppaal
     }
   }

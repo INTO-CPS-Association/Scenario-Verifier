@@ -1,8 +1,8 @@
 import org.intocps.verification.scenarioverifier.api.VerificationAPI
 import org.intocps.verification.scenarioverifier.core.ScenarioLoader
-import org.scalatest.Assertion
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
+import org.scalatest.Assertion
 
 class PositiveTests extends AnyFlatSpec with should.Matchers {
   def generateAndVerify(resourcesFile: String): Assertion = {
@@ -39,10 +39,9 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
     generateAndVerify("examples/algebraic_loop_msd_gs.conf")
   }
 
-    it should "work for mastermode step rejection" in {
+  it should "work for mastermode step rejection" in {
     generateAndVerify("examples/masterModel.conf")
   }
-
 
   it should "work for algebraic_loop_msd_fail_converge" in {
     generateAndVerify("examples/algebraic_loop_msd_jac.conf")

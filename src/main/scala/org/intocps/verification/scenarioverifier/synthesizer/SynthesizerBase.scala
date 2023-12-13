@@ -1,12 +1,20 @@
 package org.intocps.verification.scenarioverifier.synthesizer
 
-import org.apache.logging.log4j.scala.Logging
-import org.intocps.verification.scenarioverifier
-import org.intocps.verification.scenarioverifier.core.{CosimStepInstruction, Get, GetTentative, InitializationInstruction, PortRef, RestoreState, SaveState, SetTentative, StepLoop}
-import LoopStrategy.LoopStrategy
-
 import scala.annotation.tailrec
 import scala.collection.mutable
+
+import org.apache.logging.log4j.scala.Logging
+import org.intocps.verification.scenarioverifier
+import org.intocps.verification.scenarioverifier.core.CosimStepInstruction
+import org.intocps.verification.scenarioverifier.core.Get
+import org.intocps.verification.scenarioverifier.core.GetTentative
+import org.intocps.verification.scenarioverifier.core.InitializationInstruction
+import org.intocps.verification.scenarioverifier.core.PortRef
+import org.intocps.verification.scenarioverifier.core.RestoreState
+import org.intocps.verification.scenarioverifier.core.SaveState
+import org.intocps.verification.scenarioverifier.core.SetTentative
+import org.intocps.verification.scenarioverifier.core.StepLoop
+import LoopStrategy.LoopStrategy
 
 object LoopStrategy extends Enumeration {
   type LoopStrategy = Value
@@ -101,8 +109,10 @@ trait SynthesizerBase extends Logging {
     SCCs match {
       case ::(scc, next) =>
         sccType(scc, edges) match {
-          case FeedthroughLoop(nodes) => handleSCC(next, edges, formatAlgebraicLoop(nodes, edges, coSimAlgorithm, isReactive = false, isNested = false))
-          case ReactiveLoop(nodes) => handleSCC(next, edges, formatAlgebraicLoop(nodes, edges, coSimAlgorithm, isReactive = true, isNested = false))
+          case FeedthroughLoop(nodes) =>
+            handleSCC(next, edges, formatAlgebraicLoop(nodes, edges, coSimAlgorithm, isReactive = false, isNested = false))
+          case ReactiveLoop(nodes) =>
+            handleSCC(next, edges, formatAlgebraicLoop(nodes, edges, coSimAlgorithm, isReactive = true, isNested = false))
           case StepLoopNodes(nodes) => handleSCC(next, edges, formatStepLoop(nodes, edges, coSimAlgorithm))
           case SimpleAction(node) => handleSCC(next, edges, formatStepInstruction(node.head, coSimAlgorithm))
           case _ => throw new UnsupportedOperationException("Unknown SCC in Graph")

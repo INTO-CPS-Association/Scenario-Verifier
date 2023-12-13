@@ -1,9 +1,14 @@
-import java.io.{BufferedWriter, File, FileWriter, PrintWriter}
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileWriter
+import java.io.PrintWriter
 import java.nio.file.Files
-import org.intocps.verification.scenarioverifier.core.{MaudeModelEncoding, ScenarioLoader}
-import org.scalatest.Ignore
+
+import org.intocps.verification.scenarioverifier.core.MaudeModelEncoding
+import org.intocps.verification.scenarioverifier.core.ScenarioLoader
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
+import org.scalatest.Ignore
 
 @Ignore
 class MaudeTests extends AnyFlatSpec with should.Matchers {
@@ -14,7 +19,7 @@ class MaudeTests extends AnyFlatSpec with should.Matchers {
     file
   }
 
-  def generateAndVerify(resourcesFile: String, name : String) = {
+  def generateAndVerify(resourcesFile: String, name: String) = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val encoding = new MaudeModelEncoding(ScenarioLoader.load(conf))
     val encodingString = encoding.scenario
@@ -23,12 +28,11 @@ class MaudeTests extends AnyFlatSpec with should.Matchers {
     val bw = new BufferedWriter(new FileWriter(file))
     bw.write(encodingString)
     bw.close()
-    ///val result = MaudeScenarioGenerator.generate(encoding)
-    //assert(MaudeRunner.checkEnvironment())
-    //MaudeRunner.verify(f, fullMaudeFile) should be (0)
-    //FileUtils.deleteQuietly(f)
+    /// val result = MaudeScenarioGenerator.generate(encoding)
+    // assert(MaudeRunner.checkEnvironment())
+    // MaudeRunner.verify(f, fullMaudeFile) should be (0)
+    // FileUtils.deleteQuietly(f)
   }
-
 
   "ScenarioGenerator" should "work for water_tank.conf" in {
     generateAndVerify("examples/water_tank.conf", "water_tank")
@@ -54,9 +58,8 @@ class MaudeTests extends AnyFlatSpec with should.Matchers {
     generateAndVerify("examples/simple_master_step_sizes.conf", "simple_master_step_sizes")
   }
 
-
   it should "work for industrial" in {
-    generateAndVerify("examples/industrial_casestudy.conf","industrial_casestudy")
+    generateAndVerify("examples/industrial_casestudy.conf", "industrial_casestudy")
   }
 
   it should "work for industrial_case_alt" in {

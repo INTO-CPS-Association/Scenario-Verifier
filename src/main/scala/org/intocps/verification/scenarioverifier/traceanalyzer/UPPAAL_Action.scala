@@ -1,9 +1,24 @@
 package org.intocps.verification.scenarioverifier.traceanalyzer
 
 import org.intocps.verification.scenarioverifier
-import org.intocps.verification.scenarioverifier.core.{AbsoluteStepSize, AlgebraicLoop, CosimStepInstruction, Get, ModelEncoding, PortRef, RestoreState, SaveState, Step, StepLoop}
+import org.intocps.verification.scenarioverifier.core.AbsoluteStepSize
+import org.intocps.verification.scenarioverifier.core.AlgebraicLoop
+import org.intocps.verification.scenarioverifier.core.CosimStepInstruction
+import org.intocps.verification.scenarioverifier.core.Get
+import org.intocps.verification.scenarioverifier.core.ModelEncoding
+import org.intocps.verification.scenarioverifier.core.PortRef
+import org.intocps.verification.scenarioverifier.core.RestoreState
+import org.intocps.verification.scenarioverifier.core.SaveState
+import org.intocps.verification.scenarioverifier.core.Step
+import org.intocps.verification.scenarioverifier.core.StepLoop
 
-final case class UPPAAL_Action(FMU: String = "", actionNumber: Int = -1, Port: String = "", stepSize: Int = -1, relative_step_size: Int = -1, commitment: Int = -1) {
+final case class UPPAAL_Action(
+    FMU: String = "",
+    actionNumber: Int = -1,
+    Port: String = "",
+    stepSize: Int = -1,
+    relative_step_size: Int = -1,
+    commitment: Int = -1) {
   def format(): String = {
     actionNumber match {
       case 0 => f"Get $FMU.$Port"
@@ -36,11 +51,11 @@ final case class UPPAAL_Action(FMU: String = "", actionNumber: Int = -1, Port: S
   }
 }
 
-
-final case class UppaalTrace(modelEncoding: ModelEncoding,
-                             initStates: Seq[ModelState],
-                             simulationStates: Seq[ModelState],
-                             scenarioName: String) {
+final case class UppaalTrace(
+    modelEncoding: ModelEncoding,
+    initStates: Seq[ModelState],
+    simulationStates: Seq[ModelState],
+    scenarioName: String) {
   def getLastEnabledActions: Set[CosimStepInstruction] = {
     val lastState = simulationStates.last
     val lastEnabledActions = lastState.possibleActions
@@ -48,15 +63,16 @@ final case class UppaalTrace(modelEncoding: ModelEncoding,
   }
 }
 
-final case class ModelState(checksDisabled: Boolean,
-                            loopActive: Boolean,
-                            timeStamp: Int,
-                            FMUs: List[FMUState],
-                            action: UPPAAL_Action,
-                            possibleActions: List[UPPAAL_Action],
-                            isInitState: Boolean,
-                            isSimulation: Boolean,
-                            previous: Option[UPPAAL_Action] = None) {
+final case class ModelState(
+    checksDisabled: Boolean,
+    loopActive: Boolean,
+    timeStamp: Int,
+    FMUs: List[FMUState],
+    action: UPPAAL_Action,
+    possibleActions: List[UPPAAL_Action],
+    isInitState: Boolean,
+    isSimulation: Boolean,
+    previous: Option[UPPAAL_Action] = None) {
 
   def canStep(fmuName: String): Boolean = {
     val fmu = FMUs.find(_.name == fmuName).get
@@ -75,7 +91,9 @@ final case class ModelState(checksDisabled: Boolean,
   }
 
   def isDefinedInputState(fmu: String, portName: String): Boolean =
-    definedInputs.exists(i => i.fmu == fmu && i.name == portName && (if (i.isReactive) i.time > FMUs.find(_.name == fmu).get.timeStamp else i.time >= FMUs.find(_.name == fmu).get.timeStamp))
+    definedInputs.exists(i =>
+      i.fmu == fmu && i.name == portName && (if (i.isReactive) i.time > FMUs.find(_.name == fmu).get.timeStamp
+                                             else i.time >= FMUs.find(_.name == fmu).get.timeStamp))
 
   def isDefinedOutputState(fmu: String, portName: String): Boolean =
     definedOutputs.exists(i => i.fmu == fmu && i.name == portName && i.time == FMUs.find(_.name == fmu).get.timeStamp)
@@ -93,7 +111,13 @@ final case class ModelState(checksDisabled: Boolean,
 
 }
 
-final case class FMUState(isSaved: Boolean, saveTime: Int, timeStamp: Int, name: String, inputPorts: List[PortVariableState], outputPorts: List[PortVariableState])
+final case class FMUState(
+    isSaved: Boolean,
+    saveTime: Int,
+    timeStamp: Int,
+    name: String,
+    inputPorts: List[PortVariableState],
+    outputPorts: List[PortVariableState])
 
 case class PortVariableState(fmu: String, name: String, time: Int, defined: Boolean, isReactive: Boolean) {
   def printPort(): Unit = {
@@ -102,5 +126,3 @@ case class PortVariableState(fmu: String, name: String, time: Int, defined: Bool
     println(f"IsDefined = $defined")
   }
 }
-
-

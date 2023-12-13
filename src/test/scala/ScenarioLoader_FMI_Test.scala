@@ -1,18 +1,18 @@
 import org.intocps.verification.scenarioverifier.core.FMI3.ScenarioLoaderFMI3
-import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
+import org.scalatest.Assertion
 
 class ScenarioLoader_FMI_Test extends AnyFlatSpec with should.Matchers {
 
-  private def confGenerationTest(resourcesFile: String,
-                                 nFMUs: Int,
-                                 nConnections: Int,
-                                 nClockedConnections: Int,
-                                 nInitializationInstructions: Int,
-                                 nStepSizeInstructions: Int,
-                                 nEventStrategies: Int
-                                ): Assertion = {
+  private def confGenerationTest(
+      resourcesFile: String,
+      nFMUs: Int,
+      nConnections: Int,
+      nClockedConnections: Int,
+      nInitializationInstructions: Int,
+      nStepSizeInstructions: Int,
+      nEventStrategies: Int): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val scenario = ScenarioLoaderFMI3.load(conf)
     assert(scenario.scenario.fmus.size == nFMUs)
@@ -24,12 +24,10 @@ class ScenarioLoader_FMI_Test extends AnyFlatSpec with should.Matchers {
   }
 
   it should "be able to load a simple scenario Master Algorithm for Simple Master" in {
-    confGenerationTest("examples_fmi_3/simple_master_fmi3.conf",
-      2, 3, 0, 6, 8, 0)
+    confGenerationTest("examples_fmi_3/simple_master_fmi3.conf", 2, 3, 0, 6, 8, 0)
   }
 
   it should "be able to load the motivation example" in {
-    confGenerationTest("examples_fmi_3/motivation_example.conf",
-      5, 6, 1, 3, 0, 0)
+    confGenerationTest("examples_fmi_3/motivation_example.conf", 5, 6, 1, 3, 0, 0)
   }
 }

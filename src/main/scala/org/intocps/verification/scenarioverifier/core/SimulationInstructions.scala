@@ -3,7 +3,7 @@ package org.intocps.verification.scenarioverifier.core
 trait SimulationInstruction extends UppaalModel with ConfElement {
   def fmu: String
 
-  def portName : String = "noPort"
+  def portName: String = "noPort"
 
   require(fmu.nonEmpty, "fmu must not be empty")
 
@@ -15,7 +15,7 @@ abstract class InitializationInstruction extends SimulationInstruction with SMTL
 final case class InitSet(port: PortRef) extends InitializationInstruction {
   override def fmu: String = port.fmu
 
-  override def portName : String = port.port
+  override def portName: String = port.port
   override def toUppaal: String = s"{$fmu, set, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
 
   override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{set: ${generatePort(port)}}"
@@ -27,7 +27,7 @@ final case class InitGet(port: PortRef) extends InitializationInstruction with S
 
   override def fmu: String = port.fmu
 
-  override def portName : String = port.port
+  override def portName: String = port.port
 
   override def toUppaal: String = s"{$fmu, get, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
 
@@ -49,8 +49,8 @@ final case class ExitInitMode(fmu: String) extends InitializationInstruction {
   override def toSMTLib: String = throw new Exception("ExitInitMode should not be serialized to SMTLib")
 }
 
-final case class AlgebraicLoopInit(untilConverged: List[PortRef],
-                                   iterate: List[InitializationInstruction]) extends InitializationInstruction {
+final case class AlgebraicLoopInit(untilConverged: List[PortRef], iterate: List[InitializationInstruction])
+    extends InitializationInstruction {
   override def fmu: String = "noFMU"
 
   override def toUppaal: String = throw new Exception("AlgebraicLoopInit should not be serialized to Uppaal")
@@ -102,10 +102,9 @@ sealed abstract class CosimStepInstruction extends SimulationInstruction with SM
 final case class Set(port: PortRef) extends CosimStepInstruction {
   override def fmu: String = port.fmu
 
-  override def portName : String = port.port
+  override def portName: String = port.port
 
   override def toUppaal: String = s"{$fmu, set, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
-
 
   override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{set: ${generatePort(port)}}"
 
@@ -115,7 +114,7 @@ final case class Set(port: PortRef) extends CosimStepInstruction {
 final case class Get(port: PortRef) extends CosimStepInstruction {
   override def fmu: String = port.fmu
 
-  override def portName : String = port.port
+  override def portName: String = port.port
 
   override def toUppaal: String = s"{$fmu, get, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
 
@@ -127,7 +126,7 @@ final case class Get(port: PortRef) extends CosimStepInstruction {
 final case class GetTentative(port: PortRef) extends CosimStepInstruction {
   override def fmu: String = port.fmu
 
-  override def portName : String = port.port
+  override def portName: String = port.port
 
   override def toUppaal: String = s"{$fmu, get, ${fmuPortName(port)}, noStep, noFMU, tentative, noLoop}"
 
@@ -139,7 +138,7 @@ final case class GetTentative(port: PortRef) extends CosimStepInstruction {
 final case class SetTentative(port: PortRef) extends CosimStepInstruction {
   override def fmu: String = port.fmu
 
-  override def portName : String = port.port
+  override def portName: String = port.port
 
   override def toUppaal: String =
     s"{$fmu, set, ${fmuPortName(port)}, noStep, noFMU, tentative, noLoop}"
@@ -178,9 +177,8 @@ case class RestoreState(fmu: String) extends CosimStepInstruction {
   override def toSMTLib: String = throw new Exception("RestoreState should not be serialized to SMTLib")
 }
 
-case class AlgebraicLoop(untilConverged: List[PortRef],
-                         iterate: List[CosimStepInstruction],
-                         ifRetryNeeded: List[CosimStepInstruction]) extends CosimStepInstruction {
+case class AlgebraicLoop(untilConverged: List[PortRef], iterate: List[CosimStepInstruction], ifRetryNeeded: List[CosimStepInstruction])
+    extends CosimStepInstruction {
   override def fmu: String = "noFMU"
 
   override def toUppaal: String = throw new Exception("Algebraic loop not supported in Uppaal")
@@ -198,9 +196,11 @@ case class AlgebraicLoop(untilConverged: List[PortRef],
   override def toSMTLib: String = throw new Exception("Algebraic loop not supported in SMTLib")
 }
 
-case class StepLoop(untilStepAccept: List[String], // List of FMU ids
-                    iterate: List[CosimStepInstruction],
-                    ifRetryNeeded: List[CosimStepInstruction]) extends CosimStepInstruction {
+case class StepLoop(
+    untilStepAccept: List[String], // List of FMU ids
+    iterate: List[CosimStepInstruction],
+    ifRetryNeeded: List[CosimStepInstruction])
+    extends CosimStepInstruction {
   override def fmu: String = "noFMU"
 
   override def toUppaal: String = s"{noFMU, findStep, noPort, noStep, noFMU, noCommitment, noLoop}"

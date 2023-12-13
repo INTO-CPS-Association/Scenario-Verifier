@@ -1,14 +1,20 @@
+import scala.collection.immutable.HashSet
+
 import org.intocps.verification.scenarioverifier.api.VerificationAPI
 import org.intocps.verification.scenarioverifier.synthesizer.ScenarioBuilder
 import org.intocps.verification.scenarioverifier.synthesizer.ScenarioBuilder.FMI2ScenarioBuilder
-import org.scalatest.{Assertion, Ignore}
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-
-import scala.collection.immutable.HashSet
+import org.scalatest.Assertion
+import org.scalatest.Ignore
 @Ignore
 class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
-  def generateSynthesisAndVerify(scenarioName: String, nFMU: Int, nConnection: Int, feedthrough: Boolean = true, canRejectStep: Boolean = false): Assertion = {
+  def generateSynthesisAndVerify(
+      scenarioName: String,
+      nFMU: Int,
+      nConnection: Int,
+      feedthrough: Boolean = true,
+      canRejectStep: Boolean = false): Assertion = {
     val scenario = FMI2ScenarioBuilder.generateScenario(nFMU, nConnection, feedthrough, canRejectStep)
     assert(VerificationAPI.synthesizeAndVerify(scenarioName, scenario))
   }
@@ -29,11 +35,11 @@ class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
     generateSynthesisAndVerify("Big_Very_Advanced_Example", 10, 20, canRejectStep = true)
   }
 
-  it should "create valid Big example with no Feedthrough" ignore  {
+  it should "create valid Big example with no Feedthrough" ignore {
     generateSynthesisAndVerify("Test_Simple_Big_Example", 20, 40, feedthrough = false, canRejectStep = true)
   }
 
-  it should "create very big simple example" ignore  {
+  it should "create very big simple example" ignore {
     generateSynthesisAndVerify("Big_Simple_Example", 100, 200, feedthrough = false)
   }
 

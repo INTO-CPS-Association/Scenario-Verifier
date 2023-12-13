@@ -1,8 +1,8 @@
 import org.intocps.verification.scenarioverifier.api.VerificationAPI
 import org.intocps.verification.scenarioverifier.core.ScenarioLoader
-import org.scalatest.Assertion
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
+import org.scalatest.Assertion
 
 class SynthesizerTest extends AnyFlatSpec with should.Matchers {
   private def synthesizeAndVerify(resourcesFile: String): Assertion = {

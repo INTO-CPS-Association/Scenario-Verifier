@@ -1,10 +1,13 @@
 import org.apache.commons.io.FileUtils
 import org.intocps.verification.scenarioverifier.core.ScenarioLoader
-import org.intocps.verification.scenarioverifier.synthesizer.{GraphBuilder, GraphVisualizer, InitializationInstructionNode, StepInstructionNode, TarjanGraph}
-import org.scalatest.Ignore
+import org.intocps.verification.scenarioverifier.synthesizer.GraphBuilder
+import org.intocps.verification.scenarioverifier.synthesizer.GraphVisualizer
+import org.intocps.verification.scenarioverifier.synthesizer.InitializationInstructionNode
+import org.intocps.verification.scenarioverifier.synthesizer.StepInstructionNode
+import org.intocps.verification.scenarioverifier.synthesizer.TarjanGraph
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-
+import org.scalatest.Ignore
 
 class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
   def testGraph(file: String, name: String): Unit = {

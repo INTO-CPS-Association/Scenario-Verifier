@@ -1,5 +1,13 @@
 package org.intocps.verification.scenarioverifier.core
 
+import java.io.File
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.nio.file.Files
+import java.nio.file.Paths
+
+import scala.collection.immutable
+
 import com.typesafe.config.ConfigFactory
 import io.circe._
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
@@ -8,15 +16,13 @@ import io.circe.syntax._
 import org.apache.logging.log4j.scala.Logging
 import org.intocps.verification.scenarioverifier.core
 import org.intocps.verification.scenarioverifier.prettyprint.PPrint
+import pureconfig.error.ConfigReaderFailure
+import pureconfig.error.ConvertFailure
+import pureconfig.error.UnknownKey
+import pureconfig.generic.auto._
+import pureconfig.generic.ProductHint
 import pureconfig.ConfigReader.Result
 import pureconfig.ConfigSource
-import pureconfig.error.{ConfigReaderFailure, ConvertFailure, UnknownKey}
-import pureconfig.generic.ProductHint
-import pureconfig.generic.auto._
-
-import java.io.{File, InputStream, InputStreamReader}
-import java.nio.file.{Files, Paths}
-import scala.collection.immutable
 
 object ScenarioLoader extends Logging {
   def load(file: String): MasterModel = {
@@ -54,10 +60,9 @@ object ScenarioLoader extends Logging {
     }
   }
 
-
   /*
-    * Remove all ports that are not connected to any other port.
-    * This is done to simplify the orchestration algorithm.
+   * Remove all ports that are not connected to any other port.
+   * This is done to simplify the orchestration algorithm.
    */
   def simplifyScenario(model: ScenarioModel): ScenarioModel = {
     val connectedPorts = model.connections.flatMap(c => List(c.srcPort, c.trgPort))
@@ -65,10 +70,10 @@ object ScenarioLoader extends Logging {
       // Remove all ports that are not connected to any other port
       val connectedOutputsPorts = fmu._2.outputs.filter(p => connectedPorts.contains(PortRef(fmu._1, p._1)))
       val connectedInputsPorts = fmu._2.inputs.filter(p => connectedPorts.contains(PortRef(fmu._1, p._1)))
-      val connectedOutputsPortsWithConnectedFeedthroguh = connectedOutputsPorts.map(p => p._1 -> OutputPortModel(
-        p._2.dependenciesInit.filter(d => connectedInputsPorts.contains(d)),
-        p._2.dependencies.filter(d => connectedInputsPorts.contains(d))
-      ))
+      val connectedOutputsPortsWithConnectedFeedthroguh = connectedOutputsPorts.map(p =>
+        p._1 -> OutputPortModel(
+          p._2.dependenciesInit.filter(d => connectedInputsPorts.contains(d)),
+          p._2.dependencies.filter(d => connectedInputsPorts.contains(d))))
       fmu.copy(_2 = fmu._2.copy(outputs = connectedOutputsPortsWithConnectedFeedthroguh, inputs = connectedInputsPorts))
     })
     model.copy(fmus = fmus)
@@ -104,29 +109,41 @@ object ScenarioLoader extends Logging {
         val scenarioModel = parse(scenario)
         val instantiationModel = generateInstantiationInstructions(scenarioModel).toList
         val initializationModel = initialization.map(instruction => parse(instruction, scenarioModel))
-        val expandedInitModel = generateEnterInitInstructions(scenarioModel) ++ initializationModel ++ generateExitInitInstructions(scenarioModel)
-        val cosimStepModel = cosimStep.map(instructions => (instructions._1, instructions._2.map(instruction => parse(instruction, scenarioModel))))
+        val expandedInitModel =
+          generateEnterInitInstructions(scenarioModel) ++ initializationModel ++ generateExitInitInstructions(scenarioModel)
+        val cosimStepModel =
+          cosimStep.map(instructions => (instructions._1, instructions._2.map(instruction => parse(instruction, scenarioModel))))
         val terminateModel = generateTerminateInstructions(scenarioModel).toList
         MasterModel(name, scenarioModel, instantiationModel, expandedInitModel.toList, cosimStepModel, terminateModel)
     }
   }
 
   def parse(masterModel: MasterModel): MasterModelDTO = {
-    val filteredInitializationActions = masterModel.initialization.filterNot(i => i.isInstanceOf[EnterInitMode] || i.isInstanceOf[ExitInitMode])
+    val filteredInitializationActions =
+      masterModel.initialization.filterNot(i => i.isInstanceOf[EnterInitMode] || i.isInstanceOf[ExitInitMode])
     MasterModelDTO(masterModel.name, masterModel.scenario, filteredInitializationActions, masterModel.cosimStep)
   }
 
   private def enrichDTO(masterModelDTO: MasterModelDTO): MasterModel = {
     val instantiationModel = generateInstantiationInstructions(masterModelDTO.scenario).toList
-    val expandedInitModel = (generateEnterInitInstructions(masterModelDTO.scenario) ++ masterModelDTO.initialization ++ generateExitInitInstructions(masterModelDTO.scenario)).toList
+    val expandedInitModel =
+      (generateEnterInitInstructions(masterModelDTO.scenario) ++ masterModelDTO.initialization ++ generateExitInitInstructions(
+        masterModelDTO.scenario)).toList
     val terminateModel = generateTerminateInstructions(masterModelDTO.scenario).toList
-    MasterModel(masterModelDTO.name, masterModelDTO.scenario, instantiationModel, expandedInitModel, masterModelDTO.cosimStep, terminateModel)
+    MasterModel(
+      masterModelDTO.name,
+      masterModelDTO.scenario,
+      instantiationModel,
+      expandedInitModel,
+      masterModelDTO.cosimStep,
+      terminateModel)
   }
 
+  def generateEnterInitInstructions(model: ScenarioModel): immutable.Iterable[InitializationInstruction] =
+    model.fmus.map(f => EnterInitMode(f._1))
 
-  def generateEnterInitInstructions(model: ScenarioModel): immutable.Iterable[InitializationInstruction] = model.fmus.map(f => EnterInitMode(f._1))
-
-  def generateExitInitInstructions(model: ScenarioModel): immutable.Iterable[InitializationInstruction] = model.fmus.map(f => ExitInitMode(f._1))
+  def generateExitInitInstructions(model: ScenarioModel): immutable.Iterable[InitializationInstruction] =
+    model.fmus.map(f => ExitInitMode(f._1))
 
   def generateInstantiationInstructions(model: ScenarioModel): immutable.Iterable[InstantiationInstruction] =
     model.fmus.map(f => Instantiate(f._1)) ++ model.fmus.map(f => SetupExperiment(f._1))
@@ -135,7 +152,6 @@ object ScenarioLoader extends Logging {
     model.fmus.map(f => Terminate(f._1)) ++
       model.fmus.map(f => FreeInstance(f._1)) ++
       model.fmus.map(f => Unload(f._1))
-
 
   private def parsePortRef(str: String, context: String, fmus: Map[String, FmuModel]): PortRef = {
     val pRes = FMURefParserSingleton.parse(FMURefParserSingleton.fmu_port_ref, str)
@@ -149,13 +165,11 @@ object ScenarioLoader extends Logging {
     instruction match {
       case NestedInitStatement(get, set) =>
         val nOps = List(get, set).count(b => !b.isBlank)
-        assert(nOps == 1,
-          s"Initialization instruction $instruction must be one of get, set")
+        assert(nOps == 1, s"Initialization instruction $instruction must be one of get, set")
       case RootInitStatement(get, set, loop) =>
         val baseOps = List(get, set).count(b => b.nonEmpty && !b.isBlank)
         val nOps = baseOps + (if (loop == NoLoopInit) 0 else 1)
-        assert(nOps == 1,
-          s"Initialization instruction $instruction must be one of get, set or loop-init.")
+        assert(nOps == 1, s"Initialization instruction $instruction must be one of get, set or loop-init.")
     }
     if (!instruction.get.isBlank) {
       val pRef = parsePortRef(instruction.get, s"instruction $instruction", scenarioModel.fmus)
@@ -177,20 +191,19 @@ object ScenarioLoader extends Logging {
     }
   }
 
-
   def parse(instruction: StepStatement, scenarioModel: ScenarioModel): CosimStepInstruction = {
     // Check uniqueness of instruction
     instruction match {
       case NestedStepStatement(get, set, step, saveState, restoreState, loop, getTentative, setTentative, _, _) =>
         val baseOps = List(get, set, step, saveState, restoreState, getTentative, setTentative).count(b => !b.isBlank)
         val nOps = baseOps + (if (loop == NoLoop) 0 else 1)
-        assert(nOps == 1,
+        assert(
+          nOps == 1,
           s"Cosim step instruction $instruction must be one of get, set, step, save-state, restore-state, loop, or get-tentative.")
       case RootStepStatement(get, set, step, saveState, restoreState, loop, _, _) =>
         val baseOps = List(get, set, step, saveState, restoreState).count(b => !b.isBlank)
         val nOps = baseOps + (if (loop == NoLoop) 0 else 1)
-        assert(nOps == 1,
-          s"Cosim step instruction $instruction must be one of get, set, step, save-state, restore-state, or loop.")
+        assert(nOps == 1, s"Cosim step instruction $instruction must be one of get, set, step, save-state, restore-state, or loop.")
     }
 
     if (!instruction.get.isBlank) {
@@ -206,7 +219,8 @@ object ScenarioLoader extends Logging {
       assert(scenarioModel.fmus.contains(fmuRef), s"Unable to resolve fmu $fmuRef.")
       if (instruction.by >= 0) {
         assert(instruction.bySameAs.isBlank, "Only one of by or by-same-as is allowed.")
-        assert(instruction.by <= scenarioModel.maxPossibleStepSize,
+        assert(
+          instruction.by <= scenarioModel.maxPossibleStepSize,
           s"Cannot take step (${instruction.by}) larger than the specified max-possible-step-size (${scenarioModel.maxPossibleStepSize}).")
         Step(fmuRef, AbsoluteStepSize(instruction.by))
       } else if (!instruction.bySameAs.isBlank) {
@@ -231,11 +245,15 @@ object ScenarioLoader extends Logging {
         case NestedStepStatement(_, _, _, _, _, loop, getTentative, setTentative, _, _) =>
           if (!getTentative.isBlank) {
             val pRef = parsePortRef(getTentative, s"instruction $instruction", scenarioModel.fmus)
-            assert(scenarioModel.fmus(pRef.fmu).outputs.contains(pRef.port), s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
+            assert(
+              scenarioModel.fmus(pRef.fmu).outputs.contains(pRef.port),
+              s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
             GetTentative(pRef)
           } else if (!setTentative.isBlank) {
             val pRef = parsePortRef(setTentative, s"instruction $instruction", scenarioModel.fmus)
-            assert(scenarioModel.fmus(pRef.fmu).inputs.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
+            assert(
+              scenarioModel.fmus(pRef.fmu).inputs.contains(pRef.port),
+              s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
             SetTentative(pRef)
           } else if (loop != NoLoop) {
             parse(loop, scenarioModel)
@@ -251,7 +269,9 @@ object ScenarioLoader extends Logging {
 
   def parse(loop: LoopConfigStep, scenarioModel: ScenarioModel): CosimStepInstruction = {
     assert(loop.untilConverged.nonEmpty || loop.untilStepAccept.nonEmpty, "Loop has to have either until-converged or until-step-accept.")
-    assert(loop.untilConverged.isEmpty || loop.untilStepAccept.isEmpty, "Loop has to have either until-converged or until-step-accept, but not both.")
+    assert(
+      loop.untilConverged.isEmpty || loop.untilStepAccept.isEmpty,
+      "Loop has to have either until-converged or until-step-accept, but not both.")
     val iterate = loop.iterate.map(s => parse(s, scenarioModel))
     val ifRetryNeeded = loop.ifRetryNeeded.map(s => parse(s, scenarioModel))
     if (loop.untilConverged.nonEmpty) {
@@ -292,7 +312,6 @@ object ScenarioLoader extends Logging {
       (keyValues._1, ConfigurationModel(inputs, keyValues._2.cosimStep, connections))
     })
 
-
     AdaptiveModel(configurableInputs = configurableInputs, configurations = configurationModels)
   }
 
@@ -329,8 +348,10 @@ object ScenarioLoader extends Logging {
   def parse(config: OutputPortConfig, inputsModel: Map[String, InputPortModel], outputPortId: String, fmuId: String): OutputPortModel = {
     config match {
       case OutputPortConfig(dependenciesInit, dependencies) =>
-        val errorCheck = (inputPortRef: String) => assert(inputsModel.contains(inputPortRef),
-          f"Unable to resolve input port reference $inputPortRef in the output port $outputPortId FMU $fmuId.")
+        val errorCheck = (inputPortRef: String) =>
+          assert(
+            inputsModel.contains(inputPortRef),
+            f"Unable to resolve input port reference $inputPortRef in the output port $outputPortId FMU $fmuId.")
         dependenciesInit.foreach(errorCheck)
         dependencies.foreach(errorCheck)
         OutputPortModel(dependenciesInit, dependencies)
@@ -341,11 +362,15 @@ object ScenarioLoader extends Logging {
     val results = ConnectionParserSingleton.parse(ConnectionParserSingleton.connection, connectionConfig)
     assert(results.successful, s"Problem parsing connection string $connectionConfig.")
     val connection = results.get
-    assert(fmus.contains(connection.srcPort.fmu), s"Unable to resolve source fmu ${connection.srcPort.fmu} in connection $connectionConfig.")
-    assert(fmus.contains(connection.trgPort.fmu), s"Unable to resolve source fmu ${connection.trgPort.fmu} in connection $connectionConfig.")
+    assert(
+      fmus.contains(connection.srcPort.fmu),
+      s"Unable to resolve source fmu ${connection.srcPort.fmu} in connection $connectionConfig.")
+    assert(
+      fmus.contains(connection.trgPort.fmu),
+      s"Unable to resolve source fmu ${connection.trgPort.fmu} in connection $connectionConfig.")
 
-    //val srcFmu = fmus(connection.srcPort.fmu)
-    //val trgFmu = fmus(connection.trgPort.fmu)
+    // val srcFmu = fmus(connection.srcPort.fmu)
+    // val trgFmu = fmus(connection.trgPort.fmu)
 
     /*
     assert(srcFmu.outputs.contains(connection.srcPort.port),

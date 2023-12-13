@@ -2,7 +2,7 @@ package org.intocps.verification.scenarioverifier.core
 
 import scala.util.parsing.combinator.RegexParsers
 
-abstract sealed class AnyArgument
+sealed abstract class AnyArgument
 
 case class IdRef(str: String) extends AnyArgument
 
@@ -35,7 +35,8 @@ class ConnectionParser extends FMURefParser {
   private def arrow: Parser[ARROW] = "->".r ^^ { _ => ARROW() }
 
   def connection: Parser[ConnectionModel] = fmu_port_ref ~ arrow ~ fmu_port_ref ^^ {
-    case PortRef(src_fmu, src_port) ~ ARROW() ~ PortRef(trg_fmu, trg_port) => ConnectionModel(PortRef(src_fmu, src_port), PortRef(trg_fmu, trg_port))
+    case PortRef(src_fmu, src_port) ~ ARROW() ~ PortRef(trg_fmu, trg_port) =>
+      ConnectionModel(PortRef(src_fmu, src_port), PortRef(trg_fmu, trg_port))
   }
 }
 

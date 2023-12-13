@@ -2,9 +2,9 @@ package Z3.DynamicVerification_Z3
 
 import org.intocps.verification.scenarioverifier.api.VerificationAPI
 import org.intocps.verification.scenarioverifier.core.ScenarioLoader
+import org.scalatest._
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import org.scalatest._
 
 @Ignore
 class PositiveTests extends AnyFlatSpec with should.Matchers {

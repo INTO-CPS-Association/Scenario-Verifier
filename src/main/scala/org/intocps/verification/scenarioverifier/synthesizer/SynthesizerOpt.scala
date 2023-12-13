@@ -78,5 +78,4 @@ class SynthesizerOpt(scenarioModel: ScenarioModel, strategy: LoopStrategy) exten
     edgesInSCC
   }
 }
-*/
-
+ */

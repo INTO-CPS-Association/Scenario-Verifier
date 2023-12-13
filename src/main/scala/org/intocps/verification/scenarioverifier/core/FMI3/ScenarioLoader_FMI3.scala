@@ -1,20 +1,39 @@
 package org.intocps.verification.scenarioverifier.core.FMI3
 
+import java.io.File
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.nio.file.Files
+import java.nio.file.Paths
+
 import com.typesafe.config.ConfigFactory
 import io.circe._
 import io.circe.syntax._
 import org.apache.logging.log4j.scala.Logging
 import org.intocps.verification.scenarioverifier
-import org.intocps.verification.scenarioverifier.core.{ConnectionModel, ConnectionParserSingleton, EnterInitMode, ExitInitMode, FMURefParserSingleton, InitGet, InitSet, InitializationInstruction, NestedInitStatement, NestedStepStatement, NoLoopInit, PortRef, Reactivity, RootStepStatement, ScenarioLoader}
+import org.intocps.verification.scenarioverifier.core.ConnectionModel
+import org.intocps.verification.scenarioverifier.core.ConnectionParserSingleton
+import org.intocps.verification.scenarioverifier.core.EnterInitMode
+import org.intocps.verification.scenarioverifier.core.ExitInitMode
+import org.intocps.verification.scenarioverifier.core.FMURefParserSingleton
+import org.intocps.verification.scenarioverifier.core.InitGet
+import org.intocps.verification.scenarioverifier.core.InitSet
+import org.intocps.verification.scenarioverifier.core.InitializationInstruction
+import org.intocps.verification.scenarioverifier.core.NestedInitStatement
+import org.intocps.verification.scenarioverifier.core.NestedStepStatement
+import org.intocps.verification.scenarioverifier.core.NoLoopInit
+import org.intocps.verification.scenarioverifier.core.PortRef
+import org.intocps.verification.scenarioverifier.core.Reactivity
+import org.intocps.verification.scenarioverifier.core.RootStepStatement
+import org.intocps.verification.scenarioverifier.core.ScenarioLoader
 import org.intocps.verification.scenarioverifier.prettyprint.PPrint
+import pureconfig.error.ConfigReaderFailure
+import pureconfig.error.ConvertFailure
+import pureconfig.error.UnknownKey
+import pureconfig.generic.auto._
+import pureconfig.generic.ProductHint
 import pureconfig.ConfigReader.Result
 import pureconfig.ConfigSource
-import pureconfig.error.{ConfigReaderFailure, ConvertFailure, UnknownKey}
-import pureconfig.generic.ProductHint
-import pureconfig.generic.auto._
-
-import java.io.{File, InputStream, InputStreamReader}
-import java.nio.file.{Files, Paths}
 
 object ScenarioLoaderFMI3 extends Logging {
   def load(file: String): MasterModel3 = {
@@ -82,31 +101,45 @@ object ScenarioLoaderFMI3 extends Logging {
         val scenarioModel = parse(scenario)
         val instantiationModel = ScenarioLoader.generateInstantiationInstructions(scenarioModel.scenarioModel).toList
         val initializationModel = initialization.map(instruction => parse(instruction, scenarioModel))
-        val expandedInitModel = ScenarioLoader.generateEnterInitInstructions(scenarioModel.scenarioModel) ++ initializationModel ++ ScenarioLoader.generateExitInitInstructions(scenarioModel.scenarioModel)
+        val expandedInitModel = ScenarioLoader.generateEnterInitInstructions(
+          scenarioModel.scenarioModel) ++ initializationModel ++ ScenarioLoader.generateExitInitInstructions(scenarioModel.scenarioModel)
         val cosimStepModel = cosimStep.map(instruction => ScenarioLoader.parse(instruction, scenarioModel.scenarioModel))
-        val eventStrategyModel = eventStrategies.map(strategy => (strategy._1,
-          EventStrategy(
-            EventEntrance(strategy._2.clocks.map(clock =>
-              parsePortRef(clock, "", scenarioModel.fmus)).toSet),
-            strategy._2.iterate.map(instruction => parse(instruction, scenarioModel)))))
+        val eventStrategyModel = eventStrategies.map(strategy =>
+          (
+            strategy._1,
+            EventStrategy(
+              EventEntrance(strategy._2.clocks.map(clock => parsePortRef(clock, "", scenarioModel.fmus)).toSet),
+              strategy._2.iterate.map(instruction => parse(instruction, scenarioModel)))))
         val terminateModel = ScenarioLoader.generateTerminateInstructions(scenarioModel.scenarioModel).toList
         MasterModel3(name, scenarioModel, instantiationModel, expandedInitModel.toList, cosimStepModel, eventStrategyModel, terminateModel)
     }
   }
 
   private def parse(masterModel: MasterModel3): MasterModelDTO = {
-    val filteredInitializationActions = masterModel.initialization.filterNot(i => i.isInstanceOf[EnterInitMode] || i.isInstanceOf[ExitInitMode])
-    MasterModelDTO(masterModel.name, masterModel.scenario, filteredInitializationActions, masterModel.cosimStep, masterModel.eventStrategies)
+    val filteredInitializationActions =
+      masterModel.initialization.filterNot(i => i.isInstanceOf[EnterInitMode] || i.isInstanceOf[ExitInitMode])
+    MasterModelDTO(
+      masterModel.name,
+      masterModel.scenario,
+      filteredInitializationActions,
+      masterModel.cosimStep,
+      masterModel.eventStrategies)
   }
 
   private def enrichDTO(masterModelDTO: MasterModelDTO): MasterModel3 = {
     val instantiationModel = ScenarioLoader.generateInstantiationInstructions(masterModelDTO.scenario.scenarioModel).toList
-    val expandedInitModel = (
-      ScenarioLoader.generateEnterInitInstructions(masterModelDTO.scenario.scenarioModel)
-        ++ masterModelDTO.initialization
-        ++ ScenarioLoader.generateExitInitInstructions(masterModelDTO.scenario.scenarioModel)).toList
+    val expandedInitModel = (ScenarioLoader.generateEnterInitInstructions(masterModelDTO.scenario.scenarioModel)
+      ++ masterModelDTO.initialization
+      ++ ScenarioLoader.generateExitInitInstructions(masterModelDTO.scenario.scenarioModel)).toList
     val terminateModel = ScenarioLoader.generateTerminateInstructions(masterModelDTO.scenario.scenarioModel).toList
-    MasterModel3(masterModelDTO.name, masterModelDTO.scenario, instantiationModel, expandedInitModel, masterModelDTO.cosimStep, masterModelDTO.eventStrategies, terminateModel)
+    MasterModel3(
+      masterModelDTO.name,
+      masterModelDTO.scenario,
+      instantiationModel,
+      expandedInitModel,
+      masterModelDTO.cosimStep,
+      masterModelDTO.eventStrategies,
+      terminateModel)
   }
 
   private def parsePortRef(str: String, context: String, fmus: Map[String, Fmu3Model]): PortRef = {
@@ -122,8 +155,7 @@ object ScenarioLoaderFMI3 extends Logging {
       case FMI3RootInitStatement(get, set, getShift, getInterval, loop) =>
         val baseOps = List(get, set, getShift, getInterval).count(b => b.nonEmpty && !b.isBlank)
         val nOps = baseOps + (if (loop == NoLoopInit) 0 else 1)
-        assert(nOps == 1,
-          s"Initialization instruction $instruction must be one of get, set or loop-init.")
+        assert(nOps == 1, s"Initialization instruction $instruction must be one of get, set or loop-init.")
     }
     if (!instruction.get.isBlank) {
       val pRef = parsePortRef(instruction.get, s"instruction $instruction", scenarioModel.fmus)
@@ -151,14 +183,12 @@ object ScenarioLoaderFMI3 extends Logging {
     }
   }
 
-
   def parse(instruction: EventStatement, scenarioModel: FMI3ScenarioModel): EventInstruction = {
     // Check uniqueness of instruction
     instruction match {
       case RootEventStatement(get, set, setClock, getClock, step, next) =>
         val nOps = List(get, set, setClock, getClock, step, next).count(b => b.nonEmpty && !b.isBlank)
-        assert(nOps == 1,
-          s"Event instruction $instruction must be one of get, set, setClock, getClock, step or next.")
+        assert(nOps == 1, s"Event instruction $instruction must be one of get, set, setClock, getClock, step or next.")
     }
     if (!instruction.get.isBlank) {
       val pRef = parsePortRef(instruction.get, s"instruction $instruction", scenarioModel.fmus)
@@ -174,7 +204,9 @@ object ScenarioLoaderFMI3 extends Logging {
       GetClock(pRef)
     } else if (!instruction.setClock.isBlank) {
       val pRef = parsePortRef(instruction.setClock, s"instruction $instruction", scenarioModel.fmus)
-      assert(scenarioModel.fmus(pRef.fmu).outputClocks.contains(pRef.port), s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
+      assert(
+        scenarioModel.fmus(pRef.fmu).outputClocks.contains(pRef.port),
+        s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
       SetClock(pRef)
     } else if (!instruction.next.isBlank) {
       val pRef = parsePortRef(instruction.next, s"instruction $instruction", scenarioModel.fmus)
@@ -207,8 +239,12 @@ object ScenarioLoaderFMI3 extends Logging {
     val results = ConnectionParserSingleton.parse(ConnectionParserSingleton.connection, connectionConfig)
     assert(results.successful, s"Problem parsing connection string $connectionConfig.")
     val connection = results.get
-    assert(fmus.contains(connection.srcPort.fmu), s"Unable to resolve source fmu ${connection.srcPort.fmu} in connection $connectionConfig.")
-    assert(fmus.contains(connection.trgPort.fmu), s"Unable to resolve source fmu ${connection.trgPort.fmu} in connection $connectionConfig.")
+    assert(
+      fmus.contains(connection.srcPort.fmu),
+      s"Unable to resolve source fmu ${connection.srcPort.fmu} in connection $connectionConfig.")
+    assert(
+      fmus.contains(connection.trgPort.fmu),
+      s"Unable to resolve source fmu ${connection.trgPort.fmu} in connection $connectionConfig.")
     connection
   }
 
@@ -235,14 +271,15 @@ object ScenarioLoaderFMI3 extends Logging {
   def parse(config: OutputPortConfig, inputsModel: Map[String, InputPortModel], outputPortId: String, fmuId: String): OutputPortModel = {
     config match {
       case OutputPortConfig(dependenciesInit, dependencies, clocks) =>
-        val errorCheck = (inputPortRef: String) => assert(inputsModel.contains(inputPortRef),
-          f"Unable to resolve input port reference $inputPortRef in the output port $outputPortId FMU $fmuId.")
+        val errorCheck = (inputPortRef: String) =>
+          assert(
+            inputsModel.contains(inputPortRef),
+            f"Unable to resolve input port reference $inputPortRef in the output port $outputPortId FMU $fmuId.")
         dependenciesInit.foreach(errorCheck)
         dependencies.foreach(errorCheck)
         OutputPortModel(dependenciesInit, dependencies, clocks)
     }
   }
-
 
   private def parse(fmuId: String, fmu: FmuConfig): Fmu3Model = {
     fmu match {

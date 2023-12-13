@@ -2,10 +2,10 @@ package Z3.DynamicVerification_Z3
 
 import org.intocps.verification.scenarioverifier.api.VerificationAPI
 import org.intocps.verification.scenarioverifier.core.ScenarioLoader
-import org.scalatest.Assertion
+import org.scalatest._
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import org.scalatest._
+import org.scalatest.Assertion
 
 @Ignore
 class NegativeTests extends AnyFlatSpec with should.Matchers {
@@ -16,7 +16,7 @@ class NegativeTests extends AnyFlatSpec with should.Matchers {
       val previous_actions = masterModel.cosimStep.values.head.take(i)
       val current_action = masterModel.cosimStep.values.head(i)
       true
-      //!VerificationAPI.dynamicZ3Verification(masterModel.scenario, previous_actions, current_action).correct
+      // !VerificationAPI.dynamicZ3Verification(masterModel.scenario, previous_actions, current_action).correct
     }))
   }
 

@@ -4,7 +4,7 @@ import org.apache.logging.log4j.scala.Logging
 
 object MaudeRunner extends Logging {
   val MaudeCmd = "maude"
-/*
+  /*
   def verify(maudeFile: File, fullMaudePath : String) = {
     /*
     Options:
@@ -15,7 +15,7 @@ object MaudeRunner extends Logging {
         2: Fastest trace (disables reuse)
      -s  Do not display the progress indicator.
      -Y  Display traces symbolically (pre- and post-stable).
-     */
+   */
     val fPath = maudeFile.getAbsolutePath
 
     val pLog = new VerifyTaProcessLogger()
@@ -56,5 +56,5 @@ object MaudeRunner extends Logging {
         false
     }
   }
- */
+   */
 }

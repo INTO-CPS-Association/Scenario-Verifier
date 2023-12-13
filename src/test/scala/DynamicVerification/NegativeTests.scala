@@ -2,9 +2,9 @@ package DynamicVerification
 
 import org.intocps.verification.scenarioverifier.api.VerificationAPI
 import org.intocps.verification.scenarioverifier.core.ScenarioLoader
-import org.scalatest.Assertion
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
+import org.scalatest.Assertion
 
 class NegativeTests extends AnyFlatSpec with should.Matchers {
   def generateAndVerifyFail(resourcesFile: String): Assertion = {
@@ -28,7 +28,7 @@ class NegativeTests extends AnyFlatSpec with should.Matchers {
   it should "catch problem for simple_master_can_reject_step.conf" in {
     generateAndVerifyFail("../common_mistakes/simple_master_can_reject_step.conf")
   }
-  */
+   */
   it should "catch problem for simple_master_get_set_wrong" in {
     generateAndVerifyFail("../common_mistakes/simple_master_get_set_wrong.conf")
   }

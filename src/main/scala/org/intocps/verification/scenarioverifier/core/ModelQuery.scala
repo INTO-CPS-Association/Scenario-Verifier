@@ -24,7 +24,9 @@ object ModelQuery {
     getAllInstructions(instructions).filter(p)
   }
 
-  def recInitFilter(instructions: List[InitializationInstruction], p: InitializationInstruction => Boolean): List[InitializationInstruction] = {
+  def recInitFilter(
+      instructions: List[InitializationInstruction],
+      p: InitializationInstruction => Boolean): List[InitializationInstruction] = {
     getAllInitInstructions(instructions).filter(p)
   }
 }

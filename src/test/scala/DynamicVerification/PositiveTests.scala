@@ -21,7 +21,7 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
     val algorithm = masterModel.cosimStep.values.head
-    val hundredThousandRepetitionsOfAlgorithm  = (1 to 10000).flatMap(_ => algorithm).toList
+    val hundredThousandRepetitionsOfAlgorithm = (1 to 10000).flatMap(_ => algorithm).toList
     (1 until algorithm.length).forall(i => {
       val previous_actions = hundredThousandRepetitionsOfAlgorithm ++ algorithm.take(i)
       val current_action = algorithm(i)
@@ -32,7 +32,6 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
   ignore should "work for simple_master_fmi3.conf" in {
     generateAndVerify("../examples/simple_master_fmi3.conf")
   }
-
 
   it should "work for simple_master_step_sizes" in {
     generateAndVerify("../examples/simple_master_step_sizes.conf")

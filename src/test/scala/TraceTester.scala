@@ -1,8 +1,10 @@
-import org.intocps.verification.scenarioverifier.api.{TraceResult, VerificationAPI}
+import org.intocps.verification.scenarioverifier.api.TraceResult
+import org.intocps.verification.scenarioverifier.api.VerificationAPI
 import org.intocps.verification.scenarioverifier.core.ScenarioLoader
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import org.scalatest.{Assertion, Ignore}
+import org.scalatest.Assertion
+import org.scalatest.Ignore
 
 @Ignore
 class TraceTester extends AnyFlatSpec with should.Matchers {

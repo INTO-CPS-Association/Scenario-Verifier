@@ -1,14 +1,21 @@
 package org.intocps.verification.scenarioverifier.cli
 
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileWriter
+import java.nio.file.Files
+import java.nio.file.Paths
+
+import scala.reflect.io.Directory
+
 import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.scala.Logging
 import org.intocps.verification.scenarioverifier.api.GenerationAPI
-import org.intocps.verification.scenarioverifier.core.{ModelEncoding, ScenarioGenerator, ScenarioLoader}
+import org.intocps.verification.scenarioverifier.core.ModelEncoding
+import org.intocps.verification.scenarioverifier.core.ScenarioGenerator
+import org.intocps.verification.scenarioverifier.core.ScenarioLoader
 import org.intocps.verification.scenarioverifier.traceanalyzer.TraceAnalyzer
 import scopt.OParser
-import java.io.{BufferedWriter, File, FileWriter}
-import java.nio.file.{Files, Paths}
-import scala.reflect.io.Directory
 
 object ScenarioVerifierApp extends App with Logging {
   logger.info("Logger started.")
@@ -25,7 +32,6 @@ object ScenarioVerifierApp extends App with Logging {
 
   private val builder = OParser.builder[CLIConfig]
   val parser: _root_.scopt.OParser[Unit, CLIConfig] = CLIParer
-
 
   private def CLIParer: OParser[Unit, CLIConfig] = {
     val parser = {
@@ -44,31 +50,29 @@ object ScenarioVerifierApp extends App with Logging {
                 else failure("File " + x + " does not exist."))
               .required()
               .action((x, c) => c.copy(master = x))
-              .text("modelEncoding is a file containing the master configuration - a scenario model and an algorithm.")
-          ),
+              .text("modelEncoding is a file containing the master configuration - a scenario model and an algorithm.")),
         opt[Unit]("trace")
           .action((_, c) => c.copy(verify = true))
-          .text("Visualize the trace from the UPPAAL model").children(
-          opt[String]('m', "modelEncoding")
-            .validate(x =>
-              if (Files.exists(Paths.get(x)) && x.endsWith(".conf")) success
-              else failure("File " + x + " does not exist."))
-            .required()
-            .action((x, c) => c.copy(master = x))
-            .text("modelEncoding is a file containing the master configuration - a scenario model and an algorithm.")
-        ),
+          .text("Visualize the trace from the UPPAAL model")
+          .children(
+            opt[String]('m', "modelEncoding")
+              .validate(x =>
+                if (Files.exists(Paths.get(x)) && x.endsWith(".conf")) success
+                else failure("File " + x + " does not exist."))
+              .required()
+              .action((x, c) => c.copy(master = x))
+              .text("modelEncoding is a file containing the master configuration - a scenario model and an algorithm.")),
         opt[Unit]("generate")
           .action((_, c) => c.copy(generateAlgorithm = true))
           .text("Generate the master algorithm for the scenario")
-          .children(opt[String]('m', "modelEncoding")
-            .validate(x =>
-              if (Files.exists(Paths.get(x)) && x.endsWith(".conf")) success
-              else failure("File " + x + " does not exist."))
-            .required()
-            .action((x, c) => c.copy(master = x))
-            .text("modelEncoding is a file containing the master configuration - a scenario model and an algorithm.")
-          )
-      )
+          .children(
+            opt[String]('m', "modelEncoding")
+              .validate(x =>
+                if (Files.exists(Paths.get(x)) && x.endsWith(".conf")) success
+                else failure("File " + x + " does not exist."))
+              .required()
+              .action((x, c) => c.copy(master = x))
+              .text("modelEncoding is a file containing the master configuration - a scenario model and an algorithm.")))
     }
     parser
   }
@@ -107,8 +111,7 @@ object ScenarioVerifierApp extends App with Logging {
             try {
               val lines = source.getLines()
               TraceAnalyzer.AnalyseScenario(masterModel.name, lines, queryModel, outputFolder.toString)
-            }
-            finally source.close()
+            } finally source.close()
             FileUtils.deleteQuietly(traceFile)
           }
         } else {

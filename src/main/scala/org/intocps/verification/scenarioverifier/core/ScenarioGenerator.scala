@@ -1,9 +1,11 @@
 package org.intocps.verification.scenarioverifier.core
 
-import org.apache.logging.log4j.scala.Logging
+import java.io.File
+import java.io.PrintWriter
 
-import java.io.{File, PrintWriter}
 import scala.reflect.io.Directory
+
+import org.apache.logging.log4j.scala.Logging
 
 object ScenarioGenerator extends Logging {
   private def writeToFile(content: String, directory: Directory, fileName: String): File = {
@@ -19,7 +21,6 @@ object ScenarioGenerator extends Logging {
     }
     file
   }
-
 
   def generateUppaalEncoding(model: ModelEncoding): String = {
     xml.CosimUppaalTemplate.render(model).toString().trim

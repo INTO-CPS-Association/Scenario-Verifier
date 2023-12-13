@@ -1,10 +1,13 @@
 package org.intocps.verification.scenarioverifier.cli
 
-import java.io.{BufferedWriter, File, FileWriter, IOException}
-
-import org.apache.logging.log4j.scala.Logging
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileWriter
+import java.io.IOException
 
 import scala.sys.process._
+
+import org.apache.logging.log4j.scala.Logging
 
 trait CLITool extends Logging {
   def name: String
@@ -43,10 +46,7 @@ object VerifyTA extends CLITool {
 
   def command: String = "verifyta"
 
-  def runUppaal(uppaalFile: File,
-                notSatisfiedHandler: (File, VerifyTaProcessLogger) => Unit,
-                onlineMode: Boolean = false
-               ): Int = {
+  def runUppaal(uppaalFile: File, notSatisfiedHandler: (File, VerifyTaProcessLogger) => Unit, onlineMode: Boolean = false): Int = {
     /*
     Options:
     -t <0|1|2>
@@ -114,11 +114,15 @@ object VerifyTA extends CLITool {
 
   private def saveTrace(traceFile: File, pLog: VerifyTaProcessLogger): Unit = {
     val bw = new BufferedWriter(new FileWriter(traceFile))
-    val trace = pLog.output.toString.replace("State", "\n").replace("Transitions", "\nTransitions")
+    val trace = pLog.output.toString
+      .replace("State", "\n")
+      .replace("Transitions", "\nTransitions")
       .split("\n")
-      .drop(2).toList
+      .drop(2)
+      .toList
 
-    trace.drop(trace.indexWhere(_.contains("MasterA.Start"), 2))
+    trace
+      .drop(trace.indexWhere(_.contains("MasterA.Start"), 2))
       .filterNot(s => !(s.contains("isInit=1") || s.contains("isSimulation=1")))
       .map(_.replaceAll("\\([^()]*\\)", ""))
       .map(_.replaceAll("#depth=\\d+ *", ""))

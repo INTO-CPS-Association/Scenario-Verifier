@@ -1,10 +1,14 @@
+import java.io.ByteArrayInputStream
+
 import org.intocps.verification.scenarioverifier.api.GenerationAPI
-import org.intocps.verification.scenarioverifier.core.{ConnectionModel, EnterInitMode, ExitInitMode, FmuModel, ScenarioLoader}
-import org.scalatest.Assertion
+import org.intocps.verification.scenarioverifier.core.ConnectionModel
+import org.intocps.verification.scenarioverifier.core.EnterInitMode
+import org.intocps.verification.scenarioverifier.core.ExitInitMode
+import org.intocps.verification.scenarioverifier.core.FmuModel
+import org.intocps.verification.scenarioverifier.core.ScenarioLoader
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-
-import java.io.ByteArrayInputStream
+import org.scalatest.Assertion
 
 class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
   private def confGenerationTest(resourcesFile: String): Assertion = {
@@ -12,9 +16,9 @@ class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
     val scenario = ScenarioLoader.load(conf)
     val generatedConfiguration = scenario.toConf()
     val scenarioFromGeneratedSource = ScenarioLoader.load(new ByteArrayInputStream(generatedConfiguration.getBytes()))
-    //All connections are equivalent
+    // All connections are equivalent
     assert(compareConnections(scenario.scenario.connections, scenarioFromGeneratedSource.scenario.connections))
-    //All FMUs are equivalent
+    // All FMUs are equivalent
     assert(compareFMUs(scenario.scenario.fmus, scenarioFromGeneratedSource.scenario.fmus))
     assert(scenario.initialization.filterNot {
       case EnterInitMode(_) => true
