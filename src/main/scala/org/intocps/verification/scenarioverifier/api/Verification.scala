@@ -49,8 +49,9 @@ object VerificationAPI extends Logging {
     }
     val uppaalFile = generateUppaalFile(masterModel, uppaalFileType)
     val verificationResult = VerifyTA.verify(uppaalFile, isOnlineMode)
-    FileUtils.deleteQuietly(uppaalFile)
-    checkVerificationResult(verificationResult)
+    val uppallFIleContent = FileUtils.readFileToString(uppaalFile, Charset.defaultCharset())
+    // FileUtils.deleteQuietly(uppaalFile)
+    checkVerificationResult(verificationResult, uppallFIleContent)
   }
 
   /**
@@ -310,10 +311,11 @@ object VerificationAPI extends Logging {
     traceResult
   }
 
-  private def checkVerificationResult(verificationResult: Int): Boolean = {
+  private def checkVerificationResult(verificationResult: Int, uppaalFile: String): Boolean = {
     verificationResult match {
       case 0 => true
       case 2 =>
+        println(uppaalFile)
         throw SyntaxException("The verification in Uppaal failed most likely due to a syntax error in the UPPAAL model.")
       case _ => false
     }

@@ -20,14 +20,6 @@ class NegativeTests extends AnyFlatSpec with should.Matchers {
     generateAndVerifyFail("common_mistakes/simple_master_can_reject_step.conf")
   }
 
-  /*
-  it should "catch problem for simple_master_step_by_0.conf" in {
-    val conf = getClass.getResourceAsStream("common_mistakes/simple_master_step_by_0.conf")
-    val masterModel = ScenarioLoader.load(conf)
-    assertThrows(VerificationAPI.verifyAlgorithm(masterModel, ScenarioGenerator.generateUppaalFile))
-  }
-   */
-
   it should "catch problem for simple_master_get_set_wrong" in {
     generateAndVerifyFail("common_mistakes/simple_master_get_set_wrong.conf")
   }

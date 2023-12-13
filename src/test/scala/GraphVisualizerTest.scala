@@ -7,7 +7,6 @@ import org.intocps.verification.scenarioverifier.synthesizer.StepInstructionNode
 import org.intocps.verification.scenarioverifier.synthesizer.TarjanGraph
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import org.scalatest.Ignore
 
 class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
   def testGraph(file: String, name: String): Unit = {
