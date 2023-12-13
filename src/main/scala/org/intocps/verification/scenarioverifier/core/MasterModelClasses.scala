@@ -154,6 +154,7 @@ final case class FmuModel(inputs: Map[String, InputPortModel], outputs: Map[Stri
     val specificConstraints = algorithmType match {
       case AlgorithmType.init => initSMTLib(fmuName)
       case AlgorithmType.step => stepSMTLib(fmuName)
+      case _ => ""
     }
     s"""
        |; FMU $fmuName constraints

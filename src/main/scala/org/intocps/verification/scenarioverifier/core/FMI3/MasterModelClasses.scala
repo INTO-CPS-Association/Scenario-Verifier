@@ -287,6 +287,7 @@ final case class FMI3ScenarioModel(
       case AlgorithmType.init => initializationToSMTLib(isParallel)
       case scenarioverifier.core.AlgorithmType.step => stepToSMTLib(isParallel)
       case scenarioverifier.core.AlgorithmType.event => eventEntrances.map(entry => eventSMTLib(entry, isParallel)).mkString("\n")
+      case _ => throw new RuntimeException("Algorithm type not supported")
     }
     algorithmConstrains
   }

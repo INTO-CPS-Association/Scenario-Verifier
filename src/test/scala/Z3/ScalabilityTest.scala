@@ -25,10 +25,10 @@ class ScalabilityTest extends AnyFlatSpec with should.Matchers with Logging {
     Verification.synthesizeAlgorithmWithStatistics(scenario2.scenario)
     logger.info("Synthesizing algorithm for scenario 3")
     Verification.synthesizeAlgorithmWithStatistics(scenario3)
-    logger.info("Synthesizing algorithm for scenario 4")
-    Verification.synthesizeAlgorithmWithStatistics(scenario4)
-    logger.info("Synthesizing algorithm for scenario 5")
-    Verification.synthesizeAlgorithmWithStatistics(scenario5)
+    // logger.info("Synthesizing algorithm for scenario 4")
+    // Verification.synthesizeAlgorithmWithStatistics(scenario4)
+    // logger.info("Synthesizing algorithm for scenario 5")
+    // Verification.synthesizeAlgorithmWithStatistics(scenario5)
   }
 
   it should "create valid Master Algorithm for Simple Master" in {

@@ -172,3 +172,5 @@ release/
 cache/cache.csv
 .metals/metals.lock.db
 .bloop/
+.sbt/
+uppaal_binary/

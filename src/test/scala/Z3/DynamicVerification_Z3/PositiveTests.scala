@@ -10,7 +10,6 @@ import org.scalatest.matchers._
 class PositiveTests extends AnyFlatSpec with should.Matchers {
 
   def generateAndVerify(resourcesFile: String): Boolean = {
-    // Assert that Z3 is installed
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoader.load(conf)
     (1 until masterModel.cosimStep.values.head.length).forall(i => {
