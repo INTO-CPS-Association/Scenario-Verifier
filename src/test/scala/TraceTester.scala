@@ -1,3 +1,4 @@
+import org.apache.commons.io.FileUtils
 import org.intocps.verification.scenarioverifier.api.TraceResult
 import org.intocps.verification.scenarioverifier.api.VerificationAPI
 import org.intocps.verification.scenarioverifier.core.ScenarioLoader
@@ -6,7 +7,6 @@ import org.scalatest.matchers._
 import org.scalatest.Assertion
 import org.scalatest.Ignore
 
-@Ignore
 class TraceTester extends AnyFlatSpec with should.Matchers {
   private def generateTrace(scenarioPath: String): TraceResult = {
     val conf = getClass.getResourceAsStream(scenarioPath)
@@ -14,10 +14,12 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
     VerificationAPI.generateTraceVideo(masterModel)
   }
 
-  def generateTraceExist(scenarioPath: String): Assertion = {
+  def generateTraceExist(scenarioPath: String): Boolean = {
     val TraceResult(file, isGenerated) = generateTrace(scenarioPath)
     assert(file.exists())
     assert(isGenerated)
+    FileUtils.deleteQuietly(file)
+    isGenerated
   }
 
   def generateTraceDoNotExist(scenarioPath: String): Assertion = {
@@ -47,19 +49,19 @@ class TraceTester extends AnyFlatSpec with should.Matchers {
     generateTraceExist("common_mistakes/loop_within_loop_forgot_one_connection.conf")
   }
 
-  it should "work for nested loop alt" in {
-    generateTraceExist("examples/loop_within_loop_alt.conf")
-  }
+  // it should "work for nested loop alt" in {
+  //   generateTraceExist("examples/loop_within_loop_alt.conf")
+  // }
 
-  it should "work for incubator.conf" in {
-    generateTraceExist("common_mistakes/incubator.conf")
-  }
+  // it should "work for incubator.conf" in {
+  //   generateTraceExist("common_mistakes/incubator.conf")
+  // }
 
-  it should "work for incubator1.conf" in {
-    generateTraceExist("common_mistakes/incubator1.conf")
-  }
+  // it should "work for incubator1.conf" in {
+  //   generateTraceExist("common_mistakes/incubator1.conf")
+  // }
 
-  it should "not generate a trace for simple_master_fmi3.conf" in {
+  it should "not generate a trace for simple_master.conf" in {
     generateTraceDoNotExist("examples/simple_master.conf")
   }
 

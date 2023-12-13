@@ -10,9 +10,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.scala.Logging
 import org.intocps.verification.scenarioverifier
 import org.intocps.verification.scenarioverifier.cli.VerifyTA
-import org.intocps.verification.scenarioverifier.cli.Z3.SMTEncoder
 import org.intocps.verification.scenarioverifier.core._
-import org.intocps.verification.scenarioverifier.core.ScenarioLoader.simplifyScenario
 import org.intocps.verification.scenarioverifier.traceanalyzer._
 import play.twirl.api.TwirlHelperImports.twirlJavaCollectionToScala
 
@@ -49,7 +47,6 @@ object VerificationAPI extends Logging {
     }
     val uppaalFile = generateUppaalFile(masterModel, uppaalFileType)
     val verificationResult = VerifyTA.verify(uppaalFile, isOnlineMode)
-    val uppallFIleContent = FileUtils.readFileToString(uppaalFile, Charset.defaultCharset())
     FileUtils.deleteQuietly(uppaalFile)
     checkVerificationResult(verificationResult)
   }

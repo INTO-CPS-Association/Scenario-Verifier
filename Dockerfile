@@ -5,26 +5,14 @@ FROM eclipse-temurin:11
 # Set the working directory
 WORKDIR /tools
 
-ARG SBT_VERSION=1.9.7
+# Install unzip
+RUN apt-get update && apt-get install -y unzip wget
 
 # Install Z3 using apt-get
-RUN apt-get update && apt-get install -y wget unzip
-
-# Download Z3
 RUN apt-get update && apt-get install -y z3
 
-# Install sbt
-RUN \
-  mkdir /working/ && \
-  cd /working/ && \
-  curl -L -o sbt-$SBT_VERSION.deb https://repo.scala-sbt.org/scalasbt/debian/sbt-$SBT_VERSION.deb && \
-  dpkg -i sbt-$SBT_VERSION.deb && \
-  rm sbt-$SBT_VERSION.deb && \
-  apt-get update && \
-  apt-get install sbt && \
-  cd && \
-  rm -r /working/ && \
-  sbt sbtVersion
+# Install maven
+RUN apt-get update && apt-get install -y maven
 
 # Copy everything in the current directory to the working directory
 COPY uppaal_binary/uppaal64-4.1.24.zip /tools

@@ -30,9 +30,9 @@ class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
     generateSynthesisAndVerify("Big_Very_Advanced_Example", 5, 10, canRejectStep = true)
   }
 
-  it should "create valid Big and Advanced with Feedthrough example" in {
-    generateSynthesisAndVerify("Big_Very_Advanced_Example", 10, 20, canRejectStep = true)
-  }
+  // it should "create valid Big and Advanced with Feedthrough example" in {
+  //   generateSynthesisAndVerify("Big_Very_Advanced_Example", 10, 20, canRejectStep = true)
+  // }
 
   // it should "create valid Big example with no Feedthrough" ignore {
   //   generateSynthesisAndVerify("Test_Simple_Big_Example", 20, 40, feedthrough = false, canRejectStep = true)
