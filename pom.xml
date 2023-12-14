@@ -169,6 +169,11 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>io.github.evis</groupId>
+                <artifactId>scalafix-maven-plugin_2.13</artifactId>
+                <version>0.1.8_0.11.0</version>
+            </plugin>
+            <plugin>
                 <!-- see http://davidb.github.com/scala-maven-plugin -->
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
@@ -182,6 +187,7 @@
                         </goals>
                         <configuration>
                             <args>
+                                <arg>-Ywarn-unused</arg> <!-- if you need exactly RemoveUnused -->
                                 <arg>-dependencyfile</arg>
                                 <arg>${project.build.directory}/.scala_dependencies</arg>
                             </args>
@@ -190,7 +196,13 @@
                                 <jvmArg>-Xms512m</jvmArg>
                                 <jvmArg>-Xmx4096m</jvmArg>
                             </jvmArgs>
-
+                            <compilerPlugins>
+                                <compilerPlugin>
+                                    <groupId>org.scalameta</groupId>
+                                    <artifactId>semanticdb-scalac_2.13.12</artifactId>
+                                    <version>4.8.14</version>
+                                </compilerPlugin>
+                            </compilerPlugins>
                         </configuration>
                     </execution>
                 </executions>
