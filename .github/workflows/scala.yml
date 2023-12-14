@@ -16,4 +16,4 @@ jobs:
     - name: Pull image
       run: docker pull simonthrane/uppaal_image:latest
     - name: Build and Test
-      run:  docker run --rm -v $(pwd):/root simonthrane/uppaal_image /bin/bash -c 'cd /root && mvm test'
+      run:  docker run --rm -v $(pwd):/root simonthrane/uppaal_image /bin/bash -c 'cd /root && mvn test'
