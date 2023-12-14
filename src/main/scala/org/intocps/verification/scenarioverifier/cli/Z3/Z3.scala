@@ -7,11 +7,26 @@ import org.intocps.verification.scenarioverifier.cli.CLITool
 import org.intocps.verification.scenarioverifier.cli.VerifyTaProcessLogger
 import org.intocps.verification.scenarioverifier.core.AlgorithmType
 import org.intocps.verification.scenarioverifier.core.FMI3.MasterModel3
+import java.io.IOException
 
 object Z3 extends CLITool {
   def name: String = "Z3"
 
   def command: String = "z3"
+
+  override def isInstalled: Boolean = {
+    logger.info(s"Checking if $name is installed in the system.")
+    try {
+      val exitCode = runCommand(List("-h"))
+      exitCode == 0
+    } catch {
+      case e: IOException =>
+        logger.error(s"Problem with $name binary. Make sure it is in the PATH.")
+        logger.info("Current PATH:")
+        logger.info(System.getenv("PATH"))
+        false
+    }
+  }
 
   def runZ3(file: File): String = {
     require(file.exists(), "File does not exist")

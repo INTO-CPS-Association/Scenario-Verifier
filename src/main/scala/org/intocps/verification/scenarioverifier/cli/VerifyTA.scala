@@ -77,6 +77,8 @@ object VerifyTA extends CLITool {
       val output = pLog.output.toString
       if (output.contains("Formula is NOT satisfied.")) {
         logger.error(s"Model is not valid.")
+        val fileContent = scala.io.Source.fromFile(uppaalFile).mkString
+        logger.error(s"Model content:\n$fileContent")
         logger.error(s"Generate the trace and use to correct the algorithm.")
         notSatisfiedHandler(uppaalFile, pLog)
         1

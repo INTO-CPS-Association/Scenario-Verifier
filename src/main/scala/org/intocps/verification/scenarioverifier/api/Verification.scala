@@ -50,8 +50,8 @@ object VerificationAPI extends Logging {
     val uppaalFile = generateUppaalFile(masterModel, uppaalFileType)
     val verificationResult = VerifyTA.verify(uppaalFile, isOnlineMode)
     val uppallFIleContent = FileUtils.readFileToString(uppaalFile, Charset.defaultCharset())
-    // FileUtils.deleteQuietly(uppaalFile)
-    checkVerificationResult(verificationResult, uppallFIleContent)
+    FileUtils.deleteQuietly(uppaalFile)
+    checkVerificationResult(verificationResult)
   }
 
   /**
@@ -197,6 +197,7 @@ object VerificationAPI extends Logging {
       case ExitInitMode(fmu) => ExitInitMode(fmu)
       case AlgebraicLoopInit(untilConverged, iterate) =>
         scenarioverifier.core.AlgebraicLoopInit(untilConverged.map(i => sanitizePort(i)), iterate.map(i => sanitizeName(i)))
+      case _ => act
     }
   }
 
@@ -311,11 +312,10 @@ object VerificationAPI extends Logging {
     traceResult
   }
 
-  private def checkVerificationResult(verificationResult: Int, uppaalFile: String): Boolean = {
+  private def checkVerificationResult(verificationResult: Int): Boolean = {
     verificationResult match {
       case 0 => true
       case 2 =>
-        println(uppaalFile)
         throw SyntaxException("The verification in Uppaal failed most likely due to a syntax error in the UPPAAL model.")
       case _ => false
     }

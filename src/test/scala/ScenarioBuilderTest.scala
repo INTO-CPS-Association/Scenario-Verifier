@@ -6,8 +6,7 @@ import org.intocps.verification.scenarioverifier.synthesizer.ScenarioBuilder.FMI
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import org.scalatest.Assertion
-import org.scalatest.Ignore
-@Ignore
+
 class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
   def generateSynthesisAndVerify(
       scenarioName: String,
@@ -35,13 +34,9 @@ class ScenarioBuilderTest extends AnyFlatSpec with should.Matchers {
     generateSynthesisAndVerify("Big_Very_Advanced_Example", 10, 20, canRejectStep = true)
   }
 
-  it should "create valid Big example with no Feedthrough" ignore {
-    generateSynthesisAndVerify("Test_Simple_Big_Example", 20, 40, feedthrough = false, canRejectStep = true)
-  }
-
-  it should "create very big simple example" ignore {
-    generateSynthesisAndVerify("Big_Simple_Example", 100, 200, feedthrough = false)
-  }
+  // it should "create valid Big example with no Feedthrough" ignore {
+  //   generateSynthesisAndVerify("Test_Simple_Big_Example", 20, 40, feedthrough = false, canRejectStep = true)
+  // }
 
   it should "create valid Connection example" in {
     val fmuNames = HashSet("fmu1", "fmu2")
