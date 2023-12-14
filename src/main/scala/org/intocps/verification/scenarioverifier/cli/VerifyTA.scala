@@ -32,7 +32,7 @@ trait CLITool extends Logging {
       val exitCode = runCommand(List("-v"))
       exitCode == 0
     } catch {
-      case e: IOException =>
+      case _: IOException =>
         logger.error(s"Problem with $name binary. Make sure it is in the PATH.")
         logger.info("Current PATH:")
         logger.info(System.getenv("PATH"))

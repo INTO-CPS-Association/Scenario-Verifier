@@ -302,7 +302,7 @@ object VerificationAPI extends Logging {
           ScenarioPlotter.plot(uppaalTrace.get, outputDirectory.getPath)
         TraceResult(new File(videoFilePath), isGenerated = true)
       } catch {
-        case e: Exception =>
+        case _: Exception =>
           println("Failed to generate video trace")
           TraceResult(null, isGenerated = false)
       }

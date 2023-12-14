@@ -18,7 +18,7 @@ import org.intocps.verification.scenarioverifier.core.Step
 
 object Z3ModelParser {
   private def filterActions(z3Model: String): List[String] = {
-    val actionRegex = """\(define-fun\s+(\w+)\s+\(\)\s+Int\s+(\d+)\)""".r
+    val actionRegex = """\(define-fun\s+(\S+)\s+\(\)\s+Int\s+(\d+)\)""".r
     val actions = actionRegex
       .findAllMatchIn(z3Model)
       .map(m => (m.group(1), m.group(2).toInt))
@@ -27,8 +27,8 @@ object Z3ModelParser {
     actions.sortBy(_._2).map(_._1)
   }
 
-  private def parseZ3InitAlgorithm(Z3algorithm: String, masterModel: MasterModel3): List[InitializationInstruction] = {
-    val actions = filterActions(Z3algorithm)
+  private def parseZ3InitAlgorithm(algorithm: String, masterModel: MasterModel3): List[InitializationInstruction] = {
+    val actions = filterActions(algorithm)
     val instructions = actions.map(action => {
       val fmuName = action.split("-").head
       val portName = action.split("-").last
@@ -42,9 +42,8 @@ object Z3ModelParser {
     })
     instructions
   }
-
-  private def parseZ3CoSimAlgorithm(Z3algorithm: String, masterModel: MasterModel3): List[CosimStepInstruction] = {
-    val actions = filterActions(Z3algorithm)
+  private def parseZ3CoSimAlgorithm(algorithm: String, masterModel: MasterModel3): List[CosimStepInstruction] = {
+    val actions = filterActions(algorithm)
     val instructions = actions.map(action => {
       val fmuName = action.split("-").head
       val actionType = action.split("-").last

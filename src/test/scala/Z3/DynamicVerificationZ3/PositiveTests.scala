@@ -1,4 +1,4 @@
-package Z3.DynamicVerification_Z3
+package Z3.DynamicVerificationZ3
 
 import org.intocps.verification.scenarioverifier.api.VerificationAPI
 import org.intocps.verification.scenarioverifier.core.ScenarioLoader

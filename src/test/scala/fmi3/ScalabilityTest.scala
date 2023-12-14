@@ -1,4 +1,4 @@
-package Z3
+package fmi3
 
 import org.apache.logging.log4j.scala.Logging
 import org.intocps.verification.scenarioverifier.api.FMI3.Verification
@@ -17,18 +17,12 @@ class ScalabilityTest extends AnyFlatSpec with should.Matchers with Logging {
     val conf2 = getClass.getResourceAsStream(testScenario2)
     val scenario2 = ScenarioLoaderFMI3.load(conf2)
     val scenario3 = FMI3ScenarioBuilder.generateScenario(10, 10, 5, 5, supportFeedthrough = false)
-    val scenario4 = FMI3ScenarioBuilder.generateScenario(50, 50, 10, 10, supportFeedthrough = true)
-    val scenario5 = FMI3ScenarioBuilder.generateScenario(100, 100, 10, 10, supportFeedthrough = false)
     logger.info("Synthesizing algorithm for scenario 1")
-    Verification.synthesizeAlgorithmWithStatistics(scenario1.scenario)
+    Verification.synthesizeAlgorithm(scenario1.scenario)
     logger.info("Synthesizing algorithm for scenario 2")
-    Verification.synthesizeAlgorithmWithStatistics(scenario2.scenario)
+    Verification.synthesizeAlgorithm(scenario2.scenario)
     logger.info("Synthesizing algorithm for scenario 3")
-    Verification.synthesizeAlgorithmWithStatistics(scenario3)
-    // logger.info("Synthesizing algorithm for scenario 4")
-    // Verification.synthesizeAlgorithmWithStatistics(scenario4)
-    // logger.info("Synthesizing algorithm for scenario 5")
-    // Verification.synthesizeAlgorithmWithStatistics(scenario5)
+    Verification.synthesizeAlgorithm(scenario3)
   }
 
   it should "create valid Master Algorithm for Simple Master" in {

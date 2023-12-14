@@ -277,8 +277,8 @@ final case class FMI3ScenarioModel(
         .map { case (fmu, fmuModel) => s"$fmu = ${fmuModel.toConf(indentationLevel + 1)}" }
         .mkString("\n")}
        |${indentBy(indentationLevel)}}
-       |${indentBy(indentationLevel)}connections = ${toArray(connections.map(_.toConf(indentationLevel + 1)))}
-       |${indentBy(indentationLevel)}clock-connections = ${toArray(clockConnections.map(_.toConf(indentationLevel + 1)))}
+       |${indentBy(indentationLevel)}connections = ${toArray(connections.map(_.toConf(indentationLevel + 1)), "\n")}
+       |${indentBy(indentationLevel)}clock-connections = ${toArray(clockConnections.map(_.toConf(indentationLevel + 1)), "\n")}
        |""".stripMargin
   }
 
@@ -445,16 +445,15 @@ final case class OutputPortModel(dependenciesInit: List[String], dependencies: L
 final case class OutputClockModel(typeOfClock: ClockType, dependencies: List[String], dependenciesClocks: List[String])
     extends ConfElement {
   override def toConf(indentationLevel: Int = 0): String =
-    s"{typeOfClock=${typeOfClock.toString}, dependencies=${toArray(dependencies)}, dependencies-clocks=${toArray(dependenciesClocks)}}"
+    s"{type-of-clock=${typeOfClock.toString}, dependencies=${toArray(dependencies)}, dependencies-clocks=${toArray(dependenciesClocks)}}"
 }
 
 final case class InputClockModel(typeOfClock: ClockType, interval: Int) extends ConfElement {
-
   require(
     typeOfClock == ClockType.triggered && interval == 0 || typeOfClock == ClockType.timed && interval > 0,
     "Interval must be greater than 0 for time-based clocks and 0 for triggered clocks")
 
-  override def toConf(indentationLevel: Int = 0): String = s"{typeOfClock=${typeOfClock.toString}, interval=$interval}"
+  override def toConf(indentationLevel: Int = 0): String = s"{type-of-clock=${typeOfClock.toString}, interval=$interval}"
 }
 
 final case class MasterModel3(
@@ -481,7 +480,9 @@ final case class MasterModel3(
        |}
        |initialization = $init
        |cosim-step = $step
+       |event-strategies = {}
        |""".stripMargin
+    // TODO event-strategies
   }
 
   private def formatEvents(synthesize: Boolean, isParallel: Boolean): String = {

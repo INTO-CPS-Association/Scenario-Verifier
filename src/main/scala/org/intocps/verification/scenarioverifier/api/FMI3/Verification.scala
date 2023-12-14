@@ -29,21 +29,14 @@ object Verification extends Logging {
    */
   def synthesizeAlgorithm(scenarioModel: FMI3ScenarioModel): MasterModel3 = {
     val masterModel = MasterModel3("master", scenarioModel, List.empty, List.empty, List.empty, Map.empty, List.empty)
-    val modelWithAlgorithm = SMTEncoder.synthesizeAlgorithm(masterModel)
-    SMTEncoder.verifyAlgorithm(modelWithAlgorithm)
-    modelWithAlgorithm
-  }
-
-  def synthesizeAlgorithmWithStatistics(scenarioModel: FMI3ScenarioModel): MasterModel3 = {
-    val masterModel = MasterModel3("master", scenarioModel, List.empty, List.empty, List.empty, Map.empty, List.empty)
     logger.debug(s"""
          |Synthesizing algorithm for scenario with ${scenarioModel.fmus.size} FMUs and ${scenarioModel.connections.size} connections
          |The scenario has ${scenarioModel.eventEntrances.size} event entrances.
          |""".stripMargin)
-    logger.debug("Synthesizing algorithm")
     val modelWithAlgorithm = SMTEncoder.synthesizeAlgorithm(masterModel)
-    logger.debug("Verifying algorithm")
-    SMTEncoder.verifyAlgorithm(modelWithAlgorithm)
+    val initialization = modelWithAlgorithm.initialization
+    logger.info("Synthesized algorithm:" + modelWithAlgorithm.toConf(0))
+    verifyAlgorithm(modelWithAlgorithm)
     modelWithAlgorithm
   }
 }
