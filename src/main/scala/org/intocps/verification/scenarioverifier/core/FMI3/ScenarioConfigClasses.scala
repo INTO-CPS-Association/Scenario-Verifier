@@ -58,7 +58,7 @@ case class RootEventStatement(
     step: String = "",
     next: String = "")
     extends EventStatement {
-  require(get.nonEmpty || set.nonEmpty | step.nonEmpty | next.nonEmpty, "At least one of get or set must be defined")
+  require(get.nonEmpty || set.nonEmpty | step.nonEmpty | next.nonEmpty | setClock.nonEmpty | getClock.nonEmpty, "At least one of get, set, step, next, setClock or getClock must be defined")
 }
 
 case class FMI3RootInitStatement(
@@ -68,7 +68,7 @@ case class FMI3RootInitStatement(
     getShift: String = "",
     loop: LoopConfigInit = NoLoopInit)
     extends InitializationStatement {
-  require(get.nonEmpty || set.nonEmpty | loop.iterate.nonEmpty | loop.ifRetryNeeded.nonEmpty, "At least one of get or set must be defined")
+  require(get.nonEmpty || set.nonEmpty | loop.iterate.nonEmpty | getInterval.nonEmpty | getShift.nonEmpty| loop.ifRetryNeeded.nonEmpty, "At least one of get, set, iterate, getInterval, getShift or ifRetryNeeded must be defined")
 }
 
 final case class FMI3MasterConfig(

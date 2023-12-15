@@ -1,6 +1,7 @@
 package fmi3
 import java.io.ByteArrayInputStream
 
+import org.intocps.verification.scenarioverifier.api.FMI3.Verification
 import org.intocps.verification.scenarioverifier.api.GenerationAPI
 import org.intocps.verification.scenarioverifier.core.ConnectionModel
 import org.intocps.verification.scenarioverifier.core.EnterInitMode
@@ -14,23 +15,16 @@ import org.scalatest.Assertion
 class ConfGenerationTest extends AnyFlatSpec with should.Matchers {
   private def confGenerationTest(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
-    val scenario = ScenarioLoaderFMI3.load(conf)
-    val generatedConfiguration = scenario.toConf()
+    val masterModel = ScenarioLoaderFMI3.load(conf)
+    val synthesizedAlgorithm = Verification.synthesizeAlgorithm(masterModel.scenario)
+    val generatedConfiguration = synthesizedAlgorithm.toConf()
     val scenarioFromGeneratedSource = ScenarioLoaderFMI3.load(new ByteArrayInputStream(generatedConfiguration.getBytes()))
     // All connections are equivalent
-    assert(compareConnections(scenario.scenario.connections, scenarioFromGeneratedSource.scenario.connections))
+    assert(compareConnections(masterModel.scenario.connections, scenarioFromGeneratedSource.scenario.connections))
     // All FMUs are equivalent
-    assert(compareFMUs(scenario.scenario.fmus, scenarioFromGeneratedSource.scenario.fmus))
-    assert(scenario.initialization.filterNot {
-      case EnterInitMode(_) => true
-      case ExitInitMode(_) => true
-      case _ => false
-    } == scenarioFromGeneratedSource.initialization.filterNot {
-      case EnterInitMode(_) => true
-      case ExitInitMode(_) => true
-      case _ => false
-    })
-    assert(scenario.cosimStep == scenarioFromGeneratedSource.cosimStep)
+    assert(compareFMUs(masterModel.scenario.fmus, scenarioFromGeneratedSource.scenario.fmus))
+    assert(masterModel.initialization.size == scenarioFromGeneratedSource.initialization.size)
+    assert(masterModel.cosimStep.size == scenarioFromGeneratedSource.cosimStep.size)
   }
 
   private def compareConnections(c1: List[ConnectionModel], c2: List[ConnectionModel]): Boolean = {

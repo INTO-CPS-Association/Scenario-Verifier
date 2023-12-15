@@ -200,13 +200,13 @@ object ScenarioLoaderFMI3 extends Logging {
       Set(pRef)
     } else if (!instruction.getClock.isBlank) {
       val pRef = parsePortRef(instruction.getClock, s"instruction $instruction", scenarioModel.fmus)
-      assert(scenarioModel.fmus(pRef.fmu).inputClocks.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
-      GetClock(pRef)
-    } else if (!instruction.setClock.isBlank) {
-      val pRef = parsePortRef(instruction.setClock, s"instruction $instruction", scenarioModel.fmus)
       assert(
         scenarioModel.fmus(pRef.fmu).outputClocks.contains(pRef.port),
         s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
+      GetClock(pRef)
+    } else if (!instruction.setClock.isBlank) {
+      val pRef = parsePortRef(instruction.setClock, s"instruction $instruction", scenarioModel.fmus)
+      assert(scenarioModel.fmus(pRef.fmu).inputClocks.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
       SetClock(pRef)
     } else if (!instruction.next.isBlank) {
       val pRef = parsePortRef(instruction.next, s"instruction $instruction", scenarioModel.fmus)

@@ -11,6 +11,7 @@ class SynthesizerTest extends AnyFlatSpec with should.Matchers {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoaderFMI3.load(conf)
     val synthesizedAlgorithm = Verification.synthesizeAlgorithm(masterModel.scenario)
+    println(synthesizedAlgorithm.toConf(0))
     assert(synthesizedAlgorithm.initialization.nonEmpty)
     assert(synthesizedAlgorithm.cosimStep.nonEmpty)
     assert(synthesizedAlgorithm.cosimStep.length == masterModel.cosimStep.length)

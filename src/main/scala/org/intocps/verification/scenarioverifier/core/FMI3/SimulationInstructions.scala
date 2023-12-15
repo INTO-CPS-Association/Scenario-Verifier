@@ -60,7 +60,7 @@ final case class GetClock(port: PortRef) extends EventInstruction {
   override def toUppaal: String =
     s"{$fmu, getClock, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
 
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{getClock: ${generatePort(port)}}"
+  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{get-clock: ${generatePort(port)}}"
 
   override def fmu: String = port.fmu
 
@@ -71,7 +71,7 @@ final case class SetClock(port: PortRef) extends EventInstruction {
   override def toUppaal: String =
     s"{$fmu, setClock, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
 
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{getClock: ${generatePort(port)}}"
+  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{set-clock: ${generatePort(port)}}"
 
   override def fmu: String = port.fmu
 

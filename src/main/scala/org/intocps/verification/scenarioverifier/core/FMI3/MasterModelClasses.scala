@@ -67,22 +67,22 @@ final case class Fmu3Model(
        |${indentBy(indentationLevel + 1)}inputs = {
        |${indentBy(indentationLevel + 2)}${inputs
         .map { case (port, inputPortModel) => s"${sanitizeString(port)} = ${inputPortModel.toConf()}" }
-        .mkString("\n")}
+        .mkString(s"\n${indentBy(indentationLevel + 2)}")}
        |${indentBy(indentationLevel + 1)}},
        |${indentBy(indentationLevel + 1)}outputs = {
        |${indentBy(indentationLevel + 2)}${outputs
         .map { case (port, outputPortModel) => s"${sanitizeString(port)} = ${outputPortModel.toConf()}" }
-        .mkString("\n")}
+        .mkString(s"\n${indentBy(indentationLevel + 2)}")}
        |${indentBy(indentationLevel + 1)}}
        |${indentBy(indentationLevel + 1)}input-clocks = {
        |${indentBy(indentationLevel + 2)}${inputClocks
         .map { case (port, inputClockModel) => s"${sanitizeString(port)} = ${inputClockModel.toConf()}" }
-        .mkString("\n")}
+        .mkString(s"\n${indentBy(indentationLevel + 2)}")}
        |${indentBy(indentationLevel + 1)}},
        |${indentBy(indentationLevel + 1)}output-clocks = {
        |${indentBy(indentationLevel + 2)}${outputClocks
         .map { case (port, outputClockModel) => s"${sanitizeString(port)} = ${outputClockModel.toConf()}" }
-        .mkString("\n")}
+        .mkString(s"\n${indentBy(indentationLevel + 2)}")}
        |${indentBy(indentationLevel + 1)}},
        |${indentBy(indentationLevel)}}""".stripMargin
   }
@@ -474,15 +474,15 @@ final case class MasterModel3(
   override def toConf(indentationLevel: Int = 0): String = {
     val init = toArray(initialization.map(_.toConf(indentationLevel + 1)), "\n")
     val step = toArray(cosimStep.map(_.toConf(indentationLevel + 1)), "\n")
+    val strategies = eventStrategies.map(strategy => s"${sanitizeString(strategy._1)} : ${strategy._2.toConf(indentationLevel + 1)}").mkString("\n")
     s"""name = $name
        |scenario = {
        |  ${scenario.toConf(indentationLevel + 1)}
        |}
        |initialization = $init
        |cosim-step = $step
-       |event-strategies = {}
+       |event-strategies : {$strategies}
        |""".stripMargin
-    // TODO event-strategies
   }
 
   private def formatEvents(synthesize: Boolean, isParallel: Boolean): String = {
@@ -535,7 +535,6 @@ final case class MasterModel3(
     val stepInstructions = cosimStep
       .filter(instruction =>
         instruction.isInstanceOf[Get] || instruction.isInstanceOf[scenarioverifier.core.Set] || instruction.isInstanceOf[Step])
-
     s"""
        |(set-option :produce-models true)
        |(set-logic QF_LIA)
@@ -556,8 +555,24 @@ case class MasterModelDTO(
     cosimStep: List[CosimStepInstruction],
     eventStrategies: Map[String, EventStrategy])
 
-final case class EventEntrance(clocks: immutable.Set[PortRef]) {
+final case class EventEntrance(clocks: immutable.Set[PortRef]) extends ConfElement {
   require(clocks.nonEmpty, "Event entrance must contain at least one clock")
+
+  override def toConf(indentationLevel: Int = 0): String = {
+    toArray(clocks.map(generatePort(_)).toList, ",")
+  }
 }
 
-final case class EventStrategy(eventEntrance: EventEntrance, algorithm: List[EventInstruction])
+final case class EventStrategy(eventEntrance: EventEntrance, algorithm: List[EventInstruction]) extends ConfElement {
+
+  /**
+   * Formats the master model to a CONF file
+   */
+  override def toConf(indentationLevel: Int = 0): String = {
+    s"""${indentBy(indentationLevel)}{
+        |${indentBy(indentationLevel + 1)}clocks = ${eventEntrance.toConf(indentationLevel + 1)},
+        |${indentBy(indentationLevel + 1)}iterate = ${toArray(algorithm.map(_.toConf(indentationLevel + 2)), "\n")} 
+        |${indentBy(indentationLevel)}}
+        |""".stripMargin
+  }
+}
