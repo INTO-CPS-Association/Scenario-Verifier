@@ -2,7 +2,7 @@ package fmi3
 
 import org.apache.logging.log4j.scala.Logging
 import org.intocps.verification.scenarioverifier.api.GenerationAPI
-import org.intocps.verification.scenarioverifier.core.FMI3.ScenarioLoaderFMI3
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI3
 import org.intocps.verification.scenarioverifier.synthesizer.ScenarioBuilder.FMI3ScenarioBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should

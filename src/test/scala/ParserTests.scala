@@ -1,5 +1,5 @@
 import org.intocps.verification.scenarioverifier.core.ConnectionParserSingleton
-import org.intocps.verification.scenarioverifier.core.ScenarioLoader
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI2
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 
@@ -7,7 +7,7 @@ class ParserTests extends AnyFlatSpec with should.Matchers {
 
   it should "load simple master configuration" in {
     val conf = getClass.getResourceAsStream("examples/simple_master.conf")
-    val results = ScenarioLoader.load(conf)
+    val results = ScenarioLoaderFMI2.load(conf)
     // Simple Test
     assert(results.initialization.size == 10)
     assert(results.cosimStep.values.head.size == 8)
@@ -17,7 +17,7 @@ class ParserTests extends AnyFlatSpec with should.Matchers {
 
   it should "load tricky master configuration" in {
     val conf = getClass.getResourceAsStream("examples/tapas.conf")
-    val results = ScenarioLoader.load(conf)
+    val results = ScenarioLoaderFMI2.load(conf)
     // Simple Test
     assert(results.initialization.size == 10)
     assert(results.cosimStep.isEmpty)
@@ -27,7 +27,7 @@ class ParserTests extends AnyFlatSpec with should.Matchers {
 
   it should "load scenario without ports" in {
     val conf = getClass.getResourceAsStream("examples_no_algorithm/eduard.conf")
-    val results = ScenarioLoader.load(conf)
+    val results = ScenarioLoaderFMI2.load(conf)
     // Simple Test
     assert(results.scenario.connections.size == 2)
     assert(results.scenario.fmus.size == 2)
@@ -35,7 +35,7 @@ class ParserTests extends AnyFlatSpec with should.Matchers {
 
   it should "load configurations with FMUs exported from Amesim" in {
     val conf = getClass.getResourceAsStream("examples/msd_from_amesim.conf")
-    val results = ScenarioLoader.load(conf)
+    val results = ScenarioLoaderFMI2.load(conf)
     // Simple Test
     assert(results.scenario.fmus.size == 2)
     assert(results.cosimStep.isEmpty)

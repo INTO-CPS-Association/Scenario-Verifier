@@ -6,13 +6,10 @@ import java.io.InputStreamReader
 import java.nio.file.Files
 import java.nio.file.Paths
 
+import scala.annotation.unused
 import scala.collection.immutable
 
 import com.typesafe.config.ConfigFactory
-import io.circe._
-import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
-import io.circe.jawn.decode
-import io.circe.syntax._
 import org.apache.logging.log4j.scala.Logging
 import org.intocps.verification.scenarioverifier.core.masterModel._
 import org.intocps.verification.scenarioverifier.core.FMI3.AdaptiveModel
@@ -26,8 +23,57 @@ import pureconfig.generic.ProductHint
 import pureconfig.ConfigReader.Result
 import pureconfig.ConfigSource
 
-object ScenarioLoader extends Logging {
-  def load(file: String): MasterModelFMI2 = {
+trait ScenarioLoader extends Logging {
+  def load(file: String): MasterModel
+  def load(stream: InputStream): MasterModel
+
+  protected def prettyPrintError(e: ConfigReaderFailure): Unit = {
+    e match {
+      case ConvertFailure(UnknownKey(key), _, path) =>
+        logger.error(f"Unknown key '$key' in element $path.")
+      case other =>
+        logger.error(other.description)
+    }
+  }
+
+  protected def parsePortRef(str: String, context: String, fmus: Map[String, FmuModel]): PortRef = {
+    val pRes = FMURefParserSingleton.parse(FMURefParserSingleton.fmu_port_ref, str)
+    assert(pRes.successful, s"Problem parsing fmu port reference $str in $context.")
+    assert(fmus.contains(pRes.get.fmu), s"Unable to resolve fmu ${pRes.get.fmu} in $context.")
+    pRes.get
+  }
+
+  protected def parseConnection(connectionConfig: String, fmus: Map[String, FmuModel]): ConnectionModel = {
+    val results = ConnectionParserSingleton.parse(ConnectionParserSingleton.connection, connectionConfig)
+    assert(results.successful, s"Problem parsing connection string $connectionConfig.")
+    val connection = results.get
+    assert(
+      fmus.contains(connection.srcPort.fmu),
+      s"Unable to resolve source fmu ${connection.srcPort.fmu} in connection $connectionConfig.")
+    assert(
+      fmus.contains(connection.trgPort.fmu),
+      s"Unable to resolve source fmu ${connection.trgPort.fmu} in connection $connectionConfig.")
+
+    connection
+  }
+
+  def generateEnterInitInstructions(model: ScenarioModel): immutable.Iterable[InitializationInstruction] =
+    model.fmus.map(f => EnterInitMode(f._1))
+
+  def generateExitInitInstructions(model: ScenarioModel): immutable.Iterable[InitializationInstruction] =
+    model.fmus.map(f => ExitInitMode(f._1))
+
+  def generateInstantiationInstructions(model: ScenarioModel): immutable.Iterable[InstantiationInstruction] =
+    model.fmus.map(f => Instantiate(f._1)) ++ model.fmus.map(f => SetupExperiment(f._1))
+
+  def generateTerminateInstructions(model: ScenarioModel): immutable.Iterable[TerminationInstruction] =
+    model.fmus.map(f => Terminate(f._1)) ++
+      model.fmus.map(f => FreeInstance(f._1)) ++
+      model.fmus.map(f => Unload(f._1))
+}
+
+object ScenarioLoaderFMI2 extends ScenarioLoader {
+  override def load(file: String): MasterModelFMI2 = {
     if (!Files.exists(Paths.get(file))) {
       val msg = f"File not found: $file. Current working directory is: ${System.getProperty("user.dir")}."
       logger.error(msg)
@@ -39,7 +85,7 @@ object ScenarioLoader extends Logging {
     parse(masterConfig)
   }
 
-  def load(stream: InputStream): MasterModelFMI2 = {
+  override def load(stream: InputStream): MasterModelFMI2 = {
     val reader = new InputStreamReader(stream)
     try {
       // read from stream
@@ -47,10 +93,15 @@ object ScenarioLoader extends Logging {
       // This forces pure config to not tolerate unknown keys in the config file.
       // It gives errors when typos happen.
       // From https://pureconfig.github.io/docs/overriding-behavior-for-case-classes.html
+      @unused
       implicit val hintNestedStepStatement: ProductHint[NestedStepStatement] = ProductHint[NestedStepStatement](allowUnknownKeys = false)
+      @unused
       implicit val hintRootStepStatement: ProductHint[RootStepStatement] = ProductHint[RootStepStatement](allowUnknownKeys = false)
+      @unused
       implicit val hintNestedInitStatement: ProductHint[NestedInitStatement] = ProductHint[NestedInitStatement](allowUnknownKeys = false)
+      @unused
       implicit val hintRootInitStatement: ProductHint[RootInitStatement] = ProductHint[RootInitStatement](allowUnknownKeys = false)
+      @unused
       implicit val hintMasterConfig: ProductHint[MasterConfig] = ProductHint[MasterConfig](allowUnknownKeys = false)
 
       val parsingResults: Result[MasterConfig] = ConfigSource.fromConfig(conf).load[MasterConfig]
@@ -81,15 +132,6 @@ object ScenarioLoader extends Logging {
     model.copy(fmus = fmus)
   }
 
-  private def prettyPrintError(e: ConfigReaderFailure): Unit = {
-    e match {
-      case ConvertFailure(UnknownKey(key), _, path) =>
-        logger.error(f"Unknown key '$key' in element $path.")
-      case other =>
-        logger.error(other.description)
-    }
-  }
-
   private def extractMasterConfig(parsingResults: Result[MasterConfig]): MasterConfig = {
     parsingResults match {
       case Left(errors) =>
@@ -118,33 +160,6 @@ object ScenarioLoader extends Logging {
         val terminateModel = generateTerminateInstructions(scenarioModel).toList
         MasterModelFMI2(name, scenarioModel, instantiationModel, expandedInitModel.toList, cosimStepModel, terminateModel)
     }
-  }
-
-  // def parse(masterModel: MasterModelFMI2): MasterModelDTO = {
-  //   val filteredInitializationActions =
-  //     masterModel.initialization.filterNot(i => i.isInstanceOf[EnterInitMode] || i.isInstanceOf[ExitInitMode])
-  //   MasterModelDTO(masterModel.name, masterModel.scenario, filteredInitializationActions, masterModel.cosimStep)
-  // }
-
-  def generateEnterInitInstructions(model: ScenarioModel): immutable.Iterable[InitializationInstruction] =
-    model.fmus.map(f => EnterInitMode(f._1))
-
-  def generateExitInitInstructions(model: ScenarioModel): immutable.Iterable[InitializationInstruction] =
-    model.fmus.map(f => ExitInitMode(f._1))
-
-  def generateInstantiationInstructions(model: ScenarioModel): immutable.Iterable[InstantiationInstruction] =
-    model.fmus.map(f => Instantiate(f._1)) ++ model.fmus.map(f => SetupExperiment(f._1))
-
-  def generateTerminateInstructions(model: ScenarioModel): immutable.Iterable[TerminationInstruction] =
-    model.fmus.map(f => Terminate(f._1)) ++
-      model.fmus.map(f => FreeInstance(f._1)) ++
-      model.fmus.map(f => Unload(f._1))
-
-  private def parsePortRef(str: String, context: String, fmus: Map[String, FmuModel]): PortRef = {
-    val pRes = FMURefParserSingleton.parse(FMURefParserSingleton.fmu_port_ref, str)
-    assert(pRes.successful, s"Problem parsing fmu port reference $str in $context.")
-    assert(fmus.contains(pRes.get.fmu), s"Unable to resolve fmu ${pRes.get.fmu} in $context.")
-    pRes.get
   }
 
   def parse(instruction: InitializationStatement, scenarioModel: ScenarioModel): InitializationInstruction = {
@@ -196,11 +211,11 @@ object ScenarioLoader extends Logging {
     if (!instruction.get.isBlank) {
       val pRef = parsePortRef(instruction.get, s"instruction $instruction", scenarioModel.fmus)
       assert(scenarioModel.fmus(pRef.fmu).outputs.contains(pRef.port), s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
-      Get(pRef)
+      org.intocps.verification.scenarioverifier.core.Get(pRef)
     } else if (!instruction.set.isBlank) {
       val pRef = parsePortRef(instruction.set, s"instruction $instruction", scenarioModel.fmus)
       assert(scenarioModel.fmus(pRef.fmu).inputs.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
-      Set(pRef)
+      org.intocps.verification.scenarioverifier.core.Set(pRef)
     } else if (!instruction.step.isBlank) {
       val fmuRef = instruction.step
       assert(scenarioModel.fmus.contains(fmuRef), s"Unable to resolve fmu $fmuRef.")
@@ -334,12 +349,12 @@ object ScenarioLoader extends Logging {
   }
 
   def parse(
-      config: OutputPortConfig,
+      config: org.intocps.verification.scenarioverifier.core.OutputPortConfig,
       inputsModel: Map[String, FMI2InputPortModel],
       outputPortId: String,
       fmuId: String): FMI2OutputPortModel = {
     config match {
-      case OutputPortConfig(dependenciesInit, dependencies) =>
+      case org.intocps.verification.scenarioverifier.core.OutputPortConfig(dependenciesInit, dependencies) =>
         val errorCheck = (inputPortRef: String) =>
           assert(
             inputsModel.contains(inputPortRef),
@@ -350,26 +365,4 @@ object ScenarioLoader extends Logging {
     }
   }
 
-  def parseConnection(connectionConfig: String, fmus: Map[String, FmuModel]): ConnectionModel = {
-    val results = ConnectionParserSingleton.parse(ConnectionParserSingleton.connection, connectionConfig)
-    assert(results.successful, s"Problem parsing connection string $connectionConfig.")
-    val connection = results.get
-    assert(
-      fmus.contains(connection.srcPort.fmu),
-      s"Unable to resolve source fmu ${connection.srcPort.fmu} in connection $connectionConfig.")
-    assert(
-      fmus.contains(connection.trgPort.fmu),
-      s"Unable to resolve source fmu ${connection.trgPort.fmu} in connection $connectionConfig.")
-
-    // val srcFmu = fmus(connection.srcPort.fmu)
-    // val trgFmu = fmus(connection.trgPort.fmu)
-
-    /*
-    assert(srcFmu.outputs.contains(connection.srcPort.port),
-      s"Unable to resolve source port ${connection.srcPort.port} of fmu ${connection.srcPort.fmu} in connection $connectionConfig.")
-    assert(trgFmu.inputs.contains(connection.trgPort.port),
-      s"Unable to resolve source port ${connection.trgPort.port} of fmu ${connection.trgPort.fmu} in connection $connectionConfig.")
-     */
-    connection
-  }
 }

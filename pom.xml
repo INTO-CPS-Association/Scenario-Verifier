@@ -8,7 +8,6 @@
         <artifactId>oss-parent</artifactId>
         <version>7</version>
     </parent>
-
     <!-- parent pom -->
     <groupId>org.into-cps.verification</groupId>
 
@@ -241,7 +240,7 @@
                 <artifactId>twirl-maven-plugin_${SCCALA_VERSION}</artifactId>
                 <version>${TWIRL_VERSION}</version>
                 <configuration>
-                    <outputDirectory>twirl_templates</outputDirectory>
+                    <outputDir>twirl_templates</outputDir>
                   </configuration>
                 <executions>
                     <execution>

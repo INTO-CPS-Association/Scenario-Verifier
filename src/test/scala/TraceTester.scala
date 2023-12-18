@@ -1,16 +1,15 @@
 import org.apache.commons.io.FileUtils
 import org.intocps.verification.scenarioverifier.api.TraceResult
 import org.intocps.verification.scenarioverifier.api.VerificationAPI
-import org.intocps.verification.scenarioverifier.core.ScenarioLoader
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI2
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import org.scalatest.Assertion
-import org.scalatest.Ignore
 
 class TraceTester extends AnyFlatSpec with should.Matchers {
   private def generateTrace(scenarioPath: String): TraceResult = {
     val conf = getClass.getResourceAsStream(scenarioPath)
-    val masterModel = ScenarioLoader.load(conf)
+    val masterModel = ScenarioLoaderFMI2.load(conf)
     VerificationAPI.generateTraceVideo(masterModel)
   }
 

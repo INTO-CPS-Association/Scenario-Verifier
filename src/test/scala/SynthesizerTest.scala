@@ -1,5 +1,5 @@
 import org.intocps.verification.scenarioverifier.api.VerificationAPI
-import org.intocps.verification.scenarioverifier.core.ScenarioLoader
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI2
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import org.scalatest.Assertion
@@ -7,7 +7,7 @@ import org.scalatest.Assertion
 class SynthesizerTest extends AnyFlatSpec with should.Matchers {
   private def synthesizeAndVerify(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
-    val masterModel = ScenarioLoader.load(conf)
+    val masterModel = ScenarioLoaderFMI2.load(conf)
     assert(VerificationAPI.synthesizeAndVerify(masterModel.name, masterModel.scenario))
   }
 

@@ -20,7 +20,7 @@ object Z3 extends CLITool {
       val exitCode = runCommand(List("-h"))
       exitCode == 0
     } catch {
-      case e: IOException =>
+      case _: IOException =>
         logger.error(s"Problem with $name binary. Make sure it is in the PATH.")
         logger.debug("Current PATH:")
         logger.debug(System.getenv("PATH"))

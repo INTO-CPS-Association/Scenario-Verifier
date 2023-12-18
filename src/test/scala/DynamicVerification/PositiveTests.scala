@@ -1,7 +1,7 @@
 package DynamicVerification
 
 import org.intocps.verification.scenarioverifier.api.VerificationAPI
-import org.intocps.verification.scenarioverifier.core.ScenarioLoader
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI2
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 
@@ -9,7 +9,7 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
 
   def generateAndVerify(resourcesFile: String): Boolean = {
     val conf = getClass.getResourceAsStream(resourcesFile)
-    val masterModel = ScenarioLoader.load(conf)
+    val masterModel = ScenarioLoaderFMI2.load(conf)
     (1 until masterModel.cosimStep.values.head.length).forall(i => {
       val previous_actions = masterModel.cosimStep.values.head.take(i)
       val current_action = masterModel.cosimStep.values.head(i)
@@ -19,7 +19,7 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
 
   def dynamicVerifyLongAlgorithm(resourcesFile: String): Boolean = {
     val conf = getClass.getResourceAsStream(resourcesFile)
-    val masterModel = ScenarioLoader.load(conf)
+    val masterModel = ScenarioLoaderFMI2.load(conf)
     val algorithm = masterModel.cosimStep.values.head
     val hundredThousandRepetitionsOfAlgorithm = (1 to 10000).flatMap(_ => algorithm).toList
     (1 until algorithm.length).forall(i => {

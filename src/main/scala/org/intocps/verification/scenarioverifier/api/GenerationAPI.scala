@@ -8,8 +8,8 @@ import org.intocps.verification.scenarioverifier.core.masterModel.MasterModel
 import org.intocps.verification.scenarioverifier.core.masterModel.MasterModelFMI2
 import org.intocps.verification.scenarioverifier.core.masterModel.MasterModelFMI3
 import org.intocps.verification.scenarioverifier.core.masterModel.ScenarioModel
-import org.intocps.verification.scenarioverifier.core.ScenarioLoader
-import org.intocps.verification.scenarioverifier.core.ScenarioLoader.simplifyScenario
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI2
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI2.simplifyScenario
 import org.intocps.verification.scenarioverifier.synthesizer.SynthesizerSimple
 
 object GenerationAPI extends Logging {
@@ -18,10 +18,12 @@ object GenerationAPI extends Logging {
    */
   def synthesizeAlgorithm(name: String, scenarioModel: ScenarioModel): MasterModel = {
     scenarioModel match {
-      case _: FMI3ScenarioModel =>
-        synthesizeAlgorithmFMI3(name, scenarioModel.asInstanceOf[FMI3ScenarioModel])
-      case _: FMI2ScenarioModel =>
-        synthesizeAlgorithmFMI2(name, scenarioModel.asInstanceOf[FMI2ScenarioModel])
+      case scenario: FMI3ScenarioModel =>
+        synthesizeAlgorithmFMI3(name, scenario)
+      case scenario: FMI2ScenarioModel =>
+        synthesizeAlgorithmFMI2(name, scenario)
+      case _ =>
+        throw new RuntimeException("Unsupported scenario model type")
     }
   }
 
@@ -40,12 +42,12 @@ object GenerationAPI extends Logging {
     logger.debug("Synthesizing algorithm for scenario: " + scenarioModel.toConf(0))
     val simplifiedScenario = simplifyScenario(scenarioModel)
     val synthesizer = new SynthesizerSimple(simplifiedScenario)
-    val instantiationModel = ScenarioLoader.generateInstantiationInstructions(simplifiedScenario).toList
-    val expandedInitModel = ScenarioLoader.generateEnterInitInstructions(simplifiedScenario) ++
+    val instantiationModel = ScenarioLoaderFMI2.generateInstantiationInstructions(simplifiedScenario).toList
+    val expandedInitModel = ScenarioLoaderFMI2.generateEnterInitInstructions(simplifiedScenario) ++
       synthesizer.synthesizeInitialization() ++
-      ScenarioLoader.generateExitInitInstructions(simplifiedScenario)
+      ScenarioLoaderFMI2.generateExitInitInstructions(simplifiedScenario)
     val cosimStepModel = synthesizer.synthesizeStep()
-    val terminateModel = ScenarioLoader.generateTerminateInstructions(simplifiedScenario).toList
+    val terminateModel = ScenarioLoaderFMI2.generateTerminateInstructions(simplifiedScenario).toList
     logger.info("Algorithm synthesized")
     MasterModelFMI2(name, simplifiedScenario, instantiationModel, expandedInitModel.toList, cosimStepModel, terminateModel)
   }

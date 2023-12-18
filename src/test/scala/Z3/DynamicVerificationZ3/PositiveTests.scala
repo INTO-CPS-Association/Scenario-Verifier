@@ -1,7 +1,6 @@
 package Z3.DynamicVerificationZ3
 
-import org.intocps.verification.scenarioverifier.api.VerificationAPI
-import org.intocps.verification.scenarioverifier.core.ScenarioLoader
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI2
 import org.scalatest._
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
@@ -11,7 +10,7 @@ class PositiveTests extends AnyFlatSpec with should.Matchers {
 
   def generateAndVerify(resourcesFile: String): Boolean = {
     val conf = getClass.getResourceAsStream(resourcesFile)
-    val masterModel = ScenarioLoader.load(conf)
+    val masterModel = ScenarioLoaderFMI2.load(conf)
     (1 until masterModel.cosimStep.values.head.length).forall(i => {
       val previous_actions = masterModel.cosimStep.values.head.take(i)
       val current_action = masterModel.cosimStep.values.head(i)

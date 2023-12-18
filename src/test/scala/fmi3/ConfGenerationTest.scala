@@ -4,13 +4,10 @@ import java.io.ByteArrayInputStream
 import org.intocps.verification.scenarioverifier.api.GenerationAPI
 import org.intocps.verification.scenarioverifier.core.masterModel.ConnectionModel
 import org.intocps.verification.scenarioverifier.core.masterModel.Fmu3Model
-import org.intocps.verification.scenarioverifier.core.EnterInitMode
-import org.intocps.verification.scenarioverifier.core.ExitInitMode
-import org.intocps.verification.scenarioverifier.core.FMI3.ScenarioLoaderFMI3
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI3
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import org.scalatest.Assertion
-
 class ConfGenerationTest extends AnyFlatSpec with should.Matchers {
   private def confGenerationTest(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)

@@ -1,10 +1,6 @@
 import org.apache.commons.io.FileUtils
-import org.intocps.verification.scenarioverifier.core.ScenarioLoader
-import org.intocps.verification.scenarioverifier.synthesizer.GraphBuilder
-import org.intocps.verification.scenarioverifier.synthesizer.GraphVisualizer
-import org.intocps.verification.scenarioverifier.synthesizer.InitializationInstructionNode
-import org.intocps.verification.scenarioverifier.synthesizer.StepInstructionNode
-import org.intocps.verification.scenarioverifier.synthesizer.TarjanGraph
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI2
+import org.intocps.verification.scenarioverifier.synthesizer._
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 
@@ -12,7 +8,7 @@ class GraphVisualizerTest extends AnyFlatSpec with should.Matchers {
   def testGraph(file: String, name: String): Unit = {
     println("Testing " + file)
     val conf = getClass.getResourceAsStream(file)
-    val masterModel = ScenarioLoader.load(conf)
+    val masterModel = ScenarioLoaderFMI2.load(conf)
     val scenario = masterModel.scenario
     val graph = new GraphBuilder(scenario, true)
     val tarjanInit = new TarjanGraph[InitializationInstructionNode](graph.initialEdges)

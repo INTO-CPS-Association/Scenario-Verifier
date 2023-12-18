@@ -1,10 +1,6 @@
 package org.intocps.verification.scenarioverifier.core.masterModel
 import org.intocps.verification.scenarioverifier.core._
-import org.intocps.verification.scenarioverifier.core.FMI3.GetInterval
-import org.intocps.verification.scenarioverifier.core.FMI3.GetShift
-import org.intocps.verification.scenarioverifier.core.FMI3.ScenarioLoaderFMI3
-import org.intocps.verification.scenarioverifier.core.Set
-import AlgorithmType.AlgorithmType
+import org.intocps.verification.scenarioverifier.core.masterModel.AlgorithmType.AlgorithmType
 
 trait MasterModel extends ConfElement with SMTLibElement {
   def name: String

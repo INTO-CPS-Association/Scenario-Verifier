@@ -5,7 +5,7 @@ import org.intocps.verification.scenarioverifier.core.masterModel.ConnectionMode
 import org.intocps.verification.scenarioverifier.core.masterModel.FmuModel
 import org.intocps.verification.scenarioverifier.core.EnterInitMode
 import org.intocps.verification.scenarioverifier.core.ExitInitMode
-import org.intocps.verification.scenarioverifier.core.ScenarioLoader
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI2
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import org.scalatest.Assertion
@@ -13,9 +13,9 @@ import org.scalatest.Assertion
 class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
   private def confGenerationTest(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
-    val scenario = ScenarioLoader.load(conf)
+    val scenario = ScenarioLoaderFMI2.load(conf)
     val generatedConfiguration = scenario.toConf()
-    val scenarioFromGeneratedSource = ScenarioLoader.load(new ByteArrayInputStream(generatedConfiguration.getBytes()))
+    val scenarioFromGeneratedSource = ScenarioLoaderFMI2.load(new ByteArrayInputStream(generatedConfiguration.getBytes()))
     // All connections are equivalent
     assert(compareConnections(scenario.scenario.connections, scenarioFromGeneratedSource.scenario.connections))
     // All FMUs are equivalent
@@ -34,7 +34,7 @@ class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
 
   private def synthesizeAndGenerateConf(resourcesFile: String): Unit = {
     val conf = getClass.getResourceAsStream(resourcesFile)
-    val scenario = ScenarioLoader.load(conf)
+    val scenario = ScenarioLoaderFMI2.load(conf)
     val masterModel = GenerationAPI.synthesizeAlgorithm(scenario.name, scenario.scenario)
     val generatedConfiguration = masterModel.toConf()
   }

@@ -15,7 +15,7 @@ import org.intocps.verification.scenarioverifier.core.masterModel.MasterModel
 import org.intocps.verification.scenarioverifier.core.masterModel.MasterModelFMI2
 import org.intocps.verification.scenarioverifier.core.ModelEncoding
 import org.intocps.verification.scenarioverifier.core.ScenarioGenerator
-import org.intocps.verification.scenarioverifier.core.ScenarioLoader
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI2
 import org.intocps.verification.scenarioverifier.traceanalyzer.TraceAnalyzer
 import scopt.OParser
 
@@ -84,7 +84,7 @@ object ScenarioVerifierApp extends App with Logging {
       logger.info("Starting scenario verifier.")
       require(VerifyTA.isInstalled, "VerifyTA/UPPAAL is not installed - please install it.")
       logger.info(f"Master description: ${config.master}")
-      var masterModel: MasterModel = ScenarioLoader.load(config.master)
+      var masterModel: MasterModel = ScenarioLoaderFMI2.load(config.master)
       if (config.generateAlgorithm) {
         logger.info(f"Generating algorithm for scenario: ${config.master}")
         masterModel = GenerationAPI.synthesizeAlgorithm(masterModel.name, masterModel.scenario)

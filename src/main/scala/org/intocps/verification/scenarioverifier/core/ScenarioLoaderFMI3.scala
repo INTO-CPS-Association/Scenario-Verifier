@@ -1,4 +1,4 @@
-package org.intocps.verification.scenarioverifier.core.FMI3
+package org.intocps.verification.scenarioverifier.core
 
 import java.io.File
 import java.io.InputStream
@@ -6,35 +6,17 @@ import java.io.InputStreamReader
 import java.nio.file.Files
 import java.nio.file.Paths
 
+import scala.annotation.unused
+
 import com.typesafe.config.ConfigFactory
-import io.circe._
-import io.circe.syntax._
-import org.apache.logging.log4j.scala.Logging
-import org.intocps.verification.scenarioverifier
 import org.intocps.verification.scenarioverifier.core.masterModel._
-import org.intocps.verification.scenarioverifier.core.ConnectionParserSingleton
-import org.intocps.verification.scenarioverifier.core.EnterInitMode
-import org.intocps.verification.scenarioverifier.core.ExitInitMode
-import org.intocps.verification.scenarioverifier.core.FMURefParserSingleton
-import org.intocps.verification.scenarioverifier.core.InitGet
-import org.intocps.verification.scenarioverifier.core.InitSet
-import org.intocps.verification.scenarioverifier.core.InitializationInstruction
-import org.intocps.verification.scenarioverifier.core.NestedInitStatement
-import org.intocps.verification.scenarioverifier.core.NestedStepStatement
-import org.intocps.verification.scenarioverifier.core.NoLoopInit
-import org.intocps.verification.scenarioverifier.core.PortRef
-import org.intocps.verification.scenarioverifier.core.RootStepStatement
-import org.intocps.verification.scenarioverifier.core.ScenarioLoader
+import org.intocps.verification.scenarioverifier.core.FMI3._
 import org.intocps.verification.scenarioverifier.prettyprint.PPrint
-import pureconfig.error.ConfigReaderFailure
-import pureconfig.error.ConvertFailure
-import pureconfig.error.UnknownKey
 import pureconfig.generic.auto._
 import pureconfig.generic.ProductHint
 import pureconfig.ConfigReader.Result
 import pureconfig.ConfigSource
-
-object ScenarioLoaderFMI3 extends Logging {
+object ScenarioLoaderFMI3 extends ScenarioLoader {
   def load(file: String): MasterModelFMI3 = {
     if (!Files.exists(Paths.get(file))) {
       val msg = f"File not found: $file. Current working directory is: ${System.getProperty("user.dir")}."
@@ -46,7 +28,6 @@ object ScenarioLoaderFMI3 extends Logging {
     val masterConfig = extractMasterConfig(parsingResults)
     parse(masterConfig)
   }
-
   def load(stream: InputStream): MasterModelFMI3 = {
     val reader = new InputStreamReader(stream)
     try {
@@ -56,10 +37,15 @@ object ScenarioLoaderFMI3 extends Logging {
       // This forces pure config to not tolerate unknown keys in the config file.
       // It gives errors when typos happen.
       // From https://pureconfig.github.io/docs/overriding-behavior-for-case-classes.html
+      @unused
       implicit val hintNestedStepStatement: ProductHint[NestedStepStatement] = ProductHint[NestedStepStatement](allowUnknownKeys = false)
+      @unused
       implicit val hintRootStepStatement: ProductHint[RootStepStatement] = ProductHint[RootStepStatement](allowUnknownKeys = false)
+      @unused
       implicit val hintNestedInitStatement: ProductHint[NestedInitStatement] = ProductHint[NestedInitStatement](allowUnknownKeys = false)
+      @unused
       implicit val hintRootInitStatement: ProductHint[RootEventStatement] = ProductHint[RootEventStatement](allowUnknownKeys = false)
+      @unused
       implicit val hintMasterConfig: ProductHint[FMI3MasterConfig] = ProductHint[FMI3MasterConfig](allowUnknownKeys = false)
 
       val parsingResults: Result[FMI3MasterConfig] = ConfigSource.fromConfig(conf).load[FMI3MasterConfig]
@@ -67,15 +53,6 @@ object ScenarioLoaderFMI3 extends Logging {
       parse(masterConfig)
     } finally {
       reader.close()
-    }
-  }
-
-  private def prettyPrintError(e: ConfigReaderFailure): Unit = {
-    e match {
-      case ConvertFailure(UnknownKey(key), _, path) =>
-        logger.error(f"Unknown key '$key' in element $path.")
-      case other =>
-        logger.error(other.description)
     }
   }
 
@@ -98,20 +75,21 @@ object ScenarioLoaderFMI3 extends Logging {
     config match {
       case FMI3MasterConfig(name, scenario, initialization, cosimStep, eventStrategies) =>
         val scenarioModel = parse(scenario)
-        val instantiationModel = ScenarioLoader.generateInstantiationInstructions(scenarioModel.scenarioModel).toList
+        val instantiationModel = generateInstantiationInstructions(scenarioModel.scenarioModel).toList
         val initializationModel = initialization.map(instruction => parse(instruction, scenarioModel))
-        val expandedInitModel = ScenarioLoader.generateEnterInitInstructions(
-          scenarioModel.scenarioModel) ++ initializationModel ++ ScenarioLoader.generateExitInitInstructions(scenarioModel.scenarioModel)
+        val expandedInitModel =
+          generateEnterInitInstructions(scenarioModel.scenarioModel) ++ initializationModel ++ generateExitInitInstructions(
+            scenarioModel.scenarioModel)
         val cosimStepModel =
           cosimStep.map(instructions =>
-            (instructions._1, instructions._2.map(instruction => ScenarioLoader.parse(instruction, scenarioModel.scenarioModel))))
+            (instructions._1, instructions._2.map(instruction => ScenarioLoaderFMI2.parse(instruction, scenarioModel.scenarioModel))))
         val eventStrategyModel = eventStrategies.map(strategy =>
           (
             strategy._1,
             EventStrategy(
               EventEntrance(strategy._2.clocks.map(clock => parsePortRef(clock, "", scenarioModel.fmus)).toSet),
               strategy._2.iterate.map(instruction => parse(instruction, scenarioModel)))))
-        val terminateModel = ScenarioLoader.generateTerminateInstructions(scenarioModel.scenarioModel).toList
+        val terminateModel = generateTerminateInstructions(scenarioModel.scenarioModel).toList
         MasterModelFMI3(
           name,
           scenarioModel,
@@ -121,24 +99,6 @@ object ScenarioLoaderFMI3 extends Logging {
           eventStrategyModel,
           terminateModel)
     }
-  }
-
-  // private def parse(masterModel: MasterModelFMI3): MasterModelDTO = {
-  //   val filteredInitializationActions =
-  //     masterModel.initialization.filterNot(i => i.isInstanceOf[EnterInitMode] || i.isInstanceOf[ExitInitMode])
-  //   MasterModelDTO(
-  //     masterModel.name,
-  //     masterModel.scenario,
-  //     filteredInitializationActions,
-  //     masterModel.cosimStep,
-  //     masterModel.eventStrategies)
-  // }
-
-  private def parsePortRef(str: String, context: String, fmus: Map[String, Fmu3Model]): PortRef = {
-    val pRes = FMURefParserSingleton.parse(scenarioverifier.core.FMURefParserSingleton.fmu_port_ref, str)
-    assert(pRes.successful, s"Problem parsing fmu port reference $str in $context.")
-    assert(fmus.contains(pRes.get.fmu), s"Unable to resolve fmu ${pRes.get.fmu} in $context.")
-    pRes.get
   }
 
   def parse(instruction: InitializationStatement, scenarioModel: FMI3ScenarioModel): InitializationInstruction = {
@@ -170,7 +130,7 @@ object ScenarioLoaderFMI3 extends Logging {
       instruction match {
         case FMI3RootInitStatement(_, _, _, _, loop) =>
           assert(loop != NoLoopInit, s"Invariant violated while parsing instruction $instruction")
-          ScenarioLoader.parse(loop, scenarioModel.scenarioModel)
+          ScenarioLoaderFMI2.parse(loop, scenarioModel.scenarioModel)
       }
     }
   }
@@ -225,19 +185,6 @@ object ScenarioLoaderFMI3 extends Logging {
         val clockConnectionModel = clockConnections.map(c => parseConnection(c, fmusModels))
         FMI3ScenarioModel(fmusModels, connectionsModel, clockConnectionModel, maxPossibleStepSize).enrich()
     }
-  }
-
-  private def parseConnection(connectionConfig: String, fmus: Map[String, Fmu3Model]): ConnectionModel = {
-    val results = ConnectionParserSingleton.parse(ConnectionParserSingleton.connection, connectionConfig)
-    assert(results.successful, s"Problem parsing connection string $connectionConfig.")
-    val connection = results.get
-    assert(
-      fmus.contains(connection.srcPort.fmu),
-      s"Unable to resolve source fmu ${connection.srcPort.fmu} in connection $connectionConfig.")
-    assert(
-      fmus.contains(connection.trgPort.fmu),
-      s"Unable to resolve source fmu ${connection.trgPort.fmu} in connection $connectionConfig.")
-    connection
   }
 
   private def parse(clockConfig: InputClockConfig): InputClockModel = {

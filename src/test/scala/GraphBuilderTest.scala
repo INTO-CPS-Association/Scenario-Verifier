@@ -1,5 +1,5 @@
 import org.intocps.verification.scenarioverifier.core.PortRef
-import org.intocps.verification.scenarioverifier.core.ScenarioLoader
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI2
 import org.intocps.verification.scenarioverifier.synthesizer.DoStepNode
 import org.intocps.verification.scenarioverifier.synthesizer.Edge
 import org.intocps.verification.scenarioverifier.synthesizer.GetNode
@@ -14,7 +14,7 @@ import org.scalatest.matchers._
 class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
   def testInitialGraph(file: String): Unit = {
     val conf = getClass.getResourceAsStream(file)
-    val masterModel = ScenarioLoader.load(conf)
+    val masterModel = ScenarioLoaderFMI2.load(conf)
     val scenario = masterModel.scenario
     val graph = new GraphBuilder(scenario)
     val initialEdges = graph.initialEdges
@@ -56,7 +56,7 @@ class GraphBuilderTest extends AnyFlatSpec with should.Matchers {
 
   it should "should build a step graph with connections, feedthrough and doStep edges" in {
     val conf = getClass.getResourceAsStream("examples/simple_master.conf")
-    val scenario = ScenarioLoader.load(conf)
+    val scenario = ScenarioLoaderFMI2.load(conf)
 
     val graph = new GraphBuilder(scenario.scenario)
     val stepEdges = graph.stepEdges

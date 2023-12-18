@@ -1,7 +1,7 @@
 package fmi3
 
 import org.intocps.verification.scenarioverifier.api.GenerationAPI
-import org.intocps.verification.scenarioverifier.core.FMI3.ScenarioLoaderFMI3
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI3
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import org.scalatest.Assertion

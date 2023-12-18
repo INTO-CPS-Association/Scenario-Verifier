@@ -1,7 +1,7 @@
 package fmi3
 
 import org.apache.logging.log4j.scala.Logging
-import org.intocps.verification.scenarioverifier.core.FMI3.ScenarioLoaderFMI3
+import org.intocps.verification.scenarioverifier.core.ScenarioLoaderFMI3
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
