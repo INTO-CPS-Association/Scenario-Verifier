@@ -1,14 +1,13 @@
 package org.intocps.verification.scenarioverifier.cli.Z3
 
 import org.intocps.verification.scenarioverifier
+import org.intocps.verification.scenarioverifier.core.masterModel._
 import org.intocps.verification.scenarioverifier.core.CosimStepInstruction
 import org.intocps.verification.scenarioverifier.core.DefaultStepSize
 import org.intocps.verification.scenarioverifier.core.FMI3
 import org.intocps.verification.scenarioverifier.core.FMI3.EventInstruction
-import org.intocps.verification.scenarioverifier.core.FMI3.EventStrategy
 import org.intocps.verification.scenarioverifier.core.FMI3.Get
 import org.intocps.verification.scenarioverifier.core.FMI3.GetClock
-import org.intocps.verification.scenarioverifier.core.FMI3.MasterModel3
 import org.intocps.verification.scenarioverifier.core.FMI3.SetClock
 import org.intocps.verification.scenarioverifier.core.InitGet
 import org.intocps.verification.scenarioverifier.core.InitSet
@@ -27,7 +26,7 @@ object Z3ModelParser {
     actions.sortBy(_._2).map(_._1)
   }
 
-  private def parseZ3InitAlgorithm(algorithm: String, masterModel: MasterModel3): List[InitializationInstruction] = {
+  private def parseZ3InitAlgorithm(algorithm: String, masterModel: MasterModelFMI3): List[InitializationInstruction] = {
     val actions = filterActions(algorithm)
     val instructions = actions.map(action => {
       val fmuName = action.split("-").head
@@ -42,7 +41,7 @@ object Z3ModelParser {
     })
     instructions
   }
-  private def parseZ3CoSimAlgorithm(algorithm: String, masterModel: MasterModel3): List[CosimStepInstruction] = {
+  private def parseZ3CoSimAlgorithm(algorithm: String, masterModel: MasterModelFMI3): List[CosimStepInstruction] = {
     val actions = filterActions(algorithm)
     val instructions = actions.map(action => {
       val fmuName = action.split("-").head
@@ -63,7 +62,7 @@ object Z3ModelParser {
     instructions
   }
 
-  private def parseZ3EventAlgorithm(algorithm: String, masterModel: MasterModel3): List[EventInstruction] = {
+  private def parseZ3EventAlgorithm(algorithm: String, masterModel: MasterModelFMI3): List[EventInstruction] = {
     val actions = filterActions(algorithm)
     val instructions = actions.map(action => {
       val fmuName = action.split("-").head
@@ -83,11 +82,11 @@ object Z3ModelParser {
     instructions
   }
 
-  def parseZ3Model(model: String, masterModel: MasterModel3): MasterModel3 = {
+  def parseZ3Model(model: String, masterModel: MasterModelFMI3): MasterModelFMI3 = {
     require(model.contains("sat"), "The model is not satisfiable")
     val algorithms = model.split("sat").filter(_.nonEmpty).map(_.trim)
     val initAlgorithm = parseZ3InitAlgorithm(algorithms.head, masterModel)
-    val stepAlgorithm = parseZ3CoSimAlgorithm(algorithms(1), masterModel)
+    val stepAlgorithm = Map("alg" -> parseZ3CoSimAlgorithm(algorithms(1), masterModel))
     val eventAlgorithms = masterModel.scenario.eventEntrances.indices
       .map(index => {
         val algorithm = algorithms(2 + index)

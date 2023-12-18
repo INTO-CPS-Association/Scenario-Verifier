@@ -1,6 +1,8 @@
 package org.intocps.verification.scenarioverifier.core
-
 import scala.util.parsing.combinator.RegexParsers
+
+import org.intocps.verification.scenarioverifier.core.masterModel.ConnectionModel
+import org.intocps.verification.scenarioverifier.core.masterModel.SMTLibElement
 
 sealed abstract class AnyArgument
 

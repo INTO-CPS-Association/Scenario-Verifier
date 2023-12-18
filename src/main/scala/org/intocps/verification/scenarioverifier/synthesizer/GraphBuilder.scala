@@ -3,7 +3,10 @@ package org.intocps.verification.scenarioverifier.synthesizer
 import scala.collection.immutable.HashSet
 
 import org.intocps.verification.scenarioverifier
-import org.intocps.verification.scenarioverifier.core.ConnectionModel
+import org.intocps.verification.scenarioverifier.core.masterModel.ConnectionModel
+import org.intocps.verification.scenarioverifier.core.masterModel.OutputPortModel
+import org.intocps.verification.scenarioverifier.core.masterModel.Reactivity.reactive
+import org.intocps.verification.scenarioverifier.core.masterModel.ScenarioModel
 import org.intocps.verification.scenarioverifier.core.CosimStepInstruction
 import org.intocps.verification.scenarioverifier.core.DefaultStepSize
 import org.intocps.verification.scenarioverifier.core.Get
@@ -11,12 +14,9 @@ import org.intocps.verification.scenarioverifier.core.InitGet
 import org.intocps.verification.scenarioverifier.core.InitSet
 import org.intocps.verification.scenarioverifier.core.InitializationInstruction
 import org.intocps.verification.scenarioverifier.core.NoOP
-import org.intocps.verification.scenarioverifier.core.OutputPortModel
 import org.intocps.verification.scenarioverifier.core.PortRef
-import org.intocps.verification.scenarioverifier.core.Reactivity.reactive
 import org.intocps.verification.scenarioverifier.core.RestoreState
 import org.intocps.verification.scenarioverifier.core.SaveState
-import org.intocps.verification.scenarioverifier.core.ScenarioModel
 import org.intocps.verification.scenarioverifier.core.SetTentative
 import org.intocps.verification.scenarioverifier.core.Step
 

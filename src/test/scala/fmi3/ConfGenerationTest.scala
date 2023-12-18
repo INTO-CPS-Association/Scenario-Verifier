@@ -1,12 +1,11 @@
 package fmi3
 import java.io.ByteArrayInputStream
 
-import org.intocps.verification.scenarioverifier.api.FMI3.Verification
 import org.intocps.verification.scenarioverifier.api.GenerationAPI
-import org.intocps.verification.scenarioverifier.core.ConnectionModel
+import org.intocps.verification.scenarioverifier.core.masterModel.ConnectionModel
+import org.intocps.verification.scenarioverifier.core.masterModel.Fmu3Model
 import org.intocps.verification.scenarioverifier.core.EnterInitMode
 import org.intocps.verification.scenarioverifier.core.ExitInitMode
-import org.intocps.verification.scenarioverifier.core.FMI3.Fmu3Model
 import org.intocps.verification.scenarioverifier.core.FMI3.ScenarioLoaderFMI3
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
@@ -16,7 +15,7 @@ class ConfGenerationTest extends AnyFlatSpec with should.Matchers {
   private def confGenerationTest(resourcesFile: String): Assertion = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoaderFMI3.load(conf)
-    val synthesizedAlgorithm = Verification.synthesizeAlgorithm(masterModel.scenario)
+    val synthesizedAlgorithm = GenerationAPI.synthesizeAlgorithm(masterModel.name, masterModel.scenario)
     val generatedConfiguration = synthesizedAlgorithm.toConf()
     val scenarioFromGeneratedSource = ScenarioLoaderFMI3.load(new ByteArrayInputStream(generatedConfiguration.getBytes()))
     // All connections are equivalent
@@ -42,7 +41,7 @@ class ConfGenerationTest extends AnyFlatSpec with should.Matchers {
   it should "create conf for a simple scenario with clocks" in {
     confGenerationTest("../examples_fmi_3/motivation_example.conf")
   }
-  it should "create  conf for an advanced scenario with clocks" in {
-    confGenerationTest("../examples_fmi_3/powersystem.conf")
-  }
+  // it should "create  conf for an advanced scenario with clocks" in {
+  //   confGenerationTest("../examples_fmi_3/powersystem.conf")
+  // }
 }

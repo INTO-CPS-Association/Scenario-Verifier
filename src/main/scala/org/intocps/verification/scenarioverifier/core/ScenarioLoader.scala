@@ -14,7 +14,9 @@ import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import io.circe.jawn.decode
 import io.circe.syntax._
 import org.apache.logging.log4j.scala.Logging
-import org.intocps.verification.scenarioverifier.core
+import org.intocps.verification.scenarioverifier.core.masterModel._
+import org.intocps.verification.scenarioverifier.core.FMI3.AdaptiveModel
+import org.intocps.verification.scenarioverifier.core.FMI3.ConfigurationModel
 import org.intocps.verification.scenarioverifier.prettyprint.PPrint
 import pureconfig.error.ConfigReaderFailure
 import pureconfig.error.ConvertFailure
@@ -25,7 +27,7 @@ import pureconfig.ConfigReader.Result
 import pureconfig.ConfigSource
 
 object ScenarioLoader extends Logging {
-  def load(file: String): MasterModel = {
+  def load(file: String): MasterModelFMI2 = {
     if (!Files.exists(Paths.get(file))) {
       val msg = f"File not found: $file. Current working directory is: ${System.getProperty("user.dir")}."
       logger.error(msg)
@@ -37,7 +39,7 @@ object ScenarioLoader extends Logging {
     parse(masterConfig)
   }
 
-  def load(stream: InputStream): MasterModel = {
+  def load(stream: InputStream): MasterModelFMI2 = {
     val reader = new InputStreamReader(stream)
     try {
       // read from stream
@@ -64,14 +66,14 @@ object ScenarioLoader extends Logging {
    * Remove all ports that are not connected to any other port.
    * This is done to simplify the orchestration algorithm.
    */
-  def simplifyScenario(model: ScenarioModel): ScenarioModel = {
+  def simplifyScenario(model: FMI2ScenarioModel): FMI2ScenarioModel = {
     val connectedPorts = model.connections.flatMap(c => List(c.srcPort, c.trgPort))
     val fmus = model.fmus.map(fmu => {
       // Remove all ports that are not connected to any other port
       val connectedOutputsPorts = fmu._2.outputs.filter(p => connectedPorts.contains(PortRef(fmu._1, p._1)))
       val connectedInputsPorts = fmu._2.inputs.filter(p => connectedPorts.contains(PortRef(fmu._1, p._1)))
       val connectedOutputsPortsWithConnectedFeedthroguh = connectedOutputsPorts.map(p =>
-        p._1 -> OutputPortModel(
+        p._1 -> FMI2OutputPortModel(
           p._2.dependenciesInit.filter(d => connectedInputsPorts.contains(d)),
           p._2.dependencies.filter(d => connectedInputsPorts.contains(d))))
       fmu.copy(_2 = fmu._2.copy(outputs = connectedOutputsPortsWithConnectedFeedthroguh, inputs = connectedInputsPorts))
@@ -103,7 +105,7 @@ object ScenarioLoader extends Logging {
     }
   }
 
-  def parse(config: MasterConfig): MasterModel = {
+  def parse(config: MasterConfig): MasterModelFMI2 = {
     config match {
       case MasterConfig(name, scenario, initialization, cosimStep) =>
         val scenarioModel = parse(scenario)
@@ -114,30 +116,15 @@ object ScenarioLoader extends Logging {
         val cosimStepModel =
           cosimStep.map(instructions => (instructions._1, instructions._2.map(instruction => parse(instruction, scenarioModel))))
         val terminateModel = generateTerminateInstructions(scenarioModel).toList
-        MasterModel(name, scenarioModel, instantiationModel, expandedInitModel.toList, cosimStepModel, terminateModel)
+        MasterModelFMI2(name, scenarioModel, instantiationModel, expandedInitModel.toList, cosimStepModel, terminateModel)
     }
   }
 
-  def parse(masterModel: MasterModel): MasterModelDTO = {
-    val filteredInitializationActions =
-      masterModel.initialization.filterNot(i => i.isInstanceOf[EnterInitMode] || i.isInstanceOf[ExitInitMode])
-    MasterModelDTO(masterModel.name, masterModel.scenario, filteredInitializationActions, masterModel.cosimStep)
-  }
-
-  private def enrichDTO(masterModelDTO: MasterModelDTO): MasterModel = {
-    val instantiationModel = generateInstantiationInstructions(masterModelDTO.scenario).toList
-    val expandedInitModel =
-      (generateEnterInitInstructions(masterModelDTO.scenario) ++ masterModelDTO.initialization ++ generateExitInitInstructions(
-        masterModelDTO.scenario)).toList
-    val terminateModel = generateTerminateInstructions(masterModelDTO.scenario).toList
-    MasterModel(
-      masterModelDTO.name,
-      masterModelDTO.scenario,
-      instantiationModel,
-      expandedInitModel,
-      masterModelDTO.cosimStep,
-      terminateModel)
-  }
+  // def parse(masterModel: MasterModelFMI2): MasterModelDTO = {
+  //   val filteredInitializationActions =
+  //     masterModel.initialization.filterNot(i => i.isInstanceOf[EnterInitMode] || i.isInstanceOf[ExitInitMode])
+  //   MasterModelDTO(masterModel.name, masterModel.scenario, filteredInitializationActions, masterModel.cosimStep)
+  // }
 
   def generateEnterInitInstructions(model: ScenarioModel): immutable.Iterable[InitializationInstruction] =
     model.fmus.map(f => EnterInitMode(f._1))
@@ -297,7 +284,7 @@ object ScenarioLoader extends Logging {
     AlgebraicLoopInit(untilConverged, iterate)
   }
 
-  private def parseAdaptiveConfig(configuration: AdaptiveConfig, fmus: Map[String, FmuModel]): AdaptiveModel = {
+  private def parseAdaptiveConfig(configuration: AdaptiveConfig, fmus: Map[String, Fmu2Model]): AdaptiveModel = {
     val configurableInputs = configuration.configurableInputs.map(p => {
       val pRef = parsePortRef(p, s"instruction ", fmus)
       assert(fmus(pRef.fmu).inputs.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
@@ -315,37 +302,42 @@ object ScenarioLoader extends Logging {
     AdaptiveModel(configurableInputs = configurableInputs, configurations = configurationModels)
   }
 
-  def parse(scenario: ScenarioConfig): ScenarioModel = {
+  def parse(scenario: ScenarioConfig): FMI2ScenarioModel = {
     scenario match {
       case ScenarioConfig(fmus, configuration, connections, maxPossibleStepSize) =>
         assert(maxPossibleStepSize > 0, "Max possible step size has to be greater than 0 in scenario configuration.")
-        val fmusModels = fmus.map(keyValPair => (keyValPair._1, parse(keyValPair._1, keyValPair._2)))
-        val connectionsModel = connections.map(c => parseConnection(c, fmusModels))
-        val configurationModel =
+        val fmusModels: Map[String, Fmu2Model] = fmus.map(keyValPair => (keyValPair._1, parse(keyValPair._1, keyValPair._2)))
+        val connectionsModel: List[ConnectionModel] = connections.map(c => parseConnection(c, fmusModels))
+        val configurationModel: AdaptiveModel =
           if (configuration.isDefined)
             parseAdaptiveConfig(configuration.get, fmusModels)
           else
             parseAdaptiveConfig(AdaptiveConfig(Nil, Map.empty), fmusModels)
-        core.ScenarioModel(fmusModels, configurationModel, connectionsModel, maxPossibleStepSize).enrich()
+        FMI2ScenarioModel(fmusModels, configurationModel, connectionsModel, maxPossibleStepSize).enrich()
+      case _ => throw new RuntimeException("Only FMI2 is supported.")
     }
   }
 
-  def parse(fmuId: String, fmu: FmuConfig): FmuModel = {
+  def parse(fmuId: String, fmu: FmuConfig): Fmu2Model = {
     fmu match {
       case FmuConfig(inputs, outputs, canRejectStep, path) =>
         val inputsModel = inputs.map(keyValPair => (keyValPair._1, parse(keyValPair._2)))
         val outputPortsModel = outputs.map(keyValPair => (keyValPair._1, parse(keyValPair._2, inputsModel, keyValPair._1, fmuId)))
-        FmuModel(inputsModel, outputPortsModel, canRejectStep, path)
+        Fmu2Model(inputsModel, outputPortsModel, canRejectStep, path)
     }
   }
 
-  def parse(config: InputPortConfig): InputPortModel = {
+  def parse(config: InputPortConfig): FMI2InputPortModel = {
     config match {
-      case InputPortConfig(reactivity) => InputPortModel(Reactivity.withName(reactivity))
+      case InputPortConfig(reactivity) => FMI2InputPortModel(Reactivity.withName(reactivity))
     }
   }
 
-  def parse(config: OutputPortConfig, inputsModel: Map[String, InputPortModel], outputPortId: String, fmuId: String): OutputPortModel = {
+  def parse(
+      config: OutputPortConfig,
+      inputsModel: Map[String, FMI2InputPortModel],
+      outputPortId: String,
+      fmuId: String): FMI2OutputPortModel = {
     config match {
       case OutputPortConfig(dependenciesInit, dependencies) =>
         val errorCheck = (inputPortRef: String) =>
@@ -354,7 +346,7 @@ object ScenarioLoader extends Logging {
             f"Unable to resolve input port reference $inputPortRef in the output port $outputPortId FMU $fmuId.")
         dependenciesInit.foreach(errorCheck)
         dependencies.foreach(errorCheck)
-        OutputPortModel(dependenciesInit, dependencies)
+        FMI2OutputPortModel(dependenciesInit, dependencies)
     }
   }
 

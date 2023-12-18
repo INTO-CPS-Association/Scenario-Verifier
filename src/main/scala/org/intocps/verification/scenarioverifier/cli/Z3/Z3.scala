@@ -6,8 +6,8 @@ import java.io.IOException
 import org.apache.logging.log4j.scala.Logging
 import org.intocps.verification.scenarioverifier.cli.CLITool
 import org.intocps.verification.scenarioverifier.cli.VerifyTaProcessLogger
-import org.intocps.verification.scenarioverifier.core.AlgorithmType
-import org.intocps.verification.scenarioverifier.core.FMI3.MasterModel3
+import org.intocps.verification.scenarioverifier.core.masterModel.AlgorithmType
+import org.intocps.verification.scenarioverifier.core.masterModel.MasterModelFMI3
 
 object Z3 extends CLITool {
   def name: String = "Z3"
@@ -42,7 +42,7 @@ object Z3 extends CLITool {
 }
 
 object SMTEncoder extends Logging {
-  private def encodeFile(masterModel: MasterModel3, algorithmTypes: List[AlgorithmType.Value], synthesize: Boolean): File = {
+  private def encodeFile(masterModel: MasterModelFMI3, algorithmTypes: List[AlgorithmType.Value], synthesize: Boolean): File = {
     val smtLib = masterModel.toSMTLib(algorithmTypes, synthesize, isParallel = false)
     // Write to file
     val smtFile = File.createTempFile("cosim", ".smt2")
@@ -53,7 +53,7 @@ object SMTEncoder extends Logging {
     smtFile
   }
 
-  def verifyAlgorithm(masterModel: MasterModel3): Boolean = {
+  def verifyAlgorithm(masterModel: MasterModelFMI3): Boolean = {
     val smtFile = encodeFile(masterModel, List(AlgorithmType.init, AlgorithmType.step, AlgorithmType.event), synthesize = false)
     val result = Z3.runZ3(smtFile)
     if (result.contains("sat")) {
@@ -65,7 +65,7 @@ object SMTEncoder extends Logging {
     }
   }
 
-  def synthesizeAlgorithm(masterModel: MasterModel3): MasterModel3 = {
+  def synthesizeAlgorithm(masterModel: MasterModelFMI3): MasterModelFMI3 = {
     val smtFile = encodeFile(masterModel, List(AlgorithmType.init, AlgorithmType.step, AlgorithmType.event), synthesize = true)
     val model = Z3.runZ3(smtFile)
     if (model.contains("sat")) {
@@ -76,12 +76,4 @@ object SMTEncoder extends Logging {
       throw new Exception("Z3 failed to synthesize algorithm - the scenario is not realizable")
     }
   }
-
-  /*
-  def dynamicVerifyAlgorithm(masterModel: MasterModel): Boolean = {
-    val smtFile = encodeFile(masterModel, List(AlgorithmType.step))
-    val result = Z3.runZ3(smtFile)
-    result == 0
-  }
-   */
 }

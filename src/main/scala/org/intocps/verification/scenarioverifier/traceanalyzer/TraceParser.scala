@@ -3,8 +3,8 @@ package org.intocps.verification.scenarioverifier.traceanalyzer
 import scala.collection.immutable
 
 import org.apache.logging.log4j.scala.Logging
+import org.intocps.verification.scenarioverifier.core.masterModel.Reactivity.reactive
 import org.intocps.verification.scenarioverifier.core.ModelEncoding
-import org.intocps.verification.scenarioverifier.core.Reactivity.reactive
 
 class TraceParser(modelEncoding: ModelEncoding) extends Logging {
   private def createPortVariable(portString: String, fmu: String, portName: String, isReactive: Boolean): PortVariableState = {

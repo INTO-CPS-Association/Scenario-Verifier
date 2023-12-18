@@ -1,143 +1,107 @@
-package org.intocps.verification.scenarioverifier.core.FMI3
-
+package org.intocps.verification.scenarioverifier.core.masterModel
 import scala.collection.immutable
 
-import io.circe._
-import io.circe.generic.auto._
-import io.circe.generic.semiauto._
-import org.intocps.verification.scenarioverifier
-import org.intocps.verification.scenarioverifier.core._
-import org.intocps.verification.scenarioverifier.core.AdaptiveModel
-import org.intocps.verification.scenarioverifier.core.AlgorithmType
-import org.intocps.verification.scenarioverifier.core.AlgorithmType.AlgorithmType
-import org.intocps.verification.scenarioverifier.core.ConfElement
-import org.intocps.verification.scenarioverifier.core.ConnectionModel
-import org.intocps.verification.scenarioverifier.core.CosimStepInstruction
-import org.intocps.verification.scenarioverifier.core.FmuModel
-import org.intocps.verification.scenarioverifier.core.Get
-import org.intocps.verification.scenarioverifier.core.InitGet
-import org.intocps.verification.scenarioverifier.core.InitSet
-import org.intocps.verification.scenarioverifier.core.InitializationInstruction
-import org.intocps.verification.scenarioverifier.core.InstantiationInstruction
+import org.intocps.verification.scenarioverifier.core.FMI3._
 import org.intocps.verification.scenarioverifier.core.PortRef
-import org.intocps.verification.scenarioverifier.core.Reactivity
-import org.intocps.verification.scenarioverifier.core.Reactivity.Reactivity
-import org.intocps.verification.scenarioverifier.core.SMTLibElement
-import org.intocps.verification.scenarioverifier.core.ScenarioModel
-import org.intocps.verification.scenarioverifier.core.Step
-import org.intocps.verification.scenarioverifier.core.TerminationInstruction
-import org.intocps.verification.scenarioverifier.core.UppaalModel
-import ClockType.timed
+import AlgorithmType.AlgorithmType
 import ClockType.ClockType
 
-object ClockType extends Enumeration {
-  type ClockType = Value
-  val triggered, timed = Value
-}
+trait ScenarioModel extends ConfElement {
+  def fmus: Map[String, FmuModel]
+  def connections: List[ConnectionModel]
+  def maxPossibleStepSize: Int
 
-final case class Fmu3Model(
-    inputs: Map[String, InputPortModel],
-    outputs: Map[String, OutputPortModel],
-    inputClocks: Map[String, InputClockModel],
-    outputClocks: Map[String, OutputClockModel],
-    canRejectStep: Boolean,
-    path: String = "")
-    extends ConfElement {
-
-  lazy val timeBasedClocks: Map[String, InputClockModel] = inputClocks.filter(_._2.typeOfClock == ClockType.timed)
-
-  private def clockedInputs: Map[String, InputPortModel] = inputs.filter(input => input._2.clocks.nonEmpty)
-
-  private def clockedOutputs: Map[String, OutputPortModel] = outputs.filter(output => output._2.clocks.nonEmpty)
-
-  def reactiveInputs: Map[String, InputPortModel] =
-    inputs.filter(input => input._2.reactivity == Reactivity.reactive && input._2.clocks.isEmpty)
-
-  def delayedInputs: Map[String, InputPortModel] =
-    inputs.filter(input => input._2.reactivity == Reactivity.delayed && input._2.clocks.isEmpty)
-
-  require(
-    inputs.keySet.intersect(outputs.keySet).isEmpty,
-    s"FMU inputs (${inputs.keySet.mkString(", ")}) and outputs (${outputs.keySet.mkString(", ")}) must be disjoint.")
-
+  def toSMTLIB(algorithmType: AlgorithmType): String
   override def toConf(indentationLevel: Int): String = {
     s"""
-       |${indentBy(indentationLevel)}{
-       |${indentBy(indentationLevel + 1)}can-reject-step = $canRejectStep,
-       |${indentBy(indentationLevel + 1)}inputs = {
-       |${indentBy(indentationLevel + 2)}${inputs
-        .map { case (port, inputPortModel) => s"${sanitizeString(port)} = ${inputPortModel.toConf()}" }
-        .mkString(s"\n${indentBy(indentationLevel + 2)}")}
-       |${indentBy(indentationLevel + 1)}},
-       |${indentBy(indentationLevel + 1)}outputs = {
-       |${indentBy(indentationLevel + 2)}${outputs
-        .map { case (port, outputPortModel) => s"${sanitizeString(port)} = ${outputPortModel.toConf()}" }
-        .mkString(s"\n${indentBy(indentationLevel + 2)}")}
-       |${indentBy(indentationLevel + 1)}}
-       |${indentBy(indentationLevel + 1)}input-clocks = {
-       |${indentBy(indentationLevel + 2)}${inputClocks
-        .map { case (port, inputClockModel) => s"${sanitizeString(port)} = ${inputClockModel.toConf()}" }
-        .mkString(s"\n${indentBy(indentationLevel + 2)}")}
-       |${indentBy(indentationLevel + 1)}},
-       |${indentBy(indentationLevel + 1)}output-clocks = {
-       |${indentBy(indentationLevel + 2)}${outputClocks
-        .map { case (port, outputClockModel) => s"${sanitizeString(port)} = ${outputClockModel.toConf()}" }
-        .mkString(s"\n${indentBy(indentationLevel + 2)}")}
-       |${indentBy(indentationLevel + 1)}},
-       |${indentBy(indentationLevel)}}""".stripMargin
+       |${indentBy(indentationLevel)}fmus = {
+       |${indentBy(indentationLevel + 1)}${fmus
+        .map { case (fmu, fmuModel) => s"$fmu = ${fmuModel.toConf(indentationLevel + 1)}" }
+        .mkString("\n")}
+       |${indentBy(indentationLevel)}}
+       |${indentBy(indentationLevel)}connections = ${toArray(connections.map(_.toConf(indentationLevel + 1)))}
+       |""".stripMargin
+  }
+}
+
+final case class FMI2ScenarioModel(
+    fmus: Map[String, Fmu2Model],
+    config: AdaptiveModel,
+    connections: List[ConnectionModel],
+    maxPossibleStepSize: Int)
+    extends ScenarioModel {
+
+  require(fmus.nonEmpty, "fmus must not be empty")
+  require(maxPossibleStepSize > 0, "maxPossibleStepSize must be greater than 0")
+
+  def enrich(): FMI2ScenarioModel = {
+    val enrichedFmus = fmus.map { fmu =>
+      connections
+        .filter(c => c.srcPort.fmu.equalsIgnoreCase(fmu._1) || c.trgPort.fmu.equalsIgnoreCase(fmu._1))
+        .foldLeft(fmu)((fmuModel, c) => {
+          val model =
+            if (c.trgPort.fmu.equalsIgnoreCase(fmu._1) && !fmuModel._2.inputs.contains(c.trgPort.port))
+              fmuModel._2.copy(inputs = fmuModel._2.inputs + (c.trgPort.port -> FMI2InputPortModel(Reactivity.delayed)))
+            else if (c.srcPort.fmu.equalsIgnoreCase(fmu._1) && !fmuModel._2.outputs.contains(c.srcPort.port))
+              fmuModel._2.copy(outputs = fmuModel._2.outputs + (c.srcPort.port -> FMI2OutputPortModel(List.empty, List.empty)))
+            else fmuModel._2
+          (fmuModel._1, model)
+        })
+    }
+    this.copy(fmus = enrichedFmus)
   }
 
-  /*
-  def coSimStepSMTLIB(fmuName: String): String = {
-    s"""
-       |; FMU $fmuName constraints
-       |; Delayed inputs are after Step
-       |${delayedInputs.map(input => s"(assert (> ${sanitizeString(fmuName)}_step ${sanitizeString(fmuName)}_${sanitizeString(input._1)}))").mkString("\n")}
-       |; Reactive inputs are before Step
-       |${reactiveInputs.map(input => s"(assert (> ${sanitizeString(fmuName)}_${sanitizeString(input._1)} ${sanitizeString(fmuName)}_step))").mkString("\n")}
-       |; Step is before outputs
-       |${outputs.filter(output => output._2.clocks.isEmpty).map(output => s"(assert (> ${sanitizeString(fmuName)}-step ${sanitizeString(fmuName)}_${sanitizeString(output._1)}))").mkString("\n")}
-       |; Feed-through means that the input is before the output
-       |${outputs.filter(output => output._2.dependencies.nonEmpty).map(output => output._2.dependencies.map(dependency => s"(assert (> ${sanitizeString(fmuName)}_${sanitizeString(dependency)} ${sanitizeString(fmuName)}_${sanitizeString(output._1)}))").mkString("\n")).mkString("\n")}
+  override def toSMTLIB(algorithmType: AlgorithmType): String = {
+    require(fmus.nonEmpty, "fmus must not be empty")
+    require(connections.nonEmpty, "connections must not be empty")
+    require(config.configurations.size <= 1, "the scenario must not be adaptive")
+    val actionsWithoutStep: immutable.Iterable[String] =
+      fmus
+        .foldLeft(immutable.Iterable.empty[String])((actions, fmu) =>
+          fmu._2.inputs.map(port => s"${sanitizeString(fmu._1)}_${sanitizeString(port._1)}").toList ++
+            fmu._2.outputs.map(port => s"${sanitizeString(fmu._1)}_${sanitizeString(port._1)}").toList ++
+            actions)
+        .toList
+        .sorted
+
+    val actions =
+      if (algorithmType == AlgorithmType.step) actionsWithoutStep ++ fmus.map(fmu => s"${fmu._1}_step").toList else actionsWithoutStep
+    val numberOfActions = actions.size
+    val fmuDeclarations = fmus.keySet.toList.sorted.map(fmu => fmus(fmu).toSMTLib(fmu, algorithmType)).mkString("\n")
+    val connectionAssertions = connections.map(_.toSMTLib).mkString("\n")
+    val reactiveInputs = fmus.flatMap(fmu => fmu._2.reactiveInputs.map(i => PortRef(fmu._1, i._1))).toList
+    val reactiveConnections = connections.filter(c => reactiveInputs.contains(c.srcPort))
+    val delayedConnections = connections.filterNot(c => reactiveInputs.contains(c.trgPort))
+    val delayedConstraints = delayedConnectionConstraints(delayedConnections)
+    s"""$fmuDeclarations
+       |; Connections - Assert that the source port is smaller than the target port
+       |$connectionAssertions
+       |; Delayed connections - The get and set can either be done before or after the step - but they need to be consistent across the connection
+       |; Assert that all the actions are bigger than 0
+       |(assert (and ${actions.map(a => s"(>= $a 0)").mkString("\n\t")}))
+       |; Assert that all the actions are smaller than the maxAction
+       |(assert (and ${actions.map(action => s"(< $action $numberOfActions)").mkString("\n\t")}))
+       |; Assert that all actions are different
+       |(assert (distinct ${actions.mkString("\n\t")}))
        |""".stripMargin
   }
 
-  private def initSMTLIB(fmuName: String): String = {
-    s"""
-       |; FMU $fmuName constraints
-       |; Feedthrough means that the input is before the output
-       |${outputs.filter(output => output._2.dependenciesInit.nonEmpty).map(output => output._2.dependencies.map(dependency => s"(assert (> ${sanitizeString(fmuName)}_${sanitizeString(dependency)} ${sanitizeString(fmuName)}_${sanitizeString(output._1)}))").mkString("\n")).mkString("\n")}
-       |""".stripMargin
+  private def delayedConnectionConstraints(delayedConnections: List[ConnectionModel]) = {
+    delayedConnections
+      .map(c => {
+        val srcActionName = s"${sanitizeString(c.srcPort.fmu)}_${sanitizeString(c.srcPort.port)}"
+        val trgActionName = s"${sanitizeString(c.trgPort.fmu)}_${sanitizeString(c.trgPort.port)}"
+        val srcFMUStep = s"${sanitizeString(c.srcPort.fmu)}_step"
+        val trgFMUStep = s"${sanitizeString(c.trgPort.fmu)}_step"
+        // Delayed connections - The get and set can either be done before or after the step
+        s"""
+         |(assert (or
+         |          (and (< $srcActionName $srcFMUStep) (< $trgActionName $trgFMUStep))
+         |          (and (> $srcActionName $srcFMUStep) (> $trgActionName $trgFMUStep))
+         |))""".stripMargin
+      })
+      .mkString("\n")
   }
-
-  def eventSMTLib(fmuName: String, clocks: List[String]): String = {
-    val clockNamesActions = clocks.map(clock => s"${fmuName}_$clock")
-    val clockedVariables = clocks.foreach(clock => {
-      val inputsOfClock = clockedInputs.filter(input => input._2.clocks.contains(clock))
-      val outputsOfClock = clockedOutputs.filter(output => output._2.clocks.contains(clock))
-      val inputClockActionNames = inputsOfClock.map(input => s"${fmuName}_${input._1}_set")
-      val outputClockActionNames = outputsOfClock.map(output => s"${fmuName}_${output._1}_get")
-      val clockedVariableActions = (inputClockActionNames ++ outputClockActionNames).map(port => s"(declare-const $port Int)")
-      val clockedVariableConstraints = (inputClockActionNames ++ outputClockActionNames).map(port => s"(assert (>= $port 0))")
-      // Clocked variables are before the step
-      val clockedVariableStep = (inputClockActionNames ++ outputClockActionNames).map(port => s"(assert (> ${fmuName}_step $port))")
-      // All actions of a clock happen after a clock event
-      val clockedVariableClock = (inputClockActionNames ++ outputClockActionNames).map(port => s"(assert (< $clock $port))")
-    })
-    val clockActions = clockNamesActions.map(clock => s"(declare-const $clock Int)")
-    val clockConstraints = clockNamesActions.map(clock => s"(assert (>= $clock 0))")
-    val clockStep = clockNamesActions.map(clock => s"(assert (> ${fmuName}_step $clock))")
-
-
-    s"""
-       |; FMU $fmuName constraints
-       |; Declare clock variables
-       |${clockActions.mkString("\n")}
-       |${clockConstraints.mkString("\n")}
-       |; Clocked Variables
-       |""".stripMargin
-  }
-   */
 }
 
 final case class FMI3ScenarioModel(
@@ -145,7 +109,7 @@ final case class FMI3ScenarioModel(
     connections: List[ConnectionModel],
     clockConnections: List[ConnectionModel],
     maxPossibleStepSize: Int)
-    extends ConfElement {
+    extends ScenarioModel {
 
   require(fmus.nonEmpty, "fmus must not be empty")
   require(maxPossibleStepSize > 0, "maxPossibleStepSize must be greater than 0")
@@ -217,7 +181,8 @@ final case class FMI3ScenarioModel(
       })
       // All timebased clocks with the same interval are contained in the partition
       val timeBasedClocksPerInterval =
-        fmus.flatMap(fmu => fmu._2.inputClocks.filter(clock => clock._2.typeOfClock == timed).map(clock => PortRef(fmu._1, clock._1) -> 1))
+        fmus.flatMap(fmu =>
+          fmu._2.inputClocks.filter(clock => clock._2.typeOfClock == ClockType.timed).map(clock => PortRef(fmu._1, clock._1) -> 1))
       val timeBasedClocks = timeBasedClocksPerInterval.keySet
       val timeBasedClocksInPartition = partition.intersect(timeBasedClocks)
       val timeBasedClocksNotInPartition = timeBasedClocks.diff(timeBasedClocksInPartition)
@@ -245,9 +210,9 @@ final case class FMI3ScenarioModel(
         .foldLeft(fmu)((fmuModel, c) => {
           val model =
             if (c.trgPort.fmu.equalsIgnoreCase(fmu._1) && !fmuModel._2.inputs.contains(c.trgPort.port))
-              fmuModel._2.copy(inputs = fmuModel._2.inputs + (c.trgPort.port -> InputPortModel(Reactivity.delayed, List.empty)))
+              fmuModel._2.copy(inputs = fmuModel._2.inputs + (c.trgPort.port -> FMI3InputPortModel(Reactivity.delayed, List.empty)))
             else if (c.srcPort.fmu.equalsIgnoreCase(fmu._1) && !fmuModel._2.outputs.contains(c.srcPort.port))
-              fmuModel._2.copy(outputs = fmuModel._2.outputs + (c.srcPort.port -> OutputPortModel(List.empty, List.empty, List.empty)))
+              fmuModel._2.copy(outputs = fmuModel._2.outputs + (c.srcPort.port -> FMI3OutputPortModel(List.empty, List.empty, List.empty)))
             else fmuModel._2
           (fmuModel._1, model)
         })
@@ -255,15 +220,14 @@ final case class FMI3ScenarioModel(
     this.copy(fmus = enrichedFmus)
   }
 
-  lazy val scenarioModel: ScenarioModel =
-    ScenarioModel(
+  lazy val scenarioModel: FMI2ScenarioModel =
+    FMI2ScenarioModel(
       fmus.map(fmu =>
         (
           fmu._1,
-          FmuModel(
-            fmu._2.inputs.map(input => (input._1, scenarioverifier.core.InputPortModel(input._2.reactivity))),
-            fmu._2.outputs.map(output =>
-              (output._1, scenarioverifier.core.OutputPortModel(output._2.dependenciesInit, output._2.dependencies))),
+          Fmu2Model(
+            fmu._2.inputs.map(input => (input._1, FMI2InputPortModel(input._2.reactivity))),
+            fmu._2.outputs.map(output => (output._1, FMI2OutputPortModel(output._2.dependenciesInit, output._2.dependencies))),
             canRejectStep = fmu._2.canRejectStep,
             path = fmu._2.path))),
       AdaptiveModel(List.empty, Map.empty),
@@ -285,11 +249,15 @@ final case class FMI3ScenarioModel(
   def toSMTLIB(algorithmType: AlgorithmType, isParallel: Boolean): String = {
     val algorithmConstrains = algorithmType match {
       case AlgorithmType.init => initializationToSMTLib(isParallel)
-      case scenarioverifier.core.AlgorithmType.step => stepToSMTLib(isParallel)
-      case scenarioverifier.core.AlgorithmType.event => eventEntrances.map(entry => eventSMTLib(entry, isParallel)).mkString("\n")
+      case AlgorithmType.step => stepToSMTLib(isParallel)
+      case AlgorithmType.event => eventEntrances.map(entry => eventSMTLib(entry, isParallel)).mkString("\n")
       case _ => throw new RuntimeException("Algorithm type not supported")
     }
     algorithmConstrains
+  }
+
+  override def toSMTLIB(algorithmType: AlgorithmType): String = {
+    toSMTLIB(algorithmType, false)
   }
 
   private def commonSMTLib(actions: List[String], isParallel: Boolean): String = {
@@ -426,140 +394,6 @@ final case class FMI3ScenarioModel(
         .mkString("\n")}
        |${commonSMTLib(actions, isParallel)}
        |""".stripMargin
-  }
-}
-
-final case class InputPortModel(reactivity: Reactivity, clocks: List[String]) extends ConfElement {
-  override def toConf(indentationLevel: Int = 0): String = s"{reactivity=${reactivity.toString}, clocks=${toArray(clocks)}}"
-}
-
-final case class OutputPortModel(dependenciesInit: List[String], dependencies: List[String], clocks: List[String])
-    extends UppaalModel
-    with ConfElement {
-  override def toUppaal: String = s"{${dependencies.mkString(",")}}"
-
-  override def toConf(indentationLevel: Int = 0): String =
-    s"{dependencies-init=${toArray(dependenciesInit)}, dependencies=${toArray(dependencies)}, clocks=${toArray(clocks)}}"
-}
-
-final case class OutputClockModel(typeOfClock: ClockType, dependencies: List[String], dependenciesClocks: List[String])
-    extends ConfElement {
-  override def toConf(indentationLevel: Int = 0): String =
-    s"{type-of-clock=${typeOfClock.toString}, dependencies=${toArray(dependencies)}, dependencies-clocks=${toArray(dependenciesClocks)}}"
-}
-
-final case class InputClockModel(typeOfClock: ClockType, interval: Int) extends ConfElement {
-  require(
-    typeOfClock == ClockType.triggered && interval == 0 || typeOfClock == ClockType.timed && interval > 0,
-    "Interval must be greater than 0 for time-based clocks and 0 for triggered clocks")
-
-  override def toConf(indentationLevel: Int = 0): String = s"{type-of-clock=${typeOfClock.toString}, interval=$interval}"
-}
-
-final case class MasterModel3(
-    name: String,
-    scenario: FMI3ScenarioModel,
-    instantiation: List[InstantiationInstruction] = List.empty,
-    initialization: List[InitializationInstruction] = List.empty,
-    cosimStep: List[CosimStepInstruction] = List.empty,
-    eventStrategies: Map[String, EventStrategy] = Map.empty,
-    terminate: List[TerminationInstruction] = List.empty)
-    extends ConfElement
-    with SMTLibElement {
-  require(name.nonEmpty, "Master model name cannot be empty")
-
-  /**
-   * Formats the master model to a CONF file
-   */
-  override def toConf(indentationLevel: Int = 0): String = {
-    val init = toArray(initialization.map(_.toConf(indentationLevel + 1)), "\n")
-    val step = toArray(cosimStep.map(_.toConf(indentationLevel + 1)), "\n")
-    val strategies = eventStrategies.map(strategy => s"${sanitizeString(strategy._1)} : ${strategy._2.toConf(indentationLevel + 1)}").mkString("\n")
-    s"""name = $name
-       |scenario = {
-       |  ${scenario.toConf(indentationLevel + 1)}
-       |}
-       |initialization = $init
-       |cosim-step = $step
-       |event-strategies : {$strategies}
-       |""".stripMargin
-  }
-
-  private def formatEvents(synthesize: Boolean, isParallel: Boolean): String = {
-    scenario.eventEntrances
-      .map(eventEntrance => {
-        val algorithmAssertions = if (!synthesize) {
-          val instructions = eventStrategies.values
-            .find(_.eventEntrance == eventEntrance)
-            .getOrElse(throw new RuntimeException(s"Event entrance ${eventEntrance.clocks.mkString(",")} not found"))
-            .algorithm
-          instructions.indices.map(i => s"(assert (= ${instructions(i).toSMTLib} $i))").mkString("\n")
-        } else ""
-        s"""
-         |; Event Entrance for the clocks ${eventEntrance.clocks.map(_.toSMTLib).mkString(", ")}
-         |(push 1)
-         |${scenario.eventSMTLib(eventEntrance, isParallel)}
-         |$algorithmAssertions
-         |(check-sat)
-         |${if (synthesize) "(get-model)" else ""}
-         |(pop 1)
-         |""".stripMargin
-      })
-      .mkString("\n")
-  }
-
-  /**
-   * Formats the master model to a SMT-LIB file
-   *
-   * @return
-   *   The SMT-LIB representation of the master model as a string
-   */
-  def toSMTLib(algorithmTypes: List[AlgorithmType], synthesize: Boolean, isParallel: Boolean): String = {
-    def formatAlgorithm(algorithmType: AlgorithmType, instructions: List[SMTLibElement]): String = {
-      val algorithmAssertions = instructions.indices.map(i => s"(assert (= ${instructions(i).toSMTLib} $i))").mkString("\n")
-      s"""
-         |; ${algorithmType.toString} algorithm
-         |(push 1)
-         |${scenario.toSMTLIB(algorithmType, isParallel)}
-         |${if (!synthesize) algorithmAssertions else ""}
-         |(check-sat)
-         |${if (synthesize) "(get-model)" else ""}
-         |(pop 1)
-         |""".stripMargin
-    }
-
-    val initInstructions = initialization
-      .filter(instruction =>
-        instruction.isInstanceOf[InitGet] || instruction.isInstanceOf[InitSet] || instruction.isInstanceOf[GetShift] || instruction
-          .isInstanceOf[GetInterval])
-    val stepInstructions = cosimStep
-      .filter(instruction =>
-        instruction.isInstanceOf[Get] || instruction.isInstanceOf[scenarioverifier.core.Set] || instruction.isInstanceOf[Step])
-    s"""
-       |(set-option :produce-models true)
-       |(set-logic QF_LIA)
-       |${if (algorithmTypes.contains(AlgorithmType.init)) formatAlgorithm(AlgorithmType.init, initInstructions) else ""}
-       |${if (algorithmTypes.contains(AlgorithmType.step)) formatAlgorithm(AlgorithmType.step, stepInstructions) else ""}
-       |${if (algorithmTypes.contains(AlgorithmType.event)) formatEvents(synthesize, isParallel) else ""}
-       |""".stripMargin
-  }
-
-  override def toSMTLib: String =
-    toSMTLib(List(AlgorithmType.init, AlgorithmType.step, AlgorithmType.event), synthesize = false, isParallel = false)
-}
-
-case class MasterModelDTO(
-    name: String,
-    scenario: FMI3ScenarioModel,
-    initialization: List[InitializationInstruction],
-    cosimStep: List[CosimStepInstruction],
-    eventStrategies: Map[String, EventStrategy])
-
-final case class EventEntrance(clocks: immutable.Set[PortRef]) extends ConfElement {
-  require(clocks.nonEmpty, "Event entrance must contain at least one clock")
-
-  override def toConf(indentationLevel: Int = 0): String = {
-    toArray(clocks.map(generatePort(_)).toList, ",")
   }
 }
 

@@ -3,15 +3,10 @@ package org.intocps.verification.scenarioverifier.synthesizer.ScenarioBuilder
 import scala.util.Random
 
 import org.apache.logging.log4j.scala.Logging
-import org.intocps.verification.scenarioverifier.core.AdaptiveModel
-import org.intocps.verification.scenarioverifier.core.ConnectionModel
-import org.intocps.verification.scenarioverifier.core.FmuModel
-import org.intocps.verification.scenarioverifier.core.InputPortModel
-import org.intocps.verification.scenarioverifier.core.OutputPortModel
+import org.intocps.verification.scenarioverifier.core.masterModel._
+import org.intocps.verification.scenarioverifier.core.masterModel.Reactivity._
+import org.intocps.verification.scenarioverifier.core.FMI3.AdaptiveModel
 import org.intocps.verification.scenarioverifier.core.PortRef
-import org.intocps.verification.scenarioverifier.core.Reactivity
-import org.intocps.verification.scenarioverifier.core.Reactivity._
-import org.intocps.verification.scenarioverifier.core.ScenarioModel
 
 trait ScenarioBuilder {
   private var srcFMUs: Set[String] = Set.empty
@@ -74,7 +69,7 @@ object FMI2ScenarioBuilder extends Logging with ScenarioBuilder {
       nFMU: Int,
       nConnection: Int,
       supportFeedthrough: Boolean,
-      supportStepRejection: Boolean = false): ScenarioModel = {
+      supportStepRejection: Boolean = false): FMI2ScenarioModel = {
     assert(nFMU > 0)
     assert(nFMU <= nConnection, "Scenario should have minimum the same number og edges as FMU")
 
@@ -85,23 +80,25 @@ object FMI2ScenarioBuilder extends Logging with ScenarioBuilder {
     val outputPortsPerFMU = connections.groupBy(o => o.srcPort.fmu).map(o => (o._1, o._2.map(o => o.srcPort)))
     val inputPortsPerFMU = connections.groupBy(o => o.trgPort.fmu).map(o => (o._1, o._2.map(o => o.trgPort)))
 
-    val FMUs = fmuNames
+    val fmus = fmuNames
       .map(i => {
-        val inputs = inputPortsPerFMU(i).map(n => (n.port, InputPortModel(isReactive))).toMap
+        val inputs = inputPortsPerFMU(i).map(n => (n.port, FMI2InputPortModel(isReactive))).toMap
         assert(inputs.nonEmpty)
         val inputNames = inputs.keys.toList
         val outputs = outputPortsPerFMU(i)
           .map(n =>
-            (n.port, OutputPortModel(createFeedthrough(inputNames, supportFeedthrough), createFeedthrough(inputNames, supportFeedthrough))))
+            (
+              n.port,
+              FMI2OutputPortModel(createFeedthrough(inputNames, supportFeedthrough), createFeedthrough(inputNames, supportFeedthrough))))
           .toMap
         assert(outputs.nonEmpty)
 
         val canReject = if (supportStepRejection) Random.nextBoolean() else false
         // All FMUs can accept a step of arbitrary size
-        (i, FmuModel(inputs, outputs, canReject, ""))
+        (i, Fmu2Model(inputs, outputs, canReject, ""))
       })
       .toMap
 
-    ScenarioModel(FMUs, buildConfiguration(), connections, if (supportStepRejection) 2 else 1)
+    FMI2ScenarioModel(fmus, buildConfiguration(), connections, if (supportStepRejection) 2 else 1)
   }
 }

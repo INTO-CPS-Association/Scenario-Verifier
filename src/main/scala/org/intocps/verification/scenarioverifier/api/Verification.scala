@@ -10,7 +10,11 @@ import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.scala.Logging
 import org.intocps.verification.scenarioverifier
 import org.intocps.verification.scenarioverifier.cli.VerifyTA
+import org.intocps.verification.scenarioverifier.cli.Z3.SMTEncoder
 import org.intocps.verification.scenarioverifier.core._
+import org.intocps.verification.scenarioverifier.core.masterModel._
+import org.intocps.verification.scenarioverifier.core.FMI3.AdaptiveModel
+import org.intocps.verification.scenarioverifier.core.FMI3.ConfigurationModel
 import org.intocps.verification.scenarioverifier.traceanalyzer._
 import play.twirl.api.TwirlHelperImports.twirlJavaCollectionToScala
 
@@ -25,7 +29,23 @@ object VerificationAPI extends Logging {
    *   true if the algorithm is correct, false otherwise
    */
   def verifyAlgorithm(masterModel: MasterModel): Boolean = {
-    verifyAlgorithm(masterModel, ScenarioGenerator.generateUppaalFile)
+    masterModel match {
+      case masterModel: MasterModelFMI2 => verifyFMI2Algorithm(masterModel, ScenarioGenerator.generateUppaalFile)
+      case masterModel: MasterModelFMI3 => verifyFMI3Algorithm(masterModel)
+      case _ => throw new Exception("Unsupported master model")
+    }
+  }
+
+  /**
+   * Verifies whether the algorithm is correct with respect to the scenario model.
+   *
+   * @param masterModel
+   *   the algorithm and scenario to verify
+   * @return
+   *   true if the algorithm is correct, false otherwise
+   */
+  def verifyFMI3Algorithm(masterModel: MasterModelFMI3): Boolean = {
+    SMTEncoder.verifyAlgorithm(masterModel)
   }
 
   /**
@@ -38,8 +58,8 @@ object VerificationAPI extends Logging {
    * @return
    *   true if the algorithm is correct, false otherwise
    */
-  private def verifyAlgorithm(
-      masterModel: MasterModel,
+  private def verifyFMI2Algorithm(
+      masterModel: MasterModelFMI2,
       uppaalFileType: (String, ModelEncoding, Directory) => File,
       isOnlineMode: Boolean = false): Boolean = {
     if (!isOnlineMode) {
@@ -65,7 +85,7 @@ object VerificationAPI extends Logging {
    *   true if the algorithm is correct, false otherwise and the enabled actions
    */
   def dynamicVerification(
-      scenarioModel: ScenarioModel,
+      scenarioModel: FMI2ScenarioModel,
       previous_actions: List[CosimStepInstruction],
       next_action: CosimStepInstruction): Verdict = {
     // Does the previous actions contain repeated actions?
@@ -84,7 +104,7 @@ object VerificationAPI extends Logging {
     val filtered_previous_actions = previous_actions.drop(lastIndexOfFirstAction)
      */
 
-    val masterModel = MasterModel(
+    val masterModel = MasterModelFMI2(
       "dynamic_verification",
       scenarioModel,
       List.empty[InstantiationInstruction],
@@ -98,7 +118,7 @@ object VerificationAPI extends Logging {
     }
 
     val verdict =
-      if (verifyAlgorithm(masterModel, ScenarioGenerator.generateDynamicNoEnabledUppaalFile, isOnlineMode = true)) {
+      if (verifyFMI2Algorithm(masterModel, ScenarioGenerator.generateDynamicNoEnabledUppaalFile, isOnlineMode = true)) {
         // If the algorithm is correct, we don't need to generate a trace
         Verdict(correct = true, Predef.Set.empty)
       } else {
@@ -174,12 +194,19 @@ object VerificationAPI extends Logging {
    */
   def synthesizeAndVerify(name: String, scenarioModel: ScenarioModel): Boolean = {
     val masterModel = GenerationAPI.synthesizeAlgorithm(name, scenarioModel)
-    verifyAlgorithm(masterModel)
+    masterModel match {
+      case masterModel: MasterModelFMI2 => verifyAlgorithm(masterModel)
+      case masterModel: MasterModelFMI3 => verifyAlgorithm(masterModel)
+      case _ => throw new Exception("Unsupported master model")
+    }
   }
 
   def generateTrace(name: String, scenarioModel: ScenarioModel): TraceResult = {
     val masterModel = GenerationAPI.synthesizeAlgorithm(name, scenarioModel)
-    generateTraceVideo(masterModel)
+    masterModel match {
+      case masterModel: MasterModelFMI2 => generateTraceVideo(masterModel)
+      case _ => throw new Exception("Unsupported master model")
+    }
   }
 
   private def sanitizePort(port: PortRef): PortRef = {
@@ -217,15 +244,15 @@ object VerificationAPI extends Logging {
     }
   }
 
-  private def generateUppaalFile(masterModel: MasterModel, uppaalFileType: (String, ModelEncoding, Directory) => File): File = {
-    val sanitizedModel: MasterModel = sanitizeMasterModel(masterModel)
+  private def generateUppaalFile(masterModel: MasterModelFMI2, uppaalFileType: (String, ModelEncoding, Directory) => File): File = {
+    val sanitizedModel: MasterModelFMI2 = sanitizeMasterModel(masterModel)
     val encoding = new ModelEncoding(sanitizedModel)
     val currentFolder = new File(System.getProperty("user.dir"))
     uppaalFileType(sanitizedModel.name, encoding, Directory(currentFolder))
   }
 
   // Todo - check if this is needed
-  private def sanitizeMasterModel(masterModel: MasterModel) = {
+  private def sanitizeMasterModel(masterModel: MasterModelFMI2) = {
     val config =
       AdaptiveModel(
         masterModel.scenario.config.configurableInputs.map(sanitizePort),
@@ -239,7 +266,7 @@ object VerificationAPI extends Logging {
       val connectedInputsPorts = fmu._2.inputs.filter(p => connectedPorts.contains(PortRef(fmu._1, p._1)))
       val connectedOutputsPortsWithConnectedFeedthroguh =
         connectedOutputsPorts.map(p =>
-          p._1.replaceAll("\\W", "") -> OutputPortModel(
+          p._1.replaceAll("\\W", "") -> FMI2OutputPortModel(
             p._2.dependenciesInit.filter(d => connectedInputsPorts.contains(d)).map(_.replaceAll("\\W", "")),
             p._2.dependencies.filter(d => connectedInputsPorts.contains(d)).map(_.replaceAll("\\W", ""))))
       fmu.copy(_2 = fmu._2.copy(
@@ -265,10 +292,10 @@ object VerificationAPI extends Logging {
   }
 
   private def generateTraceFromMasterModel(
-      masterModel: MasterModel,
+      masterModel: MasterModelFMI2,
       uppaalFileType: (String, ModelEncoding, Directory) => File,
       isOnlineMode: Boolean = false): Option[UppaalTrace] = {
-    if (verifyAlgorithm(masterModel, uppaalFileType, isOnlineMode)) {
+    if (verifyFMI2Algorithm(masterModel, uppaalFileType, isOnlineMode)) {
       // If the algorithm is correct, we don't need to generate a trace
       return None
     }
@@ -291,22 +318,27 @@ object VerificationAPI extends Logging {
   }
 
   def generateTraceVideo(masterModel: MasterModel): TraceResult = {
-    val uppaalTrace = generateTraceFromMasterModel(masterModel, ScenarioGenerator.generateUppaalFile)
-    if (uppaalTrace.isEmpty)
-      return TraceResult(null, isGenerated = false)
+    masterModel match {
+      case masterModel: MasterModelFMI2 => {
+        val uppaalTrace = generateTraceFromMasterModel(masterModel, ScenarioGenerator.generateUppaalFile)
+        if (uppaalTrace.isEmpty)
+          return TraceResult(null, isGenerated = false)
 
-    val traceResult =
-      try {
-        val outputDirectory = new File(System.getProperty("user.dir"))
-        val videoFilePath =
-          ScenarioPlotter.plot(uppaalTrace.get, outputDirectory.getPath)
-        TraceResult(new File(videoFilePath), isGenerated = true)
-      } catch {
-        case _: Exception =>
-          println("Failed to generate video trace")
-          TraceResult(null, isGenerated = false)
+        val traceResult =
+          try {
+            val outputDirectory = new File(System.getProperty("user.dir"))
+            val videoFilePath =
+              ScenarioPlotter.plot(uppaalTrace.get, outputDirectory.getPath)
+            TraceResult(new File(videoFilePath), isGenerated = true)
+          } catch {
+            case _: Exception =>
+              println("Failed to generate video trace")
+              TraceResult(null, isGenerated = false)
+          }
+        traceResult
       }
-    traceResult
+      case _ => throw new Exception("Unsupported master model")
+    }
   }
 
   private def checkVerificationResult(verificationResult: Int): Boolean = {

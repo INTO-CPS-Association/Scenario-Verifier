@@ -11,6 +11,8 @@ import scala.reflect.io.Directory
 import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.scala.Logging
 import org.intocps.verification.scenarioverifier.api.GenerationAPI
+import org.intocps.verification.scenarioverifier.core.masterModel.MasterModel
+import org.intocps.verification.scenarioverifier.core.masterModel.MasterModelFMI2
 import org.intocps.verification.scenarioverifier.core.ModelEncoding
 import org.intocps.verification.scenarioverifier.core.ScenarioGenerator
 import org.intocps.verification.scenarioverifier.core.ScenarioLoader
@@ -82,15 +84,15 @@ object ScenarioVerifierApp extends App with Logging {
       logger.info("Starting scenario verifier.")
       require(VerifyTA.isInstalled, "VerifyTA/UPPAAL is not installed - please install it.")
       logger.info(f"Master description: ${config.master}")
-      var masterModel = ScenarioLoader.load(config.master)
+      var masterModel: MasterModel = ScenarioLoader.load(config.master)
       if (config.generateAlgorithm) {
         logger.info(f"Generating algorithm for scenario: ${config.master}")
         masterModel = GenerationAPI.synthesizeAlgorithm(masterModel.name, masterModel.scenario)
         FileUtils.deleteQuietly(new File(config.master))
-        writeFile(config.master, masterModel.toConf().split("\n").toIndexedSeq)
+        writeFile(config.master, masterModel.toConf(0).split("\n").toIndexedSeq)
       }
       logger.debug(s"Loaded model: $masterModel")
-      val queryModel = new ModelEncoding(masterModel)
+      val queryModel = new ModelEncoding(masterModel.asInstanceOf[MasterModelFMI2])
       logger.debug(s"Generate UPPAAL model.")
       val folder = new File("uppaal")
       println("folder: " + folder.getAbsolutePath)

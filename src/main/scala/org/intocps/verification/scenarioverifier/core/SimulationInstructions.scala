@@ -1,4 +1,7 @@
 package org.intocps.verification.scenarioverifier.core
+import org.intocps.verification.scenarioverifier.core.masterModel.ConfElement
+import org.intocps.verification.scenarioverifier.core.masterModel.SMTLibElement
+import org.intocps.verification.scenarioverifier.core.masterModel.UppaalModel
 
 trait SimulationInstruction extends UppaalModel with ConfElement {
   def fmu: String

@@ -1,7 +1,6 @@
 package org.intocps.verification.scenarioverifier.core
 
 object ModelQuery {
-
   private def getAllInstructions(instructions: List[CosimStepInstruction]): List[CosimStepInstruction] = {
     instructions.flatMap(f => {
       f match {

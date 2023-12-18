@@ -1,10 +1,10 @@
 import java.io.ByteArrayInputStream
 
 import org.intocps.verification.scenarioverifier.api.GenerationAPI
-import org.intocps.verification.scenarioverifier.core.ConnectionModel
+import org.intocps.verification.scenarioverifier.core.masterModel.ConnectionModel
+import org.intocps.verification.scenarioverifier.core.masterModel.FmuModel
 import org.intocps.verification.scenarioverifier.core.EnterInitMode
 import org.intocps.verification.scenarioverifier.core.ExitInitMode
-import org.intocps.verification.scenarioverifier.core.FmuModel
 import org.intocps.verification.scenarioverifier.core.ScenarioLoader
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
@@ -37,8 +37,6 @@ class ScenarioConfGeneratorTest extends AnyFlatSpec with should.Matchers {
     val scenario = ScenarioLoader.load(conf)
     val masterModel = GenerationAPI.synthesizeAlgorithm(scenario.name, scenario.scenario)
     val generatedConfiguration = masterModel.toConf()
-    val scenarioFromGeneratedSource = ScenarioLoader.load(new ByteArrayInputStream(generatedConfiguration.getBytes()))
-
   }
 
   private def compareConnections(c1: List[ConnectionModel], c2: List[ConnectionModel]): Boolean = {

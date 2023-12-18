@@ -2,17 +2,18 @@ package org.intocps.verification.scenarioverifier.synthesizer
 
 import scala.collection.mutable
 
+import org.intocps.verification.scenarioverifier.core.masterModel.FMI2InputPortModel
+import org.intocps.verification.scenarioverifier.core.masterModel.FMI2ScenarioModel
+import org.intocps.verification.scenarioverifier.core.masterModel.Fmu2Model
 import org.intocps.verification.scenarioverifier.core.AlgebraicLoop
 import org.intocps.verification.scenarioverifier.core.AlgebraicLoopInit
-import org.intocps.verification.scenarioverifier.core.FmuModel
 import org.intocps.verification.scenarioverifier.core.InitializationInstruction
-import org.intocps.verification.scenarioverifier.core.InputPortModel
 import org.intocps.verification.scenarioverifier.core.PortRef
-import org.intocps.verification.scenarioverifier.core.ScenarioModel
 import org.intocps.verification.scenarioverifier.synthesizer
 import LoopStrategy._
 
-class SynthesizerSimple(scenarioModel: ScenarioModel, override val strategy: LoopStrategy.LoopStrategy = maximum) extends SynthesizerBase {
+class SynthesizerSimple(scenarioModel: FMI2ScenarioModel, override val strategy: LoopStrategy.LoopStrategy = maximum)
+    extends SynthesizerBase {
   private lazy val Configurations: Map[String, GraphBuilder] = {
     if (isAdaptive)
       scenarioModel.config.configurations.values
@@ -23,18 +24,17 @@ class SynthesizerSimple(scenarioModel: ScenarioModel, override val strategy: Loo
               if (affectedInputs.keySet.contains(fmu._1)) {
                 val fmuModel = fmu._2
                 val fmuInputs = affectedInputs(fmu._1)
-                val inputs: Map[String, InputPortModel] =
+                val inputs: Map[String, FMI2InputPortModel] =
                   fmuModel.inputs
                     .filter(input => fmuInputs.keySet.contains(PortRef(fmu._1, input._1)))
                     .map(input => (input._1, fmuInputs(PortRef(fmu._1, input._1))))
                     .++(fmuModel.inputs.filterNot(input => fmuInputs.keySet.contains(PortRef(fmu._1, input._1))))
-
-                (fmu._1, FmuModel(inputs, fmuModel.outputs, fmuModel.canRejectStep, fmuModel.path))
+                (fmu._1, Fmu2Model(inputs, fmuModel.outputs, fmuModel.canRejectStep, fmuModel.path))
               } else
                 fmu
             })
           val scenario =
-            ScenarioModel(fmus, scenarioModel.config, configuration.connections, scenarioModel.maxPossibleStepSize)
+            FMI2ScenarioModel(fmus, scenarioModel.config, configuration.connections, scenarioModel.maxPossibleStepSize)
           (configuration.cosimStep, new GraphBuilder(scenario))
         })
         .toMap

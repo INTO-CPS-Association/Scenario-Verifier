@@ -1,8 +1,13 @@
 package org.intocps.verification.scenarioverifier.core
 
 import org.apache.logging.log4j.scala.Logging
+import org.intocps.verification.scenarioverifier.core.masterModel.ConnectionModel
+import org.intocps.verification.scenarioverifier.core.masterModel.FMI2InputPortModel
+import org.intocps.verification.scenarioverifier.core.masterModel.FmuModel
+import org.intocps.verification.scenarioverifier.core.masterModel.MasterModelFMI2
+import org.intocps.verification.scenarioverifier.core.masterModel.OutputPortModel
 
-class ModelEncoding(model: MasterModel) extends Logging {
+class ModelEncoding(model: MasterModelFMI2) extends Logging {
 
   private val noOpEncoding = "{noFMU, noOp, noPort, noStep, noFMU, noCommitment, noLoop}"
 
@@ -78,7 +83,7 @@ class ModelEncoding(model: MasterModel) extends Logging {
     val inputEnc = fmuInputEncodingInverse(f)
     (0 until nConfigs)
       .map(id => {
-        val inputPortConfig: Map[PortRef, InputPortModel] =
+        val inputPortConfig: Map[PortRef, FMI2InputPortModel] =
           if (isAdaptive) model.scenario.config.configurations(configuration(id)._1).inputs.filter(_._1.fmu == f) else Map.empty
         ((0 until inputs.size).map(idx =>
           if (inputPortConfig.keys.toList.contains(PortRef(f, inputEnc(idx))))

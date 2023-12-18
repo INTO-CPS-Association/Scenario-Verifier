@@ -1,16 +1,8 @@
 package org.intocps.verification.scenarioverifier.synthesizer.ScenarioBuilder
 
 import org.apache.logging.log4j.scala.Logging
-import org.intocps.verification.scenarioverifier.core.ConnectionModel
-import org.intocps.verification.scenarioverifier.core.FMI3.ClockType
-import org.intocps.verification.scenarioverifier.core.FMI3.FMI3ScenarioModel
-import org.intocps.verification.scenarioverifier.core.FMI3.Fmu3Model
-import org.intocps.verification.scenarioverifier.core.FMI3.InputClockModel
-import org.intocps.verification.scenarioverifier.core.FMI3.InputPortModel
-import org.intocps.verification.scenarioverifier.core.FMI3.OutputClockModel
-import org.intocps.verification.scenarioverifier.core.FMI3.OutputPortModel
+import org.intocps.verification.scenarioverifier.core.masterModel._
 import org.intocps.verification.scenarioverifier.core.PortRef
-import org.intocps.verification.scenarioverifier.core.ScenarioModel
 
 object FMI3ScenarioBuilder extends Logging with ScenarioBuilder {
   private def generateClockConnections(discreteConnections: List[ConnectionModel]): List[ConnectionModel] = {
@@ -45,13 +37,13 @@ object FMI3ScenarioBuilder extends Logging with ScenarioBuilder {
     val inputClocksPerFMU = portTypePerFMU(clockConnections, _.trgPort)
     val outputClocksPerFMU = portTypePerFMU(clockConnections, _.srcPort)
 
-    val FMUs = fmuNames
+    val fmus = fmuNames
       .map(i => {
         val inputs =
           if (inputPortsPerFMU.contains(i))
-            inputPortsPerFMU(i).map(n => (n.port, InputPortModel(isReactive, clocks = List.empty))).toMap
+            inputPortsPerFMU(i).map(n => (n.port, FMI3InputPortModel(isReactive, clocks = List.empty))).toMap
           else
-            Map.empty[String, InputPortModel]
+            Map.empty[String, FMI3InputPortModel]
         // assert(inputs.nonEmpty)
         val inputNames = inputs.keys.toList
         val outputs =
@@ -60,13 +52,13 @@ object FMI3ScenarioBuilder extends Logging with ScenarioBuilder {
               .map(n =>
                 (
                   n.port,
-                  OutputPortModel(
+                  FMI3OutputPortModel(
                     createFeedthrough(inputNames, supportFeedthrough),
                     createFeedthrough(inputNames, supportFeedthrough),
                     clocks = List.empty)))
               .toMap
           else
-            Map.empty[String, OutputPortModel]
+            Map.empty[String, FMI3OutputPortModel]
         // assert(outputs.nonEmpty)
         val outputNames = outputs.keys.toList
         val inputClocks =
@@ -85,7 +77,7 @@ object FMI3ScenarioBuilder extends Logging with ScenarioBuilder {
       })
       .toMap
 
-    FMI3ScenarioModel(FMUs, continuousConnections ++ discreteConnections, clockConnections, 1)
+    FMI3ScenarioModel(fmus, continuousConnections ++ discreteConnections, clockConnections, 1)
   }
 
   override def generateScenario(nFMU: Int, nConnection: Int, supportFeedthrough: Boolean, supportStepRejection: Boolean): ScenarioModel =

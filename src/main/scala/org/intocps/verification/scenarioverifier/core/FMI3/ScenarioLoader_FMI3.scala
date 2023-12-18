@@ -11,7 +11,7 @@ import io.circe._
 import io.circe.syntax._
 import org.apache.logging.log4j.scala.Logging
 import org.intocps.verification.scenarioverifier
-import org.intocps.verification.scenarioverifier.core.ConnectionModel
+import org.intocps.verification.scenarioverifier.core.masterModel._
 import org.intocps.verification.scenarioverifier.core.ConnectionParserSingleton
 import org.intocps.verification.scenarioverifier.core.EnterInitMode
 import org.intocps.verification.scenarioverifier.core.ExitInitMode
@@ -23,7 +23,6 @@ import org.intocps.verification.scenarioverifier.core.NestedInitStatement
 import org.intocps.verification.scenarioverifier.core.NestedStepStatement
 import org.intocps.verification.scenarioverifier.core.NoLoopInit
 import org.intocps.verification.scenarioverifier.core.PortRef
-import org.intocps.verification.scenarioverifier.core.Reactivity
 import org.intocps.verification.scenarioverifier.core.RootStepStatement
 import org.intocps.verification.scenarioverifier.core.ScenarioLoader
 import org.intocps.verification.scenarioverifier.prettyprint.PPrint
@@ -36,7 +35,7 @@ import pureconfig.ConfigReader.Result
 import pureconfig.ConfigSource
 
 object ScenarioLoaderFMI3 extends Logging {
-  def load(file: String): MasterModel3 = {
+  def load(file: String): MasterModelFMI3 = {
     if (!Files.exists(Paths.get(file))) {
       val msg = f"File not found: $file. Current working directory is: ${System.getProperty("user.dir")}."
       logger.error(msg)
@@ -48,7 +47,7 @@ object ScenarioLoaderFMI3 extends Logging {
     parse(masterConfig)
   }
 
-  def load(stream: InputStream): MasterModel3 = {
+  def load(stream: InputStream): MasterModelFMI3 = {
     val reader = new InputStreamReader(stream)
     try {
       // read from stream
@@ -95,7 +94,7 @@ object ScenarioLoaderFMI3 extends Logging {
     }
   }
 
-  def parse(config: FMI3MasterConfig): MasterModel3 = {
+  def parse(config: FMI3MasterConfig): MasterModelFMI3 = {
     config match {
       case FMI3MasterConfig(name, scenario, initialization, cosimStep, eventStrategies) =>
         val scenarioModel = parse(scenario)
@@ -103,7 +102,9 @@ object ScenarioLoaderFMI3 extends Logging {
         val initializationModel = initialization.map(instruction => parse(instruction, scenarioModel))
         val expandedInitModel = ScenarioLoader.generateEnterInitInstructions(
           scenarioModel.scenarioModel) ++ initializationModel ++ ScenarioLoader.generateExitInitInstructions(scenarioModel.scenarioModel)
-        val cosimStepModel = cosimStep.map(instruction => ScenarioLoader.parse(instruction, scenarioModel.scenarioModel))
+        val cosimStepModel =
+          cosimStep.map(instructions =>
+            (instructions._1, instructions._2.map(instruction => ScenarioLoader.parse(instruction, scenarioModel.scenarioModel))))
         val eventStrategyModel = eventStrategies.map(strategy =>
           (
             strategy._1,
@@ -111,36 +112,27 @@ object ScenarioLoaderFMI3 extends Logging {
               EventEntrance(strategy._2.clocks.map(clock => parsePortRef(clock, "", scenarioModel.fmus)).toSet),
               strategy._2.iterate.map(instruction => parse(instruction, scenarioModel)))))
         val terminateModel = ScenarioLoader.generateTerminateInstructions(scenarioModel.scenarioModel).toList
-        MasterModel3(name, scenarioModel, instantiationModel, expandedInitModel.toList, cosimStepModel, eventStrategyModel, terminateModel)
+        MasterModelFMI3(
+          name,
+          scenarioModel,
+          instantiationModel,
+          expandedInitModel.toList,
+          cosimStepModel,
+          eventStrategyModel,
+          terminateModel)
     }
   }
 
-  private def parse(masterModel: MasterModel3): MasterModelDTO = {
-    val filteredInitializationActions =
-      masterModel.initialization.filterNot(i => i.isInstanceOf[EnterInitMode] || i.isInstanceOf[ExitInitMode])
-    MasterModelDTO(
-      masterModel.name,
-      masterModel.scenario,
-      filteredInitializationActions,
-      masterModel.cosimStep,
-      masterModel.eventStrategies)
-  }
-
-  private def enrichDTO(masterModelDTO: MasterModelDTO): MasterModel3 = {
-    val instantiationModel = ScenarioLoader.generateInstantiationInstructions(masterModelDTO.scenario.scenarioModel).toList
-    val expandedInitModel = (ScenarioLoader.generateEnterInitInstructions(masterModelDTO.scenario.scenarioModel)
-      ++ masterModelDTO.initialization
-      ++ ScenarioLoader.generateExitInitInstructions(masterModelDTO.scenario.scenarioModel)).toList
-    val terminateModel = ScenarioLoader.generateTerminateInstructions(masterModelDTO.scenario.scenarioModel).toList
-    MasterModel3(
-      masterModelDTO.name,
-      masterModelDTO.scenario,
-      instantiationModel,
-      expandedInitModel,
-      masterModelDTO.cosimStep,
-      masterModelDTO.eventStrategies,
-      terminateModel)
-  }
+  // private def parse(masterModel: MasterModelFMI3): MasterModelDTO = {
+  //   val filteredInitializationActions =
+  //     masterModel.initialization.filterNot(i => i.isInstanceOf[EnterInitMode] || i.isInstanceOf[ExitInitMode])
+  //   MasterModelDTO(
+  //     masterModel.name,
+  //     masterModel.scenario,
+  //     filteredInitializationActions,
+  //     masterModel.cosimStep,
+  //     masterModel.eventStrategies)
+  // }
 
   private def parsePortRef(str: String, context: String, fmus: Map[String, Fmu3Model]): PortRef = {
     val pRes = FMURefParserSingleton.parse(scenarioverifier.core.FMURefParserSingleton.fmu_port_ref, str)
@@ -262,13 +254,17 @@ object ScenarioLoaderFMI3 extends Logging {
     }
   }
 
-  def parse(config: InputPortConfig): InputPortModel = {
+  def parse(config: InputPortConfig): FMI3InputPortModel = {
     config match {
-      case InputPortConfig(reactivity, clocks) => InputPortModel(Reactivity.withName(reactivity), clocks)
+      case InputPortConfig(reactivity, clocks) => FMI3InputPortModel(Reactivity.withName(reactivity), clocks)
     }
   }
 
-  def parse(config: OutputPortConfig, inputsModel: Map[String, InputPortModel], outputPortId: String, fmuId: String): OutputPortModel = {
+  def parse(
+      config: OutputPortConfig,
+      inputsModel: Map[String, FMI3InputPortModel],
+      outputPortId: String,
+      fmuId: String): FMI3OutputPortModel = {
     config match {
       case OutputPortConfig(dependenciesInit, dependencies, clocks) =>
         val errorCheck = (inputPortRef: String) =>
@@ -277,7 +273,7 @@ object ScenarioLoaderFMI3 extends Logging {
             f"Unable to resolve input port reference $inputPortRef in the output port $outputPortId FMU $fmuId.")
         dependenciesInit.foreach(errorCheck)
         dependencies.foreach(errorCheck)
-        OutputPortModel(dependenciesInit, dependencies, clocks)
+        FMI3OutputPortModel(dependenciesInit, dependencies, clocks)
     }
   }
 

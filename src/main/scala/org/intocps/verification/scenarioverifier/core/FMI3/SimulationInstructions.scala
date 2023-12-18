@@ -1,8 +1,8 @@
 package org.intocps.verification.scenarioverifier.core.FMI3
 
+import org.intocps.verification.scenarioverifier.core.masterModel.SMTLibElement
 import org.intocps.verification.scenarioverifier.core.InitializationInstruction
 import org.intocps.verification.scenarioverifier.core.PortRef
-import org.intocps.verification.scenarioverifier.core.SMTLibElement
 import org.intocps.verification.scenarioverifier.core.SimulationInstruction
 
 final case class GetShift(port: PortRef) extends InitializationInstruction {

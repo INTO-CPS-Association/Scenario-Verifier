@@ -20,9 +20,9 @@ import guru.nidi.graphviz.model.Factory.mutNode
 import guru.nidi.graphviz.model.MutableGraph
 import guru.nidi.graphviz.model.MutableNode
 import org.apache.logging.log4j.scala.Logging
+import org.intocps.verification.scenarioverifier.core.masterModel.OutputPortModel
+import org.intocps.verification.scenarioverifier.core.masterModel.Reactivity.reactive
 import org.intocps.verification.scenarioverifier.core.ModelEncoding
-import org.intocps.verification.scenarioverifier.core.OutputPortModel
-import org.intocps.verification.scenarioverifier.core.Reactivity.reactive
 import org.jcodec.api.awt.AWTSequenceEncoder
 
 object ScenarioPlotter extends Logging {
