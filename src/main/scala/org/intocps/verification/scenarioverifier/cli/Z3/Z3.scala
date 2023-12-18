@@ -43,7 +43,7 @@ object Z3 extends CLITool {
 
 object SMTEncoder extends Logging {
   private def encodeFile(masterModel: MasterModelFMI3, algorithmTypes: List[AlgorithmType.Value], synthesize: Boolean): File = {
-    val smtLib = masterModel.toSMTLib(algorithmTypes, synthesize, isParallel = false)
+    val smtLib = masterModel.smtLIBConstraints(algorithmTypes, synthesize)
     // Write to file
     val smtFile = File.createTempFile("cosim", ".smt2")
     // smtFile.deleteOnExit()

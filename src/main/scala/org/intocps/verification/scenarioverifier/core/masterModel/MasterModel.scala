@@ -14,8 +14,8 @@ trait MasterModel extends ConfElement with SMTLibElement {
   def initialization: List[InitializationInstruction]
   def cosimStep: Map[String, List[CosimStepInstruction]]
   def terminate: List[TerminationInstruction]
-  def formatInit = toArray(initialization.map(_.toConf(1)), "\n")
-  def formatStep(indentationLevel: Int): String =
+  private def formatInit = toArray(initialization.map(_.toConf(1)), "\n")
+  private def formatStep(indentationLevel: Int): String =
     cosimStep
       .map { case (stepName, stepInstructions) =>
         s""" $stepName =
@@ -32,6 +32,18 @@ trait MasterModel extends ConfElement with SMTLibElement {
        |initialization = $formatInit
        |cosim-step = ${formatStep(indentationLevel)}
        |""".stripMargin
+  }
+
+  def toSMTLib(algorithmConstraint: Map[AlgorithmType, String]): String = {
+    require(algorithmConstraint.nonEmpty, "at least one algorithm must be specified")
+    s"""
+       |(set-option :produce-models true)
+       |(set-logic QF_LIA)
+       |(set-option :produce-unsat-cores true)
+       |(set-option :verbosity 1)
+       |${algorithmConstraint.values.mkString("\n")}
+       |(exit)
+      """.stripMargin
   }
 
   protected def coSimStepSMTLIB(synthesize: Boolean): String = {
@@ -61,6 +73,25 @@ trait MasterModel extends ConfElement with SMTLibElement {
          |(pop 1)
          |""".stripMargin
   }
+
+  protected def formatEvents(synthesize: Boolean, isParallel: Boolean): String = ""
+
+  def smtLIBConstraints(algorithmTypes: List[AlgorithmType], synthesize: Boolean = false): String = {
+    require(algorithmTypes.nonEmpty, "algorithmTypes must not be empty")
+    var algorithmConstraints = Map.empty[AlgorithmType, String]
+    if (algorithmTypes.contains(AlgorithmType.init)) {
+      val initInstructions = initialization
+        .filterNot(instruction => instruction.isInstanceOf[EnterInitMode] || instruction.isInstanceOf[ExitInitMode])
+      algorithmConstraints += AlgorithmType.init -> formatAlgorithmSMTLib(AlgorithmType.init, initInstructions, synthesize)
+    }
+    if (algorithmTypes.contains(AlgorithmType.step)) {
+      algorithmConstraints += AlgorithmType.step -> coSimStepSMTLIB(synthesize)
+    }
+    if (algorithmTypes.contains(AlgorithmType.event)) {
+      algorithmConstraints += AlgorithmType.event -> formatEvents(synthesize, isParallel = false)
+    }
+    toSMTLib(algorithmConstraints)
+  }
 }
 
 final case class MasterModelFMI2(
@@ -73,32 +104,8 @@ final case class MasterModelFMI2(
     extends MasterModel {
   require(name.nonEmpty, "Master model name cannot be empty")
 
-  def toSMTLib(algorithmTypes: List[AlgorithmType], synthesize: Boolean = false): String = {
-    require(algorithmTypes.nonEmpty, "algorithmTypes must not be empty")
-    val initializationConstraints =
-      if (algorithmTypes.contains(AlgorithmType.init)) {
-        val initInstructions = initialization
-          .filter(instruction => instruction.isInstanceOf[InitGet] || instruction.isInstanceOf[InitSet])
-        formatAlgorithmSMTLib(AlgorithmType.init, initInstructions, synthesize)
-      } else ""
-
-    val coSimStepConstraints: String =
-      if (algorithmTypes.contains(AlgorithmType.step)) coSimStepSMTLIB(synthesize) else ""
-
-    val constraints: List[String] =
-      List(initializationConstraints, coSimStepConstraints).filter(_.nonEmpty)
-    s"""
-       |(set-option :produce-models true)
-       |(set-logic QF_LIA)
-       |(set-option :produce-unsat-cores true)
-       |(set-option :verbosity 1)
-       |${constraints.mkString("\n")}
-       |(exit)
-      """.stripMargin
-  }
-
   override def toSMTLib: String =
-    toSMTLib(List(AlgorithmType.init, AlgorithmType.step), false)
+    smtLIBConstraints(List(AlgorithmType.init, AlgorithmType.step), false)
 }
 
 final case class MasterModelFMI3(
@@ -124,7 +131,7 @@ final case class MasterModelFMI3(
        |""".stripMargin
   }
 
-  private def formatEvents(synthesize: Boolean, isParallel: Boolean): String = {
+  protected override def formatEvents(synthesize: Boolean, isParallel: Boolean): String = {
     scenario.eventEntrances
       .map(eventEntrance => {
         val algorithmAssertions = if (!synthesize) {
@@ -153,20 +160,7 @@ final case class MasterModelFMI3(
    * @return
    *   The SMT-LIB representation of the master model as a string
    */
-  def toSMTLib(algorithmTypes: List[AlgorithmType], synthesize: Boolean, isParallel: Boolean): String = {
-    val initInstructions = initialization
-      .filter(instruction =>
-        instruction.isInstanceOf[InitGet] || instruction.isInstanceOf[InitSet] || instruction.isInstanceOf[GetShift] || instruction
-          .isInstanceOf[GetInterval])
-    s"""
-       |(set-option :produce-models true)
-       |(set-logic QF_LIA)
-       |${if (algorithmTypes.contains(AlgorithmType.init)) formatAlgorithmSMTLib(AlgorithmType.init, initInstructions, synthesize) else ""}
-       |${if (algorithmTypes.contains(AlgorithmType.step)) coSimStepSMTLIB(synthesize) else ""}
-       |${if (algorithmTypes.contains(AlgorithmType.event)) formatEvents(synthesize, isParallel) else ""}
-       |""".stripMargin
-  }
 
   override def toSMTLib: String =
-    toSMTLib(List(AlgorithmType.init, AlgorithmType.step, AlgorithmType.event), synthesize = false, isParallel = false)
+    smtLIBConstraints(List(AlgorithmType.init, AlgorithmType.step, AlgorithmType.event), synthesize = false)
 }
