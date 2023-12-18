@@ -101,7 +101,7 @@ final case class MasterModelFMI2(
   require(name.nonEmpty, "Master model name cannot be empty")
 
   override def toSMTLib: String =
-    smtLIBConstraints(List(AlgorithmType.init, AlgorithmType.step), false)
+    smtLIBConstraints(List(AlgorithmType.init, AlgorithmType.step), synthesize = false)
 }
 
 final case class MasterModelFMI3(

@@ -9,7 +9,7 @@ import org.scalatest.matchers.should
 
 class ScalabilityTest extends AnyFlatSpec with should.Matchers with Logging {
 
-  def FMI3SynthesizingScalability() = {
+  private def FMI3SynthesizingScalability() = {
     val testScenario1 = "../examples_fmi_3/motivation_example.conf"
     val conf1 = getClass.getResourceAsStream(testScenario1)
     val scenario1 = ScenarioLoaderFMI3.load(conf1)
