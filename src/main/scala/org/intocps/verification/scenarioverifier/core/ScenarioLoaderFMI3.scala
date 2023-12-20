@@ -1,77 +1,31 @@
 package org.intocps.verification.scenarioverifier.core
 
-import java.io.File
-import java.io.InputStream
-import java.io.InputStreamReader
-import java.nio.file.Files
-import java.nio.file.Paths
-
 import scala.annotation.unused
 
-import com.typesafe.config.ConfigFactory
 import org.intocps.verification.scenarioverifier.core.masterModel._
 import org.intocps.verification.scenarioverifier.core.FMI3._
-import org.intocps.verification.scenarioverifier.prettyprint.PPrint
 import pureconfig.generic.auto._
 import pureconfig.generic.ProductHint
-import pureconfig.ConfigReader.Result
-import pureconfig.ConfigSource
-object ScenarioLoaderFMI3 extends ScenarioLoader {
-  def load(file: String): MasterModelFMI3 = {
-    if (!Files.exists(Paths.get(file))) {
-      val msg = f"File not found: $file. Current working directory is: ${System.getProperty("user.dir")}."
-      logger.error(msg)
-      throw new IllegalArgumentException(msg)
-    }
-    val conf = ConfigFactory.parseFile(new File(file))
-    val parsingResults = ConfigSource.fromConfig(conf).load[FMI3MasterConfig]
-    val masterConfig = extractMasterConfig(parsingResults)
-    parse(masterConfig)
-  }
-  def load(stream: InputStream): MasterModelFMI3 = {
-    val reader = new InputStreamReader(stream)
-    try {
-      // read from stream
-      val conf = ConfigFactory.parseReader(reader)
 
-      // This forces pure config to not tolerate unknown keys in the config file.
-      // It gives errors when typos happen.
-      // From https://pureconfig.github.io/docs/overriding-behavior-for-case-classes.html
-      @unused
-      implicit val hintNestedStepStatement: ProductHint[NestedStepStatement] = ProductHint[NestedStepStatement](allowUnknownKeys = false)
-      @unused
-      implicit val hintRootStepStatement: ProductHint[RootStepStatement] = ProductHint[RootStepStatement](allowUnknownKeys = false)
-      @unused
-      implicit val hintNestedInitStatement: ProductHint[NestedInitStatement] = ProductHint[NestedInitStatement](allowUnknownKeys = false)
-      @unused
-      implicit val hintRootInitStatement: ProductHint[RootEventStatement] = ProductHint[RootEventStatement](allowUnknownKeys = false)
-      @unused
-      implicit val hintMasterConfig: ProductHint[FMI3MasterConfig] = ProductHint[FMI3MasterConfig](allowUnknownKeys = false)
+object ScenarioLoaderFMI3 extends ScenarioLoader[MasterModelFMI3, FMI3MasterConfig] {
 
-      val parsingResults: Result[FMI3MasterConfig] = ConfigSource.fromConfig(conf).load[FMI3MasterConfig]
-      val masterConfig = extractMasterConfig(parsingResults)
-      parse(masterConfig)
-    } finally {
-      reader.close()
-    }
+  protected override def configHints(): Unit = {
+    // This forces pure config to not tolerate unknown keys in the config file.
+    // It gives errors when typos happen.
+    // From https://pureconfig.github.io/docs/overriding-behavior-for-case-classes.html
+    @unused
+    implicit val hintNestedStepStatement: ProductHint[NestedStepStatement] = ProductHint[NestedStepStatement](allowUnknownKeys = false)
+    @unused
+    implicit val hintRootStepStatement: ProductHint[RootStepStatement] = ProductHint[RootStepStatement](allowUnknownKeys = false)
+    @unused
+    implicit val hintNestedInitStatement: ProductHint[NestedInitStatement] = ProductHint[NestedInitStatement](allowUnknownKeys = false)
+    @unused
+    implicit val hintRootInitStatement: ProductHint[RootEventStatement] = ProductHint[RootEventStatement](allowUnknownKeys = false)
+    @unused
+    implicit val hintMasterConfig: ProductHint[FMI3MasterConfig] = ProductHint[FMI3MasterConfig](allowUnknownKeys = false)
   }
 
-  private def extractMasterConfig(parsingResults: Result[FMI3MasterConfig]): FMI3MasterConfig = {
-    parsingResults match {
-      case Left(errors) =>
-        logger.error("Errors during parsing.")
-        for (e <- errors.toList) {
-          prettyPrintError(e)
-        }
-        throw new IllegalArgumentException(errors.toString())
-      case Right(master) =>
-        logger.info(f"Successfully parsed master configuration.")
-        PPrint.pprint(master, l = logger)
-        master
-    }
-  }
-
-  def parse(config: FMI3MasterConfig): MasterModelFMI3 = {
+  override def parse(config: FMI3MasterConfig): MasterModelFMI3 = {
     config match {
       case FMI3MasterConfig(name, scenario, initialization, cosimStep, eventStrategies) =>
         val scenarioModel = parse(scenario)
@@ -87,7 +41,7 @@ object ScenarioLoaderFMI3 extends ScenarioLoader {
           (
             strategy._1,
             EventStrategy(
-              EventEntrance(strategy._2.clocks.map(clock => parsePortRef(clock, "", scenarioModel.fmus)).toSet),
+              EventEntrance(strategy._2.clocks.map(clock => parsePortRefBase(clock, "", scenarioModel.fmus)).toSet),
               strategy._2.iterate.map(instruction => parse(instruction, scenarioModel)))))
         val terminateModel = generateTerminateInstructions(scenarioModel.scenarioModel).toList
         MasterModelFMI3(
@@ -110,21 +64,13 @@ object ScenarioLoaderFMI3 extends ScenarioLoader {
         assert(nOps == 1, s"Initialization instruction $instruction must be one of get, set or loop-init.")
     }
     if (!instruction.get.isBlank) {
-      val pRef = parsePortRef(instruction.get, s"instruction $instruction", scenarioModel.fmus)
-      assert(scenarioModel.fmus(pRef.fmu).outputs.contains(pRef.port), s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
-      InitGet(pRef)
+      parsePortAction[Fmu3Model](instruction.get, scenarioModel.fmus, InitGet, _.outputs)
     } else if (!instruction.set.isBlank) {
-      val pRef = parsePortRef(instruction.set, s"instruction $instruction", scenarioModel.fmus)
-      assert(scenarioModel.fmus(pRef.fmu).inputs.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
-      InitSet(pRef)
+      parsePortAction[Fmu3Model](instruction.set, scenarioModel.fmus, InitSet, _.inputs)
     } else if (!instruction.getShift.isBlank) {
-      val pRef = parsePortRef(instruction.set, s"instruction $instruction", scenarioModel.fmus)
-      assert(scenarioModel.fmus(pRef.fmu).inputClocks.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
-      GetShift(pRef)
+      parsePortAction[Fmu3Model](instruction.getShift, scenarioModel.fmus, GetShift, _.inputClocks)
     } else if (!instruction.getInterval.isBlank) {
-      val pRef = parsePortRef(instruction.set, s"instruction $instruction", scenarioModel.fmus)
-      assert(scenarioModel.fmus(pRef.fmu).inputClocks.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
-      GetInterval(pRef)
+      parsePortAction[Fmu3Model](instruction.getInterval, scenarioModel.fmus, GetInterval, _.inputClocks)
     } else {
       // Check subclasses
       instruction match {
@@ -143,27 +89,15 @@ object ScenarioLoaderFMI3 extends ScenarioLoader {
         assert(nOps == 1, s"Event instruction $instruction must be one of get, set, setClock, getClock, step or next.")
     }
     if (!instruction.get.isBlank) {
-      val pRef = parsePortRef(instruction.get, s"instruction $instruction", scenarioModel.fmus)
-      assert(scenarioModel.fmus(pRef.fmu).outputs.contains(pRef.port), s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
-      Get(pRef)
+      parsePortAction[Fmu3Model](instruction.get, scenarioModel.fmus, Get, _.outputs)
     } else if (!instruction.set.isBlank) {
-      val pRef = parsePortRef(instruction.set, s"instruction $instruction", scenarioModel.fmus)
-      assert(scenarioModel.fmus(pRef.fmu).inputs.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
-      Set(pRef)
+      parsePortAction[Fmu3Model](instruction.set, scenarioModel.fmus, Set, _.inputs)
     } else if (!instruction.getClock.isBlank) {
-      val pRef = parsePortRef(instruction.getClock, s"instruction $instruction", scenarioModel.fmus)
-      assert(
-        scenarioModel.fmus(pRef.fmu).outputClocks.contains(pRef.port),
-        s"Unable to resolve output port ${pRef.port} in fmu ${pRef.fmu}.")
-      GetClock(pRef)
+      parsePortAction[Fmu3Model](instruction.getClock, scenarioModel.fmus, GetClock, _.outputClocks)
     } else if (!instruction.setClock.isBlank) {
-      val pRef = parsePortRef(instruction.setClock, s"instruction $instruction", scenarioModel.fmus)
-      assert(scenarioModel.fmus(pRef.fmu).inputClocks.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
-      SetClock(pRef)
+      parsePortAction[Fmu3Model](instruction.setClock, scenarioModel.fmus, SetClock, _.inputClocks)
     } else if (!instruction.next.isBlank) {
-      val pRef = parsePortRef(instruction.next, s"instruction $instruction", scenarioModel.fmus)
-      assert(scenarioModel.fmus(pRef.fmu).inputClocks.contains(pRef.port), s"Unable to resolve input port ${pRef.port} in fmu ${pRef.fmu}.")
-      NextClock(pRef)
+      parsePortAction[Fmu3Model](instruction.next, scenarioModel.fmus, NextClock, _.inputClocks)
     } else if (!instruction.step.isBlank) {
       val fmuRef = instruction.step
       StepE(fmuRef)

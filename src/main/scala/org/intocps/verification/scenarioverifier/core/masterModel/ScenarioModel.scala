@@ -1,10 +1,10 @@
 package org.intocps.verification.scenarioverifier.core.masterModel
 import scala.collection.immutable
 
-import org.intocps.verification.scenarioverifier.core.FMI3._
+import org.intocps.verification.scenarioverifier.core.EventInstruction
+import org.intocps.verification.scenarioverifier.core.FMI3.AdaptiveModel
 import org.intocps.verification.scenarioverifier.core.PortRef
 import AlgorithmType.AlgorithmType
-import ClockType.ClockType
 
 trait ScenarioModel extends ConfElement {
   def fmus: Map[String, FmuModel]
@@ -257,7 +257,7 @@ final case class FMI3ScenarioModel(
   }
 
   override def toSMTLIB(algorithmType: AlgorithmType): String = {
-    toSMTLIB(algorithmType, false)
+    toSMTLIB(algorithmType, isParallel = false)
   }
 
   private def commonSMTLib(actions: List[String], isParallel: Boolean): String = {

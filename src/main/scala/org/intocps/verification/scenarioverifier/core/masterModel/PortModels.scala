@@ -5,11 +5,13 @@ import org.intocps.verification.scenarioverifier.core.PortRef
 import ClockType.ClockType
 import Reactivity.Reactivity
 
-trait InputPortModel extends ConfElement {
+trait PortModel extends ConfElement
+
+trait InputPortModel extends PortModel {
   def reactivity: Reactivity
 }
 
-trait OutputPortModel extends ConfElement {
+trait OutputPortModel extends PortModel {
   def dependenciesInit: List[String]
   def dependencies: List[String]
 }
@@ -38,13 +40,12 @@ final case class FMI3OutputPortModel(dependenciesInit: List[String], dependencie
     s"{dependencies-init=${toArray(dependenciesInit)}, dependencies=${toArray(dependencies)}, clocks=${toArray(clocks)}}"
 }
 
-final case class OutputClockModel(typeOfClock: ClockType, dependencies: List[String], dependenciesClocks: List[String])
-    extends ConfElement {
+final case class OutputClockModel(typeOfClock: ClockType, dependencies: List[String], dependenciesClocks: List[String]) extends PortModel {
   override def toConf(indentationLevel: Int = 0): String =
     s"{type-of-clock=${typeOfClock.toString}, dependencies=${toArray(dependencies)}, dependencies-clocks=${toArray(dependenciesClocks)}}"
 }
 
-final case class InputClockModel(typeOfClock: ClockType, interval: Int) extends ConfElement {
+final case class InputClockModel(typeOfClock: ClockType, interval: Int) extends PortModel {
   require(
     typeOfClock == ClockType.triggered && interval == 0 || typeOfClock == ClockType.timed && interval > 0,
     "Interval must be greater than 0 for time-based clocks and 0 for triggered clocks")
@@ -56,6 +57,6 @@ final case class EventEntrance(clocks: immutable.Set[PortRef]) extends ConfEleme
   require(clocks.nonEmpty, "Event entrance must contain at least one clock")
 
   override def toConf(indentationLevel: Int = 0): String = {
-    toArray(clocks.map(generatePort(_)).toList, ",")
+    toArray(clocks.map(generatePort).toList)
   }
 }

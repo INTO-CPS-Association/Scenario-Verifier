@@ -1,7 +1,6 @@
 package org.intocps.verification.scenarioverifier.core.masterModel
 
-import org.intocps.verification.scenarioverifier.core._
-import AlgorithmType.AlgorithmType
+import org.intocps.verification.scenarioverifier.core.masterModel.AlgorithmType.AlgorithmType
 
 trait FmuModel extends ConfElement {
   def inputs: Map[String, InputPortModel]

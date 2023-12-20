@@ -130,10 +130,10 @@ class SynthesizerSimple(scenarioModel: FMI2ScenarioModel, override val strategy:
 
   def isTentative(action: StepInstructionNode, edges: Set[Edge[StepInstructionNode]]): Boolean = {
     action match {
-      case GetNode(fmuName, port) => edges.exists(e => e.srcNode == action)
-      case SetNode(fmuName, port) =>
+      case GetNode(_, _) => edges.exists(e => e.srcNode == action)
+      case SetNode(_, _) =>
         edges.exists(e => e.trgNode == action && e.srcNode.isInstanceOf[GetNode])
-      case SetTentativeNode(fmuName, port) =>
+      case SetTentativeNode(_, _) =>
         edges.exists(e => e.trgNode == action && e.srcNode.isInstanceOf[GetNode])
       case _ => false
     }

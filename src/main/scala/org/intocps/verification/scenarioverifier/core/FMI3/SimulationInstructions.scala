@@ -1,50 +1,37 @@
 package org.intocps.verification.scenarioverifier.core.FMI3
 
-import org.intocps.verification.scenarioverifier.core.masterModel.SMTLibElement
+import org.intocps.verification.scenarioverifier.core.EventInstruction
 import org.intocps.verification.scenarioverifier.core.InitializationInstruction
+import org.intocps.verification.scenarioverifier.core.PortAction
 import org.intocps.verification.scenarioverifier.core.PortRef
-import org.intocps.verification.scenarioverifier.core.SimulationInstruction
 
-final case class GetShift(port: PortRef) extends InitializationInstruction {
-  override def fmu: String = port.fmu
+final case class GetShift(port: PortRef) extends InitializationInstruction with PortAction {
+  override def action: String = "get-shift"
 
-  override def toUppaal: String = s"{$fmu, getShift, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{get-shift: ${generatePort(port)}}"
+  override def UPPAALaction: String = "getShift"
 
   override def toSMTLib: String = s"${fmu}_${port.port}_shift"
 }
 
-final case class GetInterval(port: PortRef) extends InitializationInstruction {
-  override def fmu: String = port.fmu
+final case class GetInterval(port: PortRef) extends InitializationInstruction with PortAction {
 
-  override def toUppaal: String = s"{$fmu, getInterval, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
+  override def action: String = "get-interval"
 
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{get-interval: ${generatePort(port)}}"
+  override def UPPAALaction: String = "getInterval"
 
   override def toSMTLib: String = s"${fmu}_${port.port}_shift"
 }
 
-sealed abstract class EventInstruction extends SimulationInstruction with SMTLibElement
+final case class Set(port: PortRef) extends PortAction {
+  override def action: String = "set"
 
-final case class Set(port: PortRef) extends EventInstruction {
-  override def fmu: String = port.fmu
-
-  override def toUppaal: String = s"{$fmu, set, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{set: ${generatePort(port)}}"
-
-  override def toSMTLib: String = s"${fmu}_${port.port}"
+  override def UPPAALaction: String = "set"
 }
 
-final case class Get(port: PortRef) extends EventInstruction {
-  override def fmu: String = port.fmu
+final case class Get(port: PortRef) extends PortAction {
+  override def action: String = "get"
 
-  override def toUppaal: String = s"{$fmu, get, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{get: ${generatePort(port)}}"
-
-  override def toSMTLib: String = s"${fmu}_${port.port}"
+  override def UPPAALaction: String = "get"
 }
 
 final case class StepE(fmu: String) extends EventInstruction {
@@ -56,35 +43,21 @@ final case class StepE(fmu: String) extends EventInstruction {
   override def toSMTLib: String = s"${fmu}_stepE"
 }
 
-final case class GetClock(port: PortRef) extends EventInstruction {
-  override def toUppaal: String =
-    s"{$fmu, getClock, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
+final case class GetClock(port: PortRef) extends PortAction {
+  override def action: String = "get-clock"
 
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{get-clock: ${generatePort(port)}}"
-
-  override def fmu: String = port.fmu
-
-  override def toSMTLib: String = s"${fmu}_${port.port}"
+  override def UPPAALaction: String = "getClock"
 }
 
-final case class SetClock(port: PortRef) extends EventInstruction {
-  override def toUppaal: String =
-    s"{$fmu, setClock, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
+final case class SetClock(port: PortRef) extends PortAction {
+  override def action: String = "set-clock"
 
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{set-clock: ${generatePort(port)}}"
-
-  override def fmu: String = port.fmu
-
-  override def toSMTLib: String = s"${fmu}_${port.port}"
+  override def UPPAALaction: String = "setClock"
 }
 
-final case class NextClock(port: PortRef) extends EventInstruction with SMTLibElement {
-  override def toUppaal: String =
-    s"{$fmu, nextClock, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
+final case class NextClock(port: PortRef) extends PortAction {
+  override def action: String = "next"
 
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{next: ${generatePort(port)}}"
+  override def UPPAALaction: String = "nextClock"
 
-  override def fmu: String = port.fmu
-
-  override def toSMTLib: String = s"${fmu}_${port.port}"
 }

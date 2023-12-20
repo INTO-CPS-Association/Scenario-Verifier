@@ -1,4 +1,5 @@
 package org.intocps.verification.scenarioverifier.core
+import guru.nidi.graphviz.model.Port
 import org.intocps.verification.scenarioverifier.core.masterModel.ConfElement
 import org.intocps.verification.scenarioverifier.core.masterModel.SMTLibElement
 import org.intocps.verification.scenarioverifier.core.masterModel.UppaalModel
@@ -13,31 +14,41 @@ trait SimulationInstruction extends UppaalModel with ConfElement {
   override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}"
 }
 
-abstract class InitializationInstruction extends SimulationInstruction with SMTLibElement
+trait InitializationInstruction extends SimulationInstruction with SMTLibElement
 
-final case class InitSet(port: PortRef) extends InitializationInstruction {
+trait CosimStepInstruction extends SimulationInstruction with SMTLibElement
+
+trait EventInstruction extends SimulationInstruction with SMTLibElement
+
+trait PortAction extends InitializationInstruction with CosimStepInstruction with EventInstruction {
+  def port: PortRef
+
+  def action: String
+
+  def UPPAALaction: String
+
+  def tentativity: String = "final"
   override def fmu: String = port.fmu
 
   override def portName: String = port.port
-  override def toUppaal: String = s"{$fmu, set, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{set: ${generatePort(port)}}"
 
   override def toSMTLib: String = s"${sanitizeString(fmu)}_${sanitizeString(port.port)}"
+
+  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{$action: ${generatePort(port)}}"
+
+  override def toUppaal: String = s"{$fmu, $UPPAALaction, ${fmuPortName(port)}, noStep, noFMU, $tentativity, noLoop}"
 }
 
-final case class InitGet(port: PortRef) extends InitializationInstruction with SMTLibElement {
+final case class InitSet(port: PortRef) extends InitializationInstruction with PortAction {
+  override def action: String = "set"
 
-  override def fmu: String = port.fmu
+  override def UPPAALaction: String = "set"
+}
 
-  override def portName: String = port.port
+final case class InitGet(port: PortRef) extends InitializationInstruction with PortAction {
+  override def action: String = "get"
 
-  override def toUppaal: String = s"{$fmu, get, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{get: ${generatePort(port)}}"
-
-  override def toSMTLib: String = s"${sanitizeString(fmu)}_${sanitizeString(port.port)}"
-
+  override def UPPAALaction: String = "get"
 }
 
 final case class EnterInitMode(fmu: String) extends InitializationInstruction {
@@ -100,55 +111,29 @@ final case class AbsoluteStepSize(H: Int) extends StepSize {
   override def toConf(indentationLevel: Int): String = s", by: $H"
 }
 
-sealed abstract class CosimStepInstruction extends SimulationInstruction with SMTLibElement
-
-final case class Set(port: PortRef) extends CosimStepInstruction {
-  override def fmu: String = port.fmu
-
-  override def portName: String = port.port
-
-  override def toUppaal: String = s"{$fmu, set, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{set: ${generatePort(port)}}"
-
-  override def toSMTLib: String = s"${sanitizeString(fmu)}_${sanitizeString(port.port)}"
+final case class Set(port: PortRef) extends CosimStepInstruction with PortAction {
+  override def action: String = "set"
+  override def UPPAALaction: String = "set"
 }
 
-final case class Get(port: PortRef) extends CosimStepInstruction {
-  override def fmu: String = port.fmu
-
-  override def portName: String = port.port
-
-  override def toUppaal: String = s"{$fmu, get, ${fmuPortName(port)}, noStep, noFMU, final, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{get: ${generatePort(port)}}"
-
-  override def toSMTLib: String = s"${sanitizeString(fmu)}_${sanitizeString(port.port)}"
+final case class Get(port: PortRef) extends CosimStepInstruction with PortAction {
+  override def action: String = "get"
+  override def UPPAALaction: String = "get"
 }
 
-final case class GetTentative(port: PortRef) extends CosimStepInstruction {
-  override def fmu: String = port.fmu
+final case class GetTentative(port: PortRef) extends CosimStepInstruction with PortAction {
+  override def action: String = "get-tentative"
 
-  override def portName: String = port.port
+  override def UPPAALaction: String = "get"
 
-  override def toUppaal: String = s"{$fmu, get, ${fmuPortName(port)}, noStep, noFMU, tentative, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{get-tentative: ${generatePort(port)}}"
-
-  override def toSMTLib: String = s"${sanitizeString(fmu)}_${sanitizeString(port.port)}"
+  override def tentativity: String = "tentative"
 }
 
-final case class SetTentative(port: PortRef) extends CosimStepInstruction {
-  override def fmu: String = port.fmu
+final case class SetTentative(port: PortRef) extends CosimStepInstruction with PortAction {
+  override def action: String = "set-tentative"
 
-  override def portName: String = port.port
-
-  override def toUppaal: String =
-    s"{$fmu, set, ${fmuPortName(port)}, noStep, noFMU, tentative, noLoop}"
-
-  override def toConf(indentationLevel: Int): String = s"${indentBy(indentationLevel)}{set-tentative: ${generatePort(port)}}"
-
-  override def toSMTLib: String = s"${sanitizeString(fmu)}_${sanitizeString(port.port)}"
+  override def UPPAALaction: String = "set"
+  override def tentativity: String = "tentative"
 }
 
 final case class Step(fmu: String, by: StepSize) extends CosimStepInstruction {
