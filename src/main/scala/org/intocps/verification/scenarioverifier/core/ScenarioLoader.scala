@@ -43,12 +43,7 @@ trait ScenarioLoader[A <: MasterModel, B] extends Logging {
     }
   }
 
-  private def parseConfig(conf: Config): A = {
-    val parsingResults = ConfigSource.fromConfig(conf).load[B]
-    val masterConfig = extractMasterConfig(parsingResults)
-    configHints()
-    parse(masterConfig)
-  }
+  protected def parseConfig(conf: Config): A
 
   def load(file: String): A = {
     if (!Files.exists(Paths.get(file))) {
@@ -151,7 +146,7 @@ trait ScenarioLoader[A <: MasterModel, B] extends Logging {
 
 object ScenarioLoaderFMI2 extends ScenarioLoader[MasterModelFMI2, MasterConfig] {
 
-  protected override def configHints(): Unit = {
+  protected def parseConfig(conf: Config): MasterModelFMI2 = {
     @unused
     implicit val hintNestedStepStatement: ProductHint[NestedStepStatement] = ProductHint[NestedStepStatement](allowUnknownKeys = false)
     @unused
@@ -162,6 +157,9 @@ object ScenarioLoaderFMI2 extends ScenarioLoader[MasterModelFMI2, MasterConfig] 
     implicit val hintRootInitStatement: ProductHint[RootInitStatement] = ProductHint[RootInitStatement](allowUnknownKeys = false)
     @unused
     implicit val hintMasterConfig: ProductHint[MasterConfig] = ProductHint[MasterConfig](allowUnknownKeys = false)
+    val parsingResults = ConfigSource.fromConfig(conf).load[MasterConfig]
+    val masterConfig = extractMasterConfig(parsingResults)
+    parse(masterConfig)
   }
 
   /*

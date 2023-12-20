@@ -2,14 +2,15 @@ package org.intocps.verification.scenarioverifier.core
 
 import scala.annotation.unused
 
+import com.typesafe.config.Config
 import org.intocps.verification.scenarioverifier.core.masterModel._
 import org.intocps.verification.scenarioverifier.core.FMI3._
 import pureconfig.generic.auto._
 import pureconfig.generic.ProductHint
+import pureconfig.ConfigSource
 
 object ScenarioLoaderFMI3 extends ScenarioLoader[MasterModelFMI3, FMI3MasterConfig] {
-
-  protected override def configHints(): Unit = {
+  protected def parseConfig(conf: Config): MasterModelFMI3 = {
     // This forces pure config to not tolerate unknown keys in the config file.
     // It gives errors when typos happen.
     // From https://pureconfig.github.io/docs/overriding-behavior-for-case-classes.html
@@ -23,6 +24,9 @@ object ScenarioLoaderFMI3 extends ScenarioLoader[MasterModelFMI3, FMI3MasterConf
     implicit val hintRootInitStatement: ProductHint[RootEventStatement] = ProductHint[RootEventStatement](allowUnknownKeys = false)
     @unused
     implicit val hintMasterConfig: ProductHint[FMI3MasterConfig] = ProductHint[FMI3MasterConfig](allowUnknownKeys = false)
+    val parsingResults = ConfigSource.fromConfig(conf).load[FMI3MasterConfig]
+    val masterConfig = extractMasterConfig(parsingResults)
+    parse(masterConfig)
   }
 
   override def parse(config: FMI3MasterConfig): MasterModelFMI3 = {
