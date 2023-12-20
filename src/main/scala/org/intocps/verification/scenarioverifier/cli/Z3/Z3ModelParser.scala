@@ -1,19 +1,9 @@
 package org.intocps.verification.scenarioverifier.cli.Z3
 
 import org.intocps.verification.scenarioverifier
+import org.intocps.verification.scenarioverifier.core.FMI3.{GetClock, SetClock}
+import org.intocps.verification.scenarioverifier.core._
 import org.intocps.verification.scenarioverifier.core.masterModel._
-import org.intocps.verification.scenarioverifier.core.CosimStepInstruction
-import org.intocps.verification.scenarioverifier.core.DefaultStepSize
-import org.intocps.verification.scenarioverifier.core.EventInstruction
-import org.intocps.verification.scenarioverifier.core.FMI3
-import org.intocps.verification.scenarioverifier.core.FMI3.Get
-import org.intocps.verification.scenarioverifier.core.FMI3.GetClock
-import org.intocps.verification.scenarioverifier.core.FMI3.SetClock
-import org.intocps.verification.scenarioverifier.core.InitGet
-import org.intocps.verification.scenarioverifier.core.InitSet
-import org.intocps.verification.scenarioverifier.core.InitializationInstruction
-import org.intocps.verification.scenarioverifier.core.PortRef
-import org.intocps.verification.scenarioverifier.core.Step
 
 object Z3ModelParser {
   private def filterActions(z3Model: String): List[String] = {
@@ -49,17 +39,15 @@ object Z3ModelParser {
   private def parseZ3CoSimAlgorithm(algorithm: String, masterModel: MasterModelFMI3): List[CosimStepInstruction] = {
     val actions = filterActions(algorithm)
     val instructions = actions.map(action => {
-      val fmuName = action.split("-").head
-      val actionType = action.split("-").last
-      if (actionType.equalsIgnoreCase("step"))
-        Step(fmuName, DefaultStepSize())
+      val portRef = parsePortRef(action)
+      if (portRef.port.equalsIgnoreCase("step"))
+        Step(portRef.fmu, DefaultStepSize())
       else {
-        val portName = actionType
-        val fmuModel = masterModel.scenario.fmus(fmuName)
-        if (fmuModel.inputs.contains(portName))
-          scenarioverifier.core.Set(PortRef(fmuName, portName))
-        else if (fmuModel.outputs.contains(portName))
-          scenarioverifier.core.Get(PortRef(fmuName, portName))
+        val fmuModel = masterModel.scenario.fmus(portRef.fmu)
+        if (fmuModel.inputs.contains(portRef.port))
+          scenarioverifier.core.Set(portRef)
+        else if (fmuModel.outputs.contains(portRef.port))
+          scenarioverifier.core.Get(portRef)
         else
           throw new Exception(s"The action $action is not a valid action in the given context")
       }
@@ -70,12 +58,12 @@ object Z3ModelParser {
   private def parseZ3EventAlgorithm(algorithm: String, masterModel: MasterModelFMI3): List[EventInstruction] = {
     val actions = filterActions(algorithm)
     val instructions = actions.map(action => {
-      var portRef = parsePortRef(action)
+      val portRef = parsePortRef(action)
       val fmuModel = masterModel.scenario.fmus(portRef.fmu)
       if (fmuModel.inputs.contains(portRef.port))
         FMI3.Set(portRef)
       else if (fmuModel.outputs.contains(portRef.port))
-        Get(portRef)
+        FMI3.Get(portRef)
       else if (fmuModel.inputClocks.contains(portRef.port))
         SetClock(portRef)
       else if (fmuModel.outputClocks.contains(portRef.port))
