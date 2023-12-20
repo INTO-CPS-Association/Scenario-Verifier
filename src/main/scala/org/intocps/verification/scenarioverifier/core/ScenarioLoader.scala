@@ -23,12 +23,11 @@ import pureconfig.generic.auto._
 import pureconfig.generic.ProductHint
 import pureconfig.ConfigReader.Result
 import pureconfig.ConfigSource
-import pureconfig.generic.auto._
 
 trait ScenarioLoader[A <: MasterModel, B] extends Logging {
   def parse(config: B): A
 
-  private def extractMasterConfig(parsingResults: Result[B]): B = {
+  protected def extractMasterConfig(parsingResults: Result[B]): B = {
     parsingResults match {
       case Left(errors) =>
         logger.error("Errors during parsing.")
@@ -140,8 +139,6 @@ trait ScenarioLoader[A <: MasterModel, B] extends Logging {
     model.fmus.map(f => Terminate(f._1)) ++
       model.fmus.map(f => FreeInstance(f._1)) ++
       model.fmus.map(f => Unload(f._1))
-
-  protected def configHints(): Unit
 }
 
 object ScenarioLoaderFMI2 extends ScenarioLoader[MasterModelFMI2, MasterConfig] {
