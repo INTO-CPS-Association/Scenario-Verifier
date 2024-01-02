@@ -44,7 +44,7 @@ object VerificationAPI extends Logging {
    * @return
    *   true if the algorithm is correct, false otherwise
    */
-  def verifyFMI3Algorithm(masterModel: MasterModelFMI3): Boolean = {
+  private def verifyFMI3Algorithm(masterModel: MasterModelFMI3): Boolean = {
     SMTEncoder.verifyAlgorithm(masterModel)
   }
 
@@ -61,13 +61,15 @@ object VerificationAPI extends Logging {
   private def verifyFMI2Algorithm(
       masterModel: MasterModelFMI2,
       uppaalFileType: (String, ModelEncoding, Directory) => File,
-      isOnlineMode: Boolean = false): Boolean = {
+      isOnlineMode: Boolean = false,
+      deleteUppallFile : Boolean = true): Boolean = {
     if (!isOnlineMode) {
       require(VerifyTA.isInstalled, "Uppaal is not installed, please install it and add it to your PATH")
     }
     val uppaalFile = generateUppaalFile(masterModel, uppaalFileType)
     val verificationResult = VerifyTA.verify(uppaalFile, isOnlineMode)
-    FileUtils.deleteQuietly(uppaalFile)
+    if(deleteUppallFile)
+      FileUtils.deleteQuietly(uppaalFile)
     checkVerificationResult(verificationResult)
   }
 
@@ -87,7 +89,8 @@ object VerificationAPI extends Logging {
   def dynamicVerification(
       scenarioModel: FMI2ScenarioModel,
       previous_actions: List[CosimStepInstruction],
-      next_action: CosimStepInstruction): Verdict = {
+      next_action: CosimStepInstruction,
+      deleteUppaalFile : Boolean = true): Verdict = {
     // Does the previous actions contain repeated actions?
     val connectionsSrc = scenarioModel.connections.groupBy(_.srcPort)
     val numberOfActionsInAlgorithm = connectionsSrc
@@ -96,13 +99,6 @@ object VerificationAPI extends Logging {
     val actionsToCheck = previous_actions.size % numberOfActionsInAlgorithm
     val firstAction = Math.max(previous_actions.size - actionsToCheck, 0)
     val filtered_previous_actions = previous_actions.drop(firstAction)
-
-    /*
-    val lastIndexOfFirstAction = if (previous_actions.nonEmpty)
-      previous_actions.lastIndexOf(previous_actions.head)
-    else 0
-    val filtered_previous_actions = previous_actions.drop(lastIndexOfFirstAction)
-     */
 
     val masterModel = MasterModelFMI2(
       "dynamic_verification",
@@ -114,11 +110,12 @@ object VerificationAPI extends Logging {
 
     val cachedResult = lookupInCache(masterModel)
     if (cachedResult.isDefined) {
+      logger.info("Verdict found in cache - skipping verification in Uppaal")
       return Verdict(cachedResult.get, Predef.Set.empty)
     }
 
     val verdict =
-      if (verifyFMI2Algorithm(masterModel, ScenarioGenerator.generateDynamicNoEnabledUppaalFile, isOnlineMode = true)) {
+      if (verifyFMI2Algorithm(masterModel, ScenarioGenerator.generateDynamicNoEnabledUppaalFile, isOnlineMode = true, deleteUppaalFile)) {
         // If the algorithm is correct, we don't need to generate a trace
         Verdict(correct = true, Predef.Set.empty)
       } else {

@@ -6,14 +6,13 @@ import org.scalatest.flatspec._
 import org.scalatest.matchers._
 
 class PositiveTests extends AnyFlatSpec with should.Matchers {
-
   def generateAndVerify(resourcesFile: String): Boolean = {
     val conf = getClass.getResourceAsStream(resourcesFile)
     val masterModel = ScenarioLoaderFMI2.load(conf)
     (1 until masterModel.cosimStep.values.head.length).forall(i => {
       val previous_actions = masterModel.cosimStep.values.head.take(i)
       val current_action = masterModel.cosimStep.values.head(i)
-      VerificationAPI.dynamicVerification(masterModel.scenario, previous_actions, current_action).correct
+      VerificationAPI.dynamicVerification(masterModel.scenario, previous_actions, current_action, false).correct
     })
   }
 
