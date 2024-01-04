@@ -138,7 +138,7 @@ jobs:
         run: mvn validate dependency:resolve-plugins -B --quiet
 
       - name: Maven Build
-        run: mvn -B package --file pom.xml -Dmaven.test.skip=true
+        run: mvn -B package --file pom.xml "-Dmaven.test.skip=true"
 
   final:
     name: Build and Deploy Combined Release
