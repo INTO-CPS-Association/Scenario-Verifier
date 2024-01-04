@@ -16,7 +16,7 @@ on:
 #        default: '2.4.1'
 
 env:
-  JAVA_VERSION: 1.8
+  JAVA_VERSION: 11.0.3
   SERVER_ID: ossrh
 
 
