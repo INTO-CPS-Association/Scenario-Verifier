@@ -1,6 +1,6 @@
 #!/bin/bash
 # Clean is necessary because of the twirl templates. They won't be recompiled (even if changed) unless they've been deleted.
-sbt clean assembly 
+mvn clean package
 
 rm -rf release
 

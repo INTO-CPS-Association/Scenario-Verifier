@@ -1,5 +1,5 @@
 # Clean is necessary because of the twirl templates. They won't be recompiled (even if changed) unless they've been deleted.
-& sbt clean assembly
+& mvn clean package
 if($?)
 {
     Remove-Item -Force -Recurse .\release
