@@ -61,7 +61,7 @@
         <TWIRL_VERSION>2.0.2</TWIRL_VERSION>
 
         <revision>0.2.22</revision>
-        <changelist>-SNAPSHOT</changelist>
+        <changelist></changelist>
         <sha1/>
     </properties>
     <dependencies>
