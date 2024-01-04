@@ -135,10 +135,10 @@ jobs:
 
 
       - name: Maven download
-        run: mvn validate dependency:resolve-plugins -B --quiet
+        run: mvn validate dependency:resolve-plugins -Psonatype -B --quiet
 
       - name: Maven Build
-        run: mvn -B package --file pom.xml "-Dmaven.test.skip=true"
+        run: mvn -B package -Psonatype --file pom.xml "-Dmaven.test.skip=true"
 
   final:
     name: Build and Deploy Combined Release
@@ -186,10 +186,10 @@ jobs:
 
 
       - name: Maven download
-        run: mvn validate dependency:resolve-plugins -B --quiet
+        run: mvn validate dependency:resolve-plugins -Psonatype -B --quiet
 
       - name: Maven Build Final
-        run: mvn -B package --file pom.xml -Dmaven.test.skip=true
+        run: mvn -B package -Psonatype --file pom.xml -Dmaven.test.skip=true
 
       - name: Maven Deploy RELEASE
         # If autorelease is false then it must be released from here: https://oss.sonatype.org/#stagingRepositories
