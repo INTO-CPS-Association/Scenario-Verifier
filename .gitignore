@@ -177,3 +177,7 @@ uppaal_binary/
 .m2/
 libj2v8_linux_x86_64.so
 .java/
+
+.idea/
+.java-version
+dynamic_verification.xml

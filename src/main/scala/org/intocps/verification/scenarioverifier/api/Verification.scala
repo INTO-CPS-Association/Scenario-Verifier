@@ -62,13 +62,13 @@ object VerificationAPI extends Logging {
       masterModel: MasterModelFMI2,
       uppaalFileType: (String, ModelEncoding, Directory) => File,
       isOnlineMode: Boolean = false,
-      deleteUppallFile : Boolean = true): Boolean = {
+      deleteUppallFile: Boolean = true): Boolean = {
     if (!isOnlineMode) {
       require(VerifyTA.isInstalled, "Uppaal is not installed, please install it and add it to your PATH")
     }
     val uppaalFile = generateUppaalFile(masterModel, uppaalFileType)
     val verificationResult = VerifyTA.verify(uppaalFile, isOnlineMode)
-    if(deleteUppallFile)
+    if (deleteUppallFile)
       FileUtils.deleteQuietly(uppaalFile)
     checkVerificationResult(verificationResult)
   }
@@ -90,7 +90,7 @@ object VerificationAPI extends Logging {
       scenarioModel: FMI2ScenarioModel,
       previous_actions: List[CosimStepInstruction],
       next_action: CosimStepInstruction,
-      deleteUppaalFile : Boolean = true): Verdict = {
+      deleteUppaalFile: Boolean = true): Verdict = {
     // Does the previous actions contain repeated actions?
     val connectionsSrc = scenarioModel.connections.groupBy(_.srcPort)
     val numberOfActionsInAlgorithm = connectionsSrc

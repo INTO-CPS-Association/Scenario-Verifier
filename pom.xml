@@ -15,7 +15,7 @@
     <packaging>jar</packaging>
     <description>scenario_verifier</description>
     <url>https://github.com/INTO-CPS-Association/Scenario-Verifier</url>
-    <version>0.2.22-SNAPSHOT</version>
+    <version>${revision}${sha1}${changelist}</version>
     <licenses>
         <license>
             <name>INTO-CPS-LICENSE</name>
@@ -39,6 +39,17 @@
             <url>https://github.com/INTO-CPS-Association</url>
             <email>sth@ece.au.dk</email>
         </developer>
+
+        <developer>
+            <id>lausdahl</id>
+            <email>lausdahl@eng.au.dk</email>
+            <name>Kenneth Lausdahl</name>
+            <roles>
+                <role>maintainer</role>
+            </roles>
+            <organization>Aarhus University</organization>
+            <organizationUrl>http://eng.au.dk/</organizationUrl>
+        </developer>
     </developers>
     <properties>
         <encoding>UTF-8</encoding>
@@ -48,6 +59,10 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <TWIRL_VERSION>2.0.2</TWIRL_VERSION>
+
+        <revision>0.2.22</revision>
+        <changelist>-SNAPSHOT</changelist>
+        <sha1/>
     </properties>
     <dependencies>
         <dependency>
@@ -302,6 +317,40 @@
                         </goals>
                       </execution>
                      </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>3.0.0</version>
+                    <executions>
+                        <execution>
+                            <id>enforce-maven</id>
+                            <goals>
+                                <goal>enforce</goal>
+                            </goals>
+                            <configuration>
+                                <rules>
+                                    <requireMavenVersion>
+                                        <version>3.5</version>
+                                    </requireMavenVersion>
+                                </rules>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>com.outbrain.swinfra</groupId>
+                    <artifactId>ci-friendly-flatten-maven-plugin</artifactId>
+                    <version>1.0.14</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>clean</goal>
+                                <goal>flatten</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>

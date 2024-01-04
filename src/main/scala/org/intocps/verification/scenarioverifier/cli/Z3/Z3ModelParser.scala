@@ -1,9 +1,10 @@
 package org.intocps.verification.scenarioverifier.cli.Z3
 
 import org.intocps.verification.scenarioverifier
-import org.intocps.verification.scenarioverifier.core.FMI3.{GetClock, SetClock}
 import org.intocps.verification.scenarioverifier.core._
 import org.intocps.verification.scenarioverifier.core.masterModel._
+import org.intocps.verification.scenarioverifier.core.FMI3.GetClock
+import org.intocps.verification.scenarioverifier.core.FMI3.SetClock
 
 object Z3ModelParser {
   private def filterActions(z3Model: String): List[String] = {
