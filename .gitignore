@@ -181,3 +181,4 @@ libj2v8_linux_x86_64.so
 .idea/
 .java-version
 dynamic_verification.xml
+.ci-friendly-pom.xml

@@ -70,11 +70,11 @@
             <artifactId>scala-library</artifactId>
             <version>${scala.version}</version>
         </dependency>
-            <dependency>
-                <groupId>org.playframework.twirl</groupId>
-                <artifactId>twirl-api_${SCCALA_VERSION}</artifactId>
-                <version>${TWIRL_VERSION}</version>
-            </dependency>
+        <dependency>
+            <groupId>org.playframework.twirl</groupId>
+            <artifactId>twirl-api_${SCCALA_VERSION}</artifactId>
+            <version>${TWIRL_VERSION}</version>
+        </dependency>
         <dependency>
             <groupId>io.circe</groupId>
             <artifactId>circe-core_2.13</artifactId>
@@ -159,6 +159,19 @@
         <sourceDirectory>src/main/scala</sourceDirectory>
         <testSourceDirectory>src/test/scala</testSourceDirectory>
         <plugins>
+            <plugin>
+                <groupId>com.outbrain.swinfra</groupId>
+                <artifactId>ci-friendly-flatten-maven-plugin</artifactId>
+                <version>1.0.14</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>clean</goal>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.antipathy</groupId>
                 <!-- The scala binary here doesn't need to match the project version -->
@@ -256,7 +269,7 @@
                 <version>${TWIRL_VERSION}</version>
                 <configuration>
                     <outputDir>twirl_templates</outputDir>
-                  </configuration>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -311,12 +324,12 @@
                     <artifactId>dependency-check-maven</artifactId>
                     <version>6.5.0</version>
                     <executions>
-                      <execution>
-                        <goals>
-                          <goal>check</goal>
-                        </goals>
-                      </execution>
-                     </executions>
+                        <execution>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
 
                 <plugin>
@@ -339,19 +352,7 @@
                         </execution>
                     </executions>
                 </plugin>
-                <plugin>
-                    <groupId>com.outbrain.swinfra</groupId>
-                    <artifactId>ci-friendly-flatten-maven-plugin</artifactId>
-                    <version>1.0.14</version>
-                    <executions>
-                        <execution>
-                            <goals>
-                                <goal>clean</goal>
-                                <goal>flatten</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
+
             </plugins>
         </pluginManagement>
     </build>
@@ -408,7 +409,15 @@
                             </execution>
                         </executions>
                     </plugin>
+                </plugins>
+            </build>
+        </profile>
 
+
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-enforcer-plugin</artifactId>
