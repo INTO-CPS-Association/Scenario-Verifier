@@ -222,7 +222,7 @@ jobs:
           tag_name: ${{ needs.version_change.outputs.build_tag }}
           release_name: ${{ needs.version_change.outputs.build_tag }}
           body: |
-            Grab the new version from Maven central https://search.maven.org/artifact/org.into-cps.fmi/jnifmuapi/${{ needs.version_change.outputs.build_version }}/jar:
+            Grab the new version from Maven central https://search.maven.org/artifact/org.into-cps.verification/scenario_verifier/${{ needs.version_change.outputs.build_version }}/jar:
 
             ```
             <dependency>
